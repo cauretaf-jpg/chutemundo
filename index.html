@@ -1,0 +1,560 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Torneos Chute Mundo</title>
+  <link rel="stylesheet" href="styles.css" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-storage-compat.js"></script>
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <h1>Torneos Chute Mundo</h1>
+      <p>Sistema de torneos, amistosos, ranking FIFA, divisiones y disciplina</p>
+    </div>
+
+    <nav class="navbar">
+      <button class="nav-btn active" data-target="inicio">Inicio</button>
+      <button class="nav-btn" data-target="torneos">Torneos</button>
+      <button class="nav-btn" data-target="amistosos">Amistosos</button>
+      <button class="nav-btn" data-target="reglas">Reglas</button>
+      <button class="nav-btn" data-target="equipos">Equipos</button>
+      <button class="nav-btn" data-target="estadisticas">Estadísticas</button>
+      <button class="nav-btn" data-target="admin">Admin</button>
+      <button class="nav-btn dark-toggle" id="darkModeBtn">🌙 Modo oscuro</button>
+    </nav>
+  </header>
+
+  <div id="modalOverlay" class="modal-overlay" style="display:none">
+    <div class="modal-box">
+      <div id="modalContent"></div>
+    </div>
+  </div>
+
+  <main class="container">
+    <section id="systemAlerts" class="card">
+      <h2>Alertas del Sistema</h2>
+      <div id="alertsBox">
+        <p class="empty">Sin alertas activas.</p>
+      </div>
+    </section>
+
+    <section id="inicio" class="section active">
+      <div class="card hero">
+        <h2>Resumen General</h2>
+        <div class="summary-grid">
+          <div class="summary-box"><span class="num" id="sumTeams">0</span><p>Equipos</p></div>
+          <div class="summary-box"><span class="num" id="sumTournaments">0</span><p>Torneos</p></div>
+          <div class="summary-box"><span class="num" id="sumMatches">0</span><p>Partidos oficiales</p></div>
+          <div class="summary-box"><span class="num" id="sumFriendlies">0</span><p>Amistosos</p></div>
+          <div class="summary-box"><span class="num" id="sumPlayed">0</span><p>Jugados</p></div>
+          <div class="summary-box"><span class="num" id="sumPending">0</span><p>Pendientes</p></div>
+        </div>
+      </div>
+
+      <div class="grid-2">
+        <div class="card">
+          <h3>Clásicos Oficiales</h3>
+          <div id="classicsHome"></div>
+        </div>
+
+        <div class="card">
+          <h3>Torneo Activo</h3>
+          <div id="activeTournamentCard"></div>
+        </div>
+      </div>
+
+      <div class="grid-2">
+        <div class="card">
+          <h3>Campeón Actual</h3>
+          <div id="currentChampionCard"></div>
+        </div>
+
+        <div class="card">
+          <h3>Último Torneo Finalizado</h3>
+          <div id="lastFinishedTournamentCard"></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3>Trayectoria del Campeón</h3>
+        <div id="championTrajectoryCard"></div>
+      </div>
+
+      <div class="card">
+        <h3>Récords Históricos</h3>
+        <div id="historicalRecordsCard"></div>
+      </div>
+
+      <div class="card">
+        <h3>Timeline de Torneos</h3>
+        <div id="tournamentTimelineCard"></div>
+      </div>
+
+      <div class="grid-2">
+        <div class="card">
+          <h3>Divisiones Actuales</h3>
+          <div id="divisionsPreview"></div>
+        </div>
+
+        <div class="card">
+          <h3>Ranking FIFA Actual</h3>
+          <div id="fifaPreview"></div>
+        </div>
+      </div>
+    </section>
+
+    <section id="torneos" class="section">
+      <div class="grid-2">
+        <div class="card">
+          <h2>Crear Torneo</h2>
+
+          <div class="form-group">
+            <label for="tName">Nombre</label>
+            <input id="tName" type="text" placeholder="Ej: Apertura 2026 División A" />
+          </div>
+
+          <div class="form-group">
+            <label for="tType">Formato</label>
+            <select id="tType">
+              <option value="league">Liga</option>
+              <option value="league_playoff">Liga + Playoff</option>
+              <option value="cup_groups">Copa con grupos</option>
+              <option value="direct_knockout">Eliminación directa</option>
+              <option value="division_final">División con final 1° vs 2°</option>
+            </select>
+          </div>
+
+          <div class="grid-2">
+            <div class="form-group">
+              <label for="tLegs">Fase regular</label>
+              <select id="tLegs">
+                <option value="1">Solo ida</option>
+                <option value="2">Ida y vuelta</option>
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label for="tStatus">Estado</label>
+              <select id="tStatus">
+                <option value="upcoming">Próximo</option>
+                <option value="active">Activo</option>
+                <option value="historical">Histórico</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label>Equipos</label>
+            <div class="select-all-bar">
+              <label class="checkbox-item">
+                <input type="checkbox" id="checkAllTeams" />
+                <span>Seleccionar todos</span>
+              </label>
+            </div>
+            <div id="teamPicker" class="checkbox-list"></div>
+          </div>
+
+          <div class="actions">
+            <button class="btn primary" id="createTournamentBtn">Crear torneo</button>
+            <button class="btn secondary" id="createDivisionsBtn">Crear divisiones automáticas</button>
+          </div>
+        </div>
+
+        <div class="card">
+          <h2>Torneos</h2>
+
+          <div class="form-group">
+            <label for="tournamentOrder">Orden</label>
+            <select id="tournamentOrder">
+              <option value="asc">Del primero al último</option>
+              <option value="desc">Del último al primero</option>
+            </select>
+          </div>
+
+          <div class="actions mb-14">
+            <button class="btn primary" id="createNextTournamentBtn">Crear proximo torneo</button>
+          </div>
+
+          <div id="tournamentList"></div>
+        </div>
+      </div>
+
+      <div id="tournamentDetail"></div>
+    </section>
+
+    <section id="amistosos" class="section">
+      <div class="grid-2">
+        <div class="card">
+          <h2>Crear amistoso</h2>
+
+          <div class="grid-2">
+            <div class="form-group">
+              <label for="friendlyHome">Local</label>
+              <select id="friendlyHome"></select>
+            </div>
+
+            <div class="form-group">
+              <label for="friendlyAway">Visitante</label>
+              <select id="friendlyAway"></select>
+            </div>
+          </div>
+
+          <div class="grid-2">
+            <div class="form-group">
+              <label for="friendlyDate">Fecha</label>
+              <input id="friendlyDate" type="date" />
+            </div>
+
+            <div class="form-group">
+              <label for="friendlyTime">Hora</label>
+              <input id="friendlyTime" type="time" />
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="friendlyVenue">Lugar</label>
+            <input id="friendlyVenue" type="text" placeholder="Ej: Wladi's House" />
+          </div>
+
+          <button class="btn primary" id="createFriendlyBtn">Crear amistoso</button>
+        </div>
+
+        <div class="card">
+          <h2>Listado de Amistosos</h2>
+          <div id="friendliesList"></div>
+        </div>
+      </div>
+
+      <div id="friendlyDetail"></div>
+    </section>
+
+    <section id="reglas" class="section">
+      <div class="grid-2">
+        <div class="card">
+          <h2>Reglas del Sistema</h2>
+
+          <div class="form-group">
+            <label for="newRuleTitle">Título</label>
+            <input id="newRuleTitle" type="text" placeholder="Ej: Suspensión por amarillas" />
+          </div>
+
+          <div class="form-group">
+            <label for="newRuleText">Descripción</label>
+            <textarea id="newRuleText" placeholder="Describe la regla"></textarea>
+          </div>
+
+          <div class="actions">
+            <button class="btn primary" id="addRuleBtn">Agregar regla</button>
+          </div>
+        </div>
+
+        <div class="card">
+          <h2>Configuración Disciplinaria y Ranking</h2>
+
+          <div class="form-group">
+            <label for="ruleYellowMatch">Amarillas en un partido para expulsión</label>
+            <input id="ruleYellowMatch" type="number" min="1" />
+          </div>
+
+          <div class="form-group">
+            <label for="ruleYellowAccum">Amarillas acumuladas para suspensión</label>
+            <input id="ruleYellowAccum" type="number" min="1" />
+          </div>
+
+          <div class="form-group">
+            <label for="ruleFriendlyWeight">Peso amistoso en ranking FIFA</label>
+            <input id="ruleFriendlyWeight" type="number" step="0.05" min="0" max="1" />
+          </div>
+
+          <div class="form-group">
+            <label for="ruleChampionPoints">Puntos extra al campeón</label>
+            <input id="ruleChampionPoints" type="number" min="0" />
+          </div>
+
+          <div class="form-group">
+            <label for="ruleRunnerPoints">Puntos extra al subcampeón</label>
+            <input id="ruleRunnerPoints" type="number" min="0" />
+          </div>
+
+          <div class="form-group">
+            <label for="ruleThirdPoints">Puntos extra al tercer lugar</label>
+            <input id="ruleThirdPoints" type="number" min="0" />
+          </div>
+
+          <button class="btn primary" id="saveRulesConfigBtn">Guardar configuración</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>Listado de Reglas</h2>
+        <div id="rulesList"></div>
+      </div>
+    </section>
+
+    <section id="equipos" class="section">
+      <div class="grid-2">
+        <div class="card">
+          <h2>Registrar Equipo</h2>
+
+          <div class="form-group">
+            <label for="newTeamName">Nombre del equipo</label>
+            <input id="newTeamName" type="text" placeholder="Nuevo equipo" />
+          </div>
+
+          <div class="form-group">
+            <label for="newTeamCoach">DT</label>
+            <input id="newTeamCoach" type="text" placeholder="Nombre del DT" />
+          </div>
+
+          <button class="btn primary" id="addTeamBtn">Agregar equipo</button>
+        </div>
+
+        <div class="card">
+          <h2>Equipos Inscritos</h2>
+          <div id="teamList"></div>
+        </div>
+      </div>
+
+      <div id="teamProfile"></div>
+    </section>
+
+    <section id="estadisticas" class="section">
+      <div class="card">
+        <h2>Estadísticas</h2>
+        <div class="form-group">
+          <label for="eraFilter">Era</label>
+          <select id="eraFilter">
+            <option value="all">Toda la Historia</option>
+            <option value="classic">Era Clásica</option>
+            <option value="division">Era Divisiones</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>Tabla General Acumulada</h2>
+        <div class="form-group">
+          <label for="globalTableFilter">Filtrar por torneo</label>
+          <select id="globalTableFilter">
+            <option value="all">Todos los torneos</option>
+          </select>
+        </div>
+        <div id="globalTable"></div>
+      </div>
+
+      <div class="grid-2">
+        <div class="card">
+          <h2>Palmarés</h2>
+          <div id="palmares"></div>
+        </div>
+
+        <div class="card">
+          <h2>Ranking de Rendimiento</h2>
+          <div class="form-group">
+            <label for="performanceFilter">Filtrar por torneo</label>
+            <select id="performanceFilter">
+              <option value="all">Todos los torneos</option>
+            </select>
+          </div>
+          <div id="performanceRanking"></div>
+        </div>
+      </div>
+
+      <div class="grid-2">
+        <div class="card">
+          <h2>Ranking estilo FIFA</h2>
+          <div class="form-group">
+            <label for="fifaRankingFilter">Filtrar por torneo</label>
+            <select id="fifaRankingFilter">
+              <option value="all">Todos los torneos</option>
+            </select>
+          </div>
+          <div id="fifaRanking"></div>
+        </div>
+
+        <div class="card">
+          <h2>Resumen de Clásicos</h2>
+          <div id="classicSummary"></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>Títulos por Categoría</h2>
+        <div id="titlesByCategory"></div>
+      </div>
+
+      <div class="card">
+        <h2>Head To Head</h2>
+
+        <div class="grid-2">
+          <div class="form-group">
+            <label for="h2hA">Equipo 1</label>
+            <select id="h2hA"></select>
+          </div>
+
+          <div class="form-group">
+            <label for="h2hB">Equipo 2</label>
+            <select id="h2hB"></select>
+          </div>
+        </div>
+
+        <button class="btn primary" id="showH2HBtn">Ver enfrentamiento</button>
+        <div id="h2hResult" class="mt-16"></div>
+      </div>
+
+      <div class="card">
+        <h2>5 Máximas Goleadas</h2>
+        <div id="biggestWinsTable"></div>
+        <button class="btn secondary mt-10" id="showMoreWinsBtn">Ver más</button>
+      </div>
+
+      <div class="grid-2">
+        <div class="card">
+          <h2>Goleadores</h2>
+
+          <div class="grid-2">
+            <div class="form-group">
+              <label for="goalsScopeFilter">Filtro</label>
+              <select id="goalsScopeFilter">
+                <option value="all">Todos</option>
+                <option value="official">Solo torneos</option>
+                <option value="friendly">Solo amistosos</option>
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label for="goalsTournamentFilter">Competencia</label>
+              <select id="goalsTournamentFilter"></select>
+            </div>
+          </div>
+
+          <div id="globalScorers"></div>
+        </div>
+
+        <div class="card">
+          <h2>Asistencias</h2>
+
+          <div class="grid-2">
+            <div class="form-group">
+              <label for="assistsScopeFilter">Filtro</label>
+              <select id="assistsScopeFilter">
+                <option value="all">Todos</option>
+                <option value="official">Solo torneos</option>
+                <option value="friendly">Solo amistosos</option>
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label for="assistsTournamentFilter">Competencia</label>
+              <select id="assistsTournamentFilter"></select>
+            </div>
+          </div>
+
+          <div id="globalAssists"></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>Sancionados y Amarillas</h2>
+        <div id="disciplineTable"></div>
+      </div>
+    </section>
+
+    <section id="admin" class="section">
+      <div class="grid-2">
+        <div class="card">
+          <h2>Respaldos</h2>
+
+          <div class="actions mb-14">
+            <button class="btn primary" id="exportBtn">Exportar JSON</button>
+            <button class="btn warn" id="resetBtn">Restaurar sistema base</button>
+            <button class="btn danger" id="hardResetBtn">Borrar almacenamiento</button>
+          </div>
+
+          <div class="form-group">
+            <label for="importArea">Importar JSON</label>
+            <textarea id="importArea" placeholder="Pega aquí un respaldo JSON completo"></textarea>
+          </div>
+
+          <button class="btn primary" id="importBtn">Importar respaldo</button>
+        </div>
+
+        <div class="card">
+          <h2>Participantes</h2>
+          <p class="muted" style="margin-bottom:12px">Controladores de equipos en torneos. El primer participante maneja Local y el segundo maneja Visita.</p>
+          <div id="adminParticipantsList"></div>
+          <div class="actions mt-10">
+            <button class="btn primary small" id="addParticipantBtn">+ Agregar Participante</button>
+          </div>
+        </div>
+
+        <div class="card">
+          <h2>Diagnóstico</h2>
+          <div class="rule-box">
+            <p>Estado de carga: <strong id="debugStatus">Inicializando...</strong></p>
+            <p>Equipos detectados: <strong id="debugTeams">0</strong></p>
+            <p>Torneos detectados: <strong id="debugTournaments">0</strong></p>
+            <p>Amistosos detectados: <strong id="debugFriendlies">0</strong></p>
+          </div>
+        </div>
+
+        <div class="card">
+          <h2>Firebase - Sincronización en la Nube</h2>
+          <p class="muted" style="margin-bottom:12px">Conecta a Firebase para sincronizar datos entre dispositivos en tiempo real.</p>
+          
+          <div id="firebaseStatus" class="rule-box">
+            <p>Estado: <strong id="firebaseStatusText">No configurado</strong></p>
+            <p>Sincronización: <strong id="firebaseSyncStatus">Inactiva</strong></p>
+          </div>
+
+          <div id="firebaseSetupForm">
+            <p class="muted mb-10">Ingresa la configuración de tu proyecto Firebase:</p>
+            <div class="form-group">
+              <label for="fbApiKey">API Key</label>
+              <input type="text" id="fbApiKey" placeholder="AIzaSy..." />
+            </div>
+            <div class="form-group">
+              <label for="fbAuthDomain">Auth Domain</label>
+              <input type="text" id="fbAuthDomain" placeholder="tu-proyecto.firebaseapp.com" />
+            </div>
+            <div class="form-group">
+              <label for="fbProjectId">Project ID</label>
+              <input type="text" id="fbProjectId" placeholder="tu-proyecto" />
+            </div>
+            <div class="form-group">
+              <label for="fbStorageBucket">Storage Bucket</label>
+              <input type="text" id="fbStorageBucket" placeholder="tu-proyecto.appspot.com" />
+            </div>
+            <div class="form-group">
+              <label for="fbMessagingSenderId">Messaging Sender ID</label>
+              <input type="text" id="fbMessagingSenderId" placeholder="123456789" />
+            </div>
+            <div class="form-group">
+              <label for="fbAppId">App ID</label>
+              <input type="text" id="fbAppId" placeholder="1:123456789:web:abc123" />
+            </div>
+            <button class="btn primary" id="connectFirebaseBtn">Conectar Firebase</button>
+          </div>
+
+          <div id="firebaseConnectedPanel" style="display:none">
+            <p class="success">Firebase conectado correctamente</p>
+            <div class="actions mt-10">
+              <button class="btn warn" id="syncNowBtn">Sincronizar ahora</button>
+              <button class="btn danger" id="disconnectFirebaseBtn">Desconectar</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <script src="data.js"></script>
+  <script src="app.js"></script>
+  <script src="firebase.js"></script>
+</body>
+</html>
