@@ -1,0 +1,14 @@
+{
+  "name": "chutemundo",
+  "version": "1.3.0",
+  "private": true,
+  "description": "App web para gestionar torneos personales de Chute Mundo.",
+  "scripts": {
+    "dev": "npx serve . -l 5173",
+    "build": "node -e \"console.log('Chutemundo es una app estática: no requiere build.')\"",
+    "preview": "npx serve . -l 4173"
+  },
+  "devDependencies": {
+    "serve": "^14.2.4"
+  }
+}

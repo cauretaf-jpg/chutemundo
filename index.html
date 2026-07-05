@@ -4,15 +4,14 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Torneos y Competiciones Chute Mundo</title>
+  <link rel="icon" href="logo/logochute.png" type="image/png" />
   <link rel="stylesheet" href="styles.css" />
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
-  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-storage-compat.js"></script>
 </head>
 <body>
   <header class="topbar">
     <div class="brand">
+      <img src="logo/logochute.png" alt="Logo Chute Mundo" class="header-logo">
       <h1>Torneos y Competiciones Chute Mundo</h1>
       <p>Sistema de torneos, amistosos, ranking FIFA, divisiones y disciplina</p>
     </div>
@@ -127,11 +126,12 @@
               <option value="direct_knockout">Eliminación directa</option>
               <option value="division_final">División con final 1° vs 2°</option>
             </select>
+            <div id="tournamentFormatHelp" class="format-help" aria-live="polite"></div>
           </div>
 
           <div class="grid-2">
             <div class="form-group">
-              <label for="tLegs">Fase regular</label>
+              <label id="tLegsLabel" for="tLegs">Fase regular</label>
               <select id="tLegs">
                 <option value="1">Solo ida</option>
                 <option value="2">Ida y vuelta</option>
@@ -157,6 +157,7 @@
               </label>
             </div>
             <div id="teamPicker" class="checkbox-list"></div>
+            <div id="teamPickerSummary" class="team-picker-summary" aria-live="polite"></div>
           </div>
 
           <div class="actions">
@@ -477,11 +478,16 @@
           </div>
 
           <div class="form-group">
-            <label for="importArea">Importar JSON</label>
+            <label for="importArea">Importar JSON pegado</label>
             <textarea id="importArea" placeholder="Pega aquí un respaldo JSON completo"></textarea>
           </div>
 
-          <button class="btn primary" id="importBtn">Importar respaldo</button>
+          <div class="form-group">
+            <label for="importFile">Importar archivo JSON</label>
+            <input id="importFile" type="file" accept="application/json,.json" />
+          </div>
+
+          <button class="btn primary" id="importBtn">Importar respaldo pegado</button>
         </div>
 
         <div class="card">
@@ -500,52 +506,55 @@
             <p>Equipos detectados: <strong id="debugTeams">0</strong></p>
             <p>Torneos detectados: <strong id="debugTournaments">0</strong></p>
             <p>Amistosos detectados: <strong id="debugFriendlies">0</strong></p>
+            <p>Guardado: <strong id="storageStatusText">Local</strong></p>
+            <p class="muted" id="storageDetailText">Último guardado local: Sin registro · Última sincronización nube: Sin registro</p>
           </div>
         </div>
 
         <div class="card">
-          <h2>Firebase - Sincronización en la Nube</h2>
-          <p class="muted" style="margin-bottom:12px">Conecta a Firebase para sincronizar datos entre dispositivos en tiempo real.</p>
+          <h2>Supabase - Preparación para Nube</h2>
+          <p class="muted" style="margin-bottom:12px">Conexión opcional para guardar y cargar un respaldo centralizado. El sistema local sigue funcionando aunque Supabase no esté conectado.</p>
+          <p class="muted" style="margin-bottom:12px">Antes de probar, ejecuta el SQL de la carpeta <strong>supabase</strong>. Para una prueba privada, usa también <strong>schema_demo_no_publicar.sql</strong>.</p>
           
-          <div id="firebaseStatus" class="rule-box">
-            <p>Estado: <strong id="firebaseStatusText">No configurado</strong></p>
-            <p>Sincronización: <strong id="firebaseSyncStatus">Inactiva</strong></p>
+          <div id="supabaseStatus" class="rule-box">
+            <p>Estado: <strong id="supabaseStatusText">No configurado</strong></p>
+            <p>Sincronización: <strong id="supabaseSyncStatus">Manual / local</strong></p>
+            <p class="muted" id="supabaseLastError">Sin errores recientes.</p>
           </div>
 
-          <div id="firebaseSetupForm">
-            <p class="muted mb-10">Ingresa la configuración de tu proyecto Firebase:</p>
+          <div id="supabaseSetupForm">
+            <p class="muted mb-10">Ingresa los datos públicos de tu proyecto Supabase. La seguridad real debe configurarse con RLS en Supabase.</p>
             <div class="form-group">
-              <label for="fbApiKey">API Key</label>
-              <input type="text" id="fbApiKey" placeholder="AIzaSy..." />
+              <label for="sbUrl">Project URL</label>
+              <input type="text" id="sbUrl" placeholder="https://xxxxx.supabase.co" />
             </div>
             <div class="form-group">
-              <label for="fbAuthDomain">Auth Domain</label>
-              <input type="text" id="fbAuthDomain" placeholder="tu-proyecto.firebaseapp.com" />
+              <label for="sbAnonKey">Anon Key</label>
+              <input type="password" id="sbAnonKey" placeholder="eyJhbGciOi..." />
+            </div>
+            <div class="grid-2">
+              <div class="form-group">
+                <label for="sbTable">Tabla</label>
+                <input type="text" id="sbTable" value="chutemundo_app_states" />
+              </div>
+              <div class="form-group">
+                <label for="sbRecordKey">Clave del respaldo</label>
+                <input type="text" id="sbRecordKey" value="main" />
+              </div>
             </div>
             <div class="form-group">
-              <label for="fbProjectId">Project ID</label>
-              <input type="text" id="fbProjectId" placeholder="tu-proyecto" />
+              <label for="sbBucket">Bucket de escudos personalizados</label>
+              <input type="text" id="sbBucket" value="chutemundo-assets" />
             </div>
-            <div class="form-group">
-              <label for="fbStorageBucket">Storage Bucket</label>
-              <input type="text" id="fbStorageBucket" placeholder="tu-proyecto.appspot.com" />
-            </div>
-            <div class="form-group">
-              <label for="fbMessagingSenderId">Messaging Sender ID</label>
-              <input type="text" id="fbMessagingSenderId" placeholder="123456789" />
-            </div>
-            <div class="form-group">
-              <label for="fbAppId">App ID</label>
-              <input type="text" id="fbAppId" placeholder="1:123456789:web:abc123" />
-            </div>
-            <button class="btn primary" id="connectFirebaseBtn">Conectar Firebase</button>
+            <button class="btn primary" id="connectSupabaseBtn">Conectar Supabase</button>
           </div>
 
-          <div id="firebaseConnectedPanel" style="display:none">
-            <p class="success">Firebase conectado correctamente</p>
+          <div id="supabaseConnectedPanel" style="display:none">
+            <p class="success">Supabase conectado correctamente.</p>
             <div class="actions mt-10">
-              <button class="btn warn" id="syncNowBtn">Sincronizar ahora</button>
-              <button class="btn danger" id="disconnectFirebaseBtn">Desconectar</button>
+              <button class="btn primary" id="syncSupabaseBtn">Subir respaldo actual</button>
+              <button class="btn warn" id="loadSupabaseBtn">Cargar desde Supabase</button>
+              <button class="btn danger" id="disconnectSupabaseBtn">Desconectar</button>
             </div>
           </div>
         </div>
@@ -554,7 +563,8 @@
   </main>
 
   <script src="data.js"></script>
+  <script src="storage.js"></script>
+  <script src="supabaseClient.js"></script>
   <script src="app.js"></script>
-  <script src="firebase.js"></script>
 </body>
 </html>

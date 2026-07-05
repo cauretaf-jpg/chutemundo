@@ -140,6 +140,11 @@ body {
   font-size: 0.95rem;
 }
 
+.header-logo {
+  height: 80px;
+  margin-bottom: 10px;
+}
+
 .navbar {
   margin-top: 20px;
   display: flex;
@@ -403,6 +408,149 @@ p {
 
 .badge i {
   font-size: 0.75rem;
+}
+
+.badge.success {
+  background: rgba(34, 197, 94, 0.1);
+  color: var(--green);
+  border-color: rgba(34, 197, 94, 0.2);
+}
+
+.badge.secondary {
+  background: rgba(100, 100, 100, 0.1);
+  color: #888;
+  border-color: rgba(100, 100, 100, 0.2);
+}
+
+.ability-badge {
+  display: inline-block;
+  padding: 3px 8px;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  margin-right: 4px;
+  margin-bottom: 4px;
+}
+
+.objects-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 12px;
+  margin-top: 12px;
+}
+
+.coach-card {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  background: var(--bg-secondary);
+  border-radius: 12px;
+  padding: 16px;
+  margin-top: 12px;
+}
+
+.coach-avatar {
+  width: 60px;
+  height: 60px;
+  background: linear-gradient(135deg, var(--primary), var(--blue));
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.4rem;
+  font-weight: 800;
+  color: white;
+}
+
+.coach-info {
+  flex: 1;
+}
+
+.coach-name {
+  font-size: 1.1rem;
+  font-weight: 700;
+  margin-bottom: 4px;
+}
+
+.coach-ability {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--green);
+  margin-bottom: 4px;
+}
+
+.coach-desc {
+  font-size: 0.8rem;
+  color: #aaa;
+}
+
+.coach-stadium {
+  font-size: 0.85rem;
+  color: #888;
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid var(--border-color);
+}
+
+.object-card {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  padding: 12px;
+}
+
+.object-name {
+  font-weight: 700;
+  color: var(--primary);
+  margin-bottom: 4px;
+}
+
+.object-minute {
+  font-size: 0.8rem;
+  color: #888;
+  margin-bottom: 6px;
+}
+
+.object-effect {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--green);
+  margin-bottom: 4px;
+}
+
+.object-desc {
+  font-size: 0.75rem;
+  color: #aaa;
+}
+
+.team-inline {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.team-avatar-inline {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  overflow: hidden;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.65rem;
+  font-weight: 700;
+  color: var(--text-color);
+  flex-shrink: 0;
+}
+
+.team-avatar-inline img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 
 .badge.classic {
@@ -1873,4 +2021,307 @@ table td button:hover {
 
 .upload-area input[type="file"] {
   display: none;
+}
+
+/* Ajustes móviles de estabilización v1.1 */
+@media (max-width: 768px) {
+  .topbar {
+    padding: 16px 14px 18px;
+  }
+
+  .brand {
+    text-align: center;
+  }
+
+  .header-logo {
+    height: 58px;
+    margin-bottom: 8px;
+  }
+
+  .brand h1 {
+    font-size: 1.35rem;
+    line-height: 1.2;
+  }
+
+  .brand p {
+    font-size: 0.82rem;
+  }
+
+  .navbar {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    gap: 8px;
+    padding: 4px 2px 8px;
+    scrollbar-width: thin;
+  }
+
+  .navbar button {
+    flex: 0 0 auto;
+    white-space: nowrap;
+    border-radius: 999px;
+    padding: 9px 13px;
+    font-size: 0.78rem;
+  }
+
+  .dark-toggle {
+    margin-left: 0;
+  }
+
+  .container {
+    width: 100%;
+    margin: 16px auto;
+    padding: 0 10px;
+  }
+
+  .card {
+    padding: 16px;
+    margin-bottom: 14px;
+    border-radius: 14px;
+  }
+
+  .summary-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+  }
+
+  th, td {
+    padding: 10px 12px;
+    font-size: 0.84rem;
+  }
+
+  .table-wrap table {
+    min-width: 620px;
+  }
+
+  .actions {
+    gap: 8px;
+  }
+
+  .tournament-header {
+    align-items: flex-start;
+  }
+}
+
+/* Ajustes v1.2 cloud-ready */
+:root {
+  --bg-secondary: var(--bg);
+  --border-color: var(--line);
+  --primary: var(--blue);
+}
+
+.rule-box strong#storageStatusText,
+.rule-box strong#supabaseStatusText,
+.rule-box strong#supabaseSyncStatus {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 9px;
+  border-radius: 999px;
+  background: rgba(59, 130, 246, 0.1);
+}
+
+input[type="file"] {
+  width: 100%;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  padding: 12px;
+  background: var(--bg);
+  color: var(--text);
+}
+
+#supabaseLastError,
+#storageDetailText {
+  margin-top: 8px;
+  word-break: break-word;
+}
+
+#supabaseConnectedPanel .actions {
+  flex-wrap: wrap;
+}
+
+@media (max-width: 768px) {
+  #supabaseConnectedPanel .actions .btn,
+  #supabaseSetupForm .btn,
+  #importBtn,
+  #exportBtn,
+  #resetBtn,
+  #hardResetBtn {
+    width: 100%;
+    justify-content: center;
+  }
+}
+
+/* v1.3 — Creación de copas y llaves */
+.format-help {
+  margin-top: 10px;
+  padding: 11px 12px;
+  border: 1px solid var(--line);
+  border-left: 4px solid var(--blue);
+  border-radius: var(--radius-sm);
+  background: var(--bg);
+  display: grid;
+  gap: 4px;
+  font-size: 0.83rem;
+  color: var(--muted);
+}
+
+.format-help strong {
+  color: var(--text);
+  font-size: 0.88rem;
+}
+
+.format-minimum {
+  font-weight: 700;
+  color: var(--blue);
+}
+
+.field-disabled {
+  opacity: 0.62;
+}
+
+.field-disabled select {
+  cursor: not-allowed;
+}
+
+.checkbox-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 8px;
+  max-height: 230px;
+  overflow-y: auto;
+  padding: 4px 2px;
+}
+
+.checkbox-item {
+  display: flex !important;
+  align-items: center;
+  gap: 9px;
+  min-height: 42px;
+  margin: 0 !important;
+  padding: 10px 11px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--card);
+  cursor: pointer;
+  transition: var(--transition);
+}
+
+.checkbox-item:hover {
+  border-color: var(--blue);
+}
+
+.checkbox-item input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  margin: 0;
+  flex: 0 0 auto;
+  accent-color: var(--blue);
+}
+
+.select-all-bar {
+  margin-bottom: 9px;
+}
+
+.select-all-bar .checkbox-item {
+  display: inline-flex !important;
+  min-height: auto;
+  padding: 7px 10px;
+  font-size: 0.85rem;
+}
+
+.team-picker-summary {
+  margin-top: 12px;
+  padding: 12px;
+  border: 1px dashed var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--bg);
+}
+
+.selection-count {
+  margin-bottom: 9px;
+  color: var(--muted);
+  font-size: 0.86rem;
+}
+
+.selection-count strong {
+  color: var(--text);
+}
+
+.picker-empty {
+  color: var(--muted);
+  font-size: 0.86rem;
+}
+
+.cup-preview-groups {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.cup-preview-groups > div {
+  min-width: 0;
+  padding: 10px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--card);
+}
+
+.group-title {
+  display: block;
+  margin-bottom: 8px;
+  color: var(--blue);
+  font-size: 0.78rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.team-chip-list,
+.participant-team-chip-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.team-chip,
+.participant-team-chip {
+  display: inline-flex;
+  align-items: center;
+  max-width: 100%;
+  padding: 5px 8px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--card);
+  font-size: 0.78rem;
+}
+
+.team-chip .team-inline,
+.participant-team-chip .team-inline {
+  min-width: 0;
+}
+
+.tournament-participants-card {
+  margin-top: 18px;
+}
+
+.section-card-heading h3 {
+  margin-bottom: 4px;
+}
+
+.section-card-heading .muted {
+  margin-bottom: 12px;
+}
+
+.cup-direct-intro {
+  border-left: 4px solid var(--blue);
+}
+
+@media (max-width: 640px) {
+  .checkbox-list {
+    grid-template-columns: 1fr;
+    max-height: 205px;
+  }
+
+  .cup-preview-groups {
+    grid-template-columns: 1fr;
+  }
 }

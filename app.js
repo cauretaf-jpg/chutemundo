@@ -1,16 +1,5 @@
-﻿const STORAGE_KEY = "torneos_chute_mundo_pro_v1";
 const DARK_MODE_KEY = "torneos_chute_mundo_dark_mode";
-
-const DEFAULT_FIREBASE_CONFIG = {
-  apiKey: "AIzaSyB_3UwWm0LbFWw_3KXHlvdKFT6VZVK8sFw",
-  authDomain: "chutemundobd.firebaseapp.com",
-  projectId: "chutemundobd",
-  storageBucket: "chutemundobd.firebasestorage.app",
-  messagingSenderId: "30253946795",
-  appId: "1:30253946795:web:947a88cfa76db7e979e4ee"
-};
-
-
+const APP_VERSION = "1.3-copas-corregidas";
 
 let state = loadState();
 let openEditors = new Set();
@@ -33,13 +22,39 @@ function clone(value) {
   return JSON.parse(JSON.stringify(value));
 }
 
+function playerName(p) {
+  return Array.isArray(p) ? p[0] : (p?.name || "");
+}
+
+function playerPosition(p) {
+  return Array.isArray(p) ? p[1] : (p?.position || "");
+}
+
+function playerAbilities(p) {
+  if (Array.isArray(p) || !p) return null;
+  const { name, position, start, minute, ...abilities } = p;
+  return Object.keys(abilities).length > 0 ? abilities : null;
+}
+
+function playerStart(p) {
+  return Array.isArray(p) ? false : (p?.start || false);
+}
+
+function playerMinute(p) {
+  return Array.isArray(p) ? undefined : p?.minute;
+}
+
 function loadState() {
-  const saved = localStorage.getItem(STORAGE_KEY);
+  if (window.ChuteStorage) {
+    return ChuteStorage.loadLocalState(DEFAULT_DATA, normalizeState, clone);
+  }
+
+  const saved = localStorage.getItem("torneos_chute_mundo_pro_v1");
 
   if (!saved) {
     const fresh = clone(DEFAULT_DATA);
     normalizeState(fresh);
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(fresh));
+    localStorage.setItem("torneos_chute_mundo_pro_v1", JSON.stringify(fresh));
     return fresh;
   }
 
@@ -50,15 +65,22 @@ function loadState() {
   } catch {
     const fresh = clone(DEFAULT_DATA);
     normalizeState(fresh);
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(fresh));
+    localStorage.setItem("torneos_chute_mundo_pro_v1", JSON.stringify(fresh));
     return fresh;
   }
 }
 
-function saveState() {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-  if (window.FirebaseService && FirebaseService.isEnabled()) {
-    FirebaseService.save();
+function saveState(options = {}) {
+  normalizeState(state);
+
+  if (window.ChuteStorage) {
+    ChuteStorage.saveLocalState(state);
+  } else {
+    localStorage.setItem("torneos_chute_mundo_pro_v1", JSON.stringify(state));
+  }
+
+  if (options.syncCloud && window.SupabaseService && SupabaseService.isEnabled()) {
+    SupabaseService.queueSave(state);
   }
 }
 
@@ -73,7 +95,7 @@ function resetState() {
 }
 
 function hardResetStorage() {
-  localStorage.removeItem(STORAGE_KEY);
+  if (window.ChuteStorage) { ChuteStorage.clearLocalState(); } else { localStorage.removeItem("torneos_chute_mundo_pro_v1"); }
   state = clone(DEFAULT_DATA);
   normalizeState(state);
   saveState();
@@ -126,6 +148,18 @@ function normalizeTournament(tournament) {
   if (!Array.isArray(tournament.notes)) tournament.notes = [];
   if (!Array.isArray(tournament.manualStandings)) tournament.manualStandings = [];
   if (!Array.isArray(tournament.groups)) tournament.groups = [];
+
+  // Compatibilidad con copas creadas en versiones antiguas: si existen
+  // partidos/grupos pero se perdió la lista principal de participantes,
+  // la reconstruimos sin modificar resultados ni tablas guardadas.
+  if (!tournament.teamIds.length) {
+    const recoveredIds = [
+      ...tournament.groups.flatMap(group => Array.isArray(group.teamIds) ? group.teamIds : []),
+      ...tournament.matches.flatMap(match => [match.home, match.away]).filter(Boolean)
+    ];
+    tournament.teamIds = [...new Set(recoveredIds)];
+  }
+
   if (!tournament.participantLocal) tournament.participantLocal = "";
   if (!tournament.participantAway) tournament.participantAway = "";
   if (!tournament.participantChampion) tournament.participantChampion = "";
@@ -133,6 +167,7 @@ function normalizeTournament(tournament) {
   if (!tournament.participantThird) tournament.participantThird = "";
 
   tournament.matches.forEach(match => normalizeMatch(match, false));
+  normalizeCupGroupNames(tournament);
 }
 
 function normalizeMatch(match, isFriendly = false) {
@@ -152,6 +187,26 @@ function normalizeMatch(match, isFriendly = false) {
   if (isFriendly && !match.stage) match.stage = "friendly";
   if (!match.participantHome) match.participantHome = "";
   if (!match.participantAway) match.participantAway = "";
+}
+
+
+function normalizeCupGroupNames(tournament) {
+  if (!tournament || tournament.type !== "cup_groups") return;
+
+  const replacements = {
+    "Grupo 1": "Grupo A",
+    "Grupo 2": "Grupo B"
+  };
+
+  tournament.groups.forEach(group => {
+    if (replacements[group.name]) group.name = replacements[group.name];
+  });
+
+  tournament.matches.forEach(match => {
+    if (match.group && replacements[match.group]) {
+      match.group = replacements[match.group];
+    }
+  });
 }
 
 function openModal() {
@@ -188,7 +243,7 @@ function teamNameWithLogo(id) {
   const team = state.teams.find(t => t.id === id);
   if (!team) return `<span class="team-inline"><span class="team-avatar-inline">?</span> Por definir</span>`;
   
-  const imageUrl = team.imageUrl || `/escudos/${team.id}.png`;
+  const imageUrl = team.imageUrl || `escudos/${team.id}.png`;
   const initials = getTeamInitials(team.name);
   
   return `<span class="team-inline">
@@ -204,7 +259,7 @@ function teamLogoHtml(id, size = 48) {
   const team = state.teams.find(t => t.id === id);
   if (!team) return `<span class="team-logo-placeholder" style="width:${size}px;height:${size}px">?</span>`;
   
-  const imageUrl = team.imageUrl || `/escudos/${team.id}.png`;
+  const imageUrl = team.imageUrl || `escudos/${team.id}.png`;
   const initials = getTeamInitials(team.name);
   
   return `<span class="team-logo" style="width:${size}px;height:${size}px">
@@ -260,6 +315,43 @@ function typeLabel(type) {
     division_final: "División + Final"
   };
   return map[type] || type;
+}
+
+function tournamentFormatInfo(type) {
+  const formats = {
+    league: {
+      title: "Liga",
+      description: "Todos los equipos juegan entre sí. Puedes elegir solo ida o ida y vuelta.",
+      minTeams: 2,
+      legsLabel: "Fase regular"
+    },
+    league_playoff: {
+      title: "Liga + Playoff",
+      description: "Primero se juega una fase regular y luego clasifican cuatro equipos a semifinales.",
+      minTeams: 4,
+      legsLabel: "Fase regular"
+    },
+    cup_groups: {
+      title: "Copa con grupos",
+      description: "Los equipos se distribuyen automáticamente entre Grupo A y Grupo B. Los dos mejores de cada grupo avanzan a semifinales.",
+      minTeams: 4,
+      legsLabel: "Fase de grupos"
+    },
+    direct_knockout: {
+      title: "Eliminación directa",
+      description: "Cruces directos desde cuartos o semifinales, según la cantidad de equipos. No utiliza fase regular.",
+      minTeams: 2,
+      legsLabel: "No aplica"
+    },
+    division_final: {
+      title: "División con final",
+      description: "Todos juegan una fase regular y los dos primeros disputan la final.",
+      minTeams: 2,
+      legsLabel: "Fase regular"
+    }
+  };
+
+  return formats[type] || formats.league;
 }
 
 function statusLabel(status) {
@@ -386,23 +478,25 @@ function resolveRef(tournament, ref) {
     return table[pos - 1]?.teamId || null;
   }
 
-  if (ref === "S1_W" || ref === "S1_L" || ref === "S2_W" || ref === "S2_L") {
-    const semifinalLabel = ref.startsWith("S1") ? "Semifinal 1" : "Semifinal 2";
-    const semifinal = tournament.matches.find(
-      m => m.round === "Semifinales" && m.label === semifinalLabel
+  const bracketRef = String(ref).match(/^(QF|S)(\d+)_(W|L)$/);
+  if (bracketRef) {
+    const [, prefix, num, resultType] = bracketRef;
+    const round = prefix === "QF" ? "Cuartos de Final" : "Semifinales";
+    const label = prefix === "QF" ? `Cuarto ${num}` : `Semifinal ${num}`;
+    const bracketMatch = tournament.matches.find(
+      m => m.stage === "knockout" && m.round === round && m.label === label
     );
 
-    if (!semifinal || !matchPlayed(semifinal)) return null;
+    if (!bracketMatch || !matchPlayed(bracketMatch)) return null;
 
-    const winner = determineWinnerId(semifinal, tournament);
-    const loser = determineLoserId(semifinal, tournament);
+    const winner = determineWinnerId(bracketMatch, tournament);
+    const loser = determineLoserId(bracketMatch, tournament);
 
-    return ref.endsWith("_W") ? winner : loser;
+    return resultType === "W" ? winner : loser;
   }
 
   return ref;
 }
-
 function resolveHome(tournament, match) {
   return match.home || resolveRef(tournament, match.homeRef);
 }
@@ -1043,6 +1137,26 @@ function computeFifaRanking(era = "all") {
     points[team.id] = 0;
   });
 
+  function addPoints(teamId, value) {
+    if (!teamId) return;
+    if (points[teamId] === undefined) points[teamId] = 0;
+    points[teamId] += value;
+  }
+
+  function getMatchDeltas(homeGoals, awayGoals, weight, recency) {
+    const goalDiff = Math.abs(Number(homeGoals) - Number(awayGoals));
+    const winPoints = (3 * weight) + (goalDiff * 0.5);
+    const drawPoints = 1 * weight;
+
+    if (Number(homeGoals) > Number(awayGoals)) {
+      return { home: winPoints * recency, away: 0 };
+    }
+    if (Number(homeGoals) < Number(awayGoals)) {
+      return { home: 0, away: winPoints * recency };
+    }
+    return { home: drawPoints * recency, away: drawPoints * recency };
+  }
+
   const filteredTournaments = state.tournaments.filter(t => isTournamentInEra(t, era));
 
   filteredTournaments.forEach(t => {
@@ -1060,24 +1174,14 @@ function computeFifaRanking(era = "all") {
       }
 
       const recency = getRecencyMultiplier(m.date);
-      const goalDiff = Math.abs(Number(m.homeGoals) - Number(m.awayGoals));
-
-      if (Number(m.homeGoals) > Number(m.awayGoals)) {
-        points[home] += (3 * weight) + (goalDiff * 0.5);
-      } else if (Number(m.homeGoals) < Number(m.awayGoals)) {
-        points[away] += (3 * weight) + (goalDiff * 0.5);
-      } else {
-        points[home] += 1 * weight;
-        points[away] += 1 * weight;
-      }
-
-      if (home) points[home] *= recency;
-      if (away) points[away] *= recency;
+      const delta = getMatchDeltas(m.homeGoals, m.awayGoals, weight, recency);
+      addPoints(home, delta.home);
+      addPoints(away, delta.away);
     });
 
-    if (t.champion) points[t.champion] += Number(state.config.fifa.bonus.champion || 0);
-    if (t.runnerUp) points[t.runnerUp] += Number(state.config.fifa.bonus.runnerUp || 0);
-    if (t.third) points[t.third] += Number(state.config.fifa.bonus.third || 0);
+    if (t.champion) addPoints(t.champion, Number(state.config.fifa.bonus.champion || 0));
+    if (t.runnerUp) addPoints(t.runnerUp, Number(state.config.fifa.bonus.runnerUp || 0));
+    if (t.third) addPoints(t.third, Number(state.config.fifa.bonus.third || 0));
   });
 
   const FRIENDLY_CUTOFF = new Date("2026-04-01");
@@ -1088,16 +1192,9 @@ function computeFifaRanking(era = "all") {
 
     const weight = Number(state.config.fifa.weights.friendly || 0.3);
     const recency = getRecencyMultiplier(m.date);
-    const goalDiff = Math.abs(Number(m.homeGoals) - Number(m.awayGoals));
-
-    if (Number(m.homeGoals) > Number(m.awayGoals)) {
-      points[m.home] += (3 * weight) + (goalDiff * 0.5);
-    } else if (Number(m.homeGoals) < Number(m.awayGoals)) {
-      points[m.away] += (3 * weight) + (goalDiff * 0.5);
-    } else {
-      points[m.home] += 1 * weight;
-      points[m.away] += 1 * weight;
-    }
+    const delta = getMatchDeltas(m.homeGoals, m.awayGoals, weight, recency);
+    addPoints(m.home, delta.home);
+    addPoints(m.away, delta.away);
   });
 
   state.fifaRanking = Object.keys(points)
@@ -1109,7 +1206,6 @@ function computeFifaRanking(era = "all") {
 
   return state.fifaRanking;
 }
-
 function computeDivisions() {
   const ranking = computeFifaRanking();
   state.divisions.A = ranking.slice(0, 3).map(r => r.teamId);
@@ -1216,7 +1312,7 @@ function applyDarkModeState() {
   const enabled = localStorage.getItem(DARK_MODE_KEY) === "1";
   document.body.classList.toggle("dark-mode", enabled);
   if (exists("darkModeBtn")) {
-    byId("darkModeBtn").textContent = enabled ? "Â Modo claro" : " Modo oscuro";
+    byId("darkModeBtn").textContent = enabled ? "☀️ Modo claro" : "🌙 Modo oscuro";
   }
 }
 
@@ -1285,7 +1381,7 @@ function renderFifaPreview() {
           ${preview.map((row, i) => `
             <tr>
               <td>${i + 1}</td>
-              <td>${teamName(row.teamId)}</td>
+              <td>${teamNameWithLogo(row.teamId)}</td>
               <td>${row.points.toFixed(2)}</td>
             </tr>
           `).join("")}
@@ -1323,7 +1419,7 @@ function renderHome() {
         <span class="badge ok">Activo</span>
         <span class="badge">${typeLabel(active.type)}</span>
       </p>
-      <p class="mt-10">Lder actual: <strong>${standings[0] ? teamName(standings[0].teamId) : "Ã¢â‚¬â€"}</strong></p>
+      <p class="mt-10">Líder actual: <strong>${standings[0] ? teamName(standings[0].teamId) : "—"}</strong></p>
       <p>Partidos pendientes: <strong>${pending}</strong></p>
       <div class="actions mt-10">
         <button class="btn primary small" onclick="openTournament('${active.id}')">Ver torneo</button>
@@ -1399,7 +1495,7 @@ function renderChampionTrajectory() {
   byId("championTrajectoryCard").innerHTML = `
     <div class="trajectory-header">
       <strong>${championTeam.name}</strong>
-      <span class="badge ok">${championTeam.titles} tÃ­tulos</span>
+      <span class="badge ok">${championTeam.titles} títulos</span>
       <span class="badge">${championTeam.runners} subampeones</span>
       <span class="badge">${championTeam.thirds} terceros</span>
     </div>
@@ -1446,7 +1542,7 @@ function renderHistoricalRecords() {
         <h4>Equipo más reciente sin perder</h4>
         ${records.mostUnbeaten ? `
           <p><strong>${teamName(records.mostUnbeaten.team)}</strong></p>
-          <p class="muted">Ãšltimo partido sin perder: ${records.mostUnbeaten.date || records.mostUnbeaten.tournament}</p>
+          <p class="muted">Último partido sin perder: ${records.mostUnbeaten.date || records.mostUnbeaten.tournament}</p>
         ` : `<p class="empty">Sin datos.</p>`}
       </div>
     </div>
@@ -1574,7 +1670,7 @@ function renderTournamentTimeline() {
         const podium = [1, 2, 3].map(pos => {
           const teamId = pos === 1 ? t.champion : pos === 2 ? t.runnerUp : t.third;
           const label = pos === 1 ? '1' : pos === 2 ? '2' : '3';
-          return teamId ? `<div class="timeline-team pos${pos}"><span class="timeline-pos">${label}</span><span>${teamName(teamId)}</span></div>` : '';
+          return teamId ? `<div class="timeline-team pos${pos}"><span class="timeline-pos">${label}</span><span>${teamNameWithLogo(teamId)}</span></div>` : '';
         }).join('');
         return `
           <div class="timeline-item">
@@ -1677,9 +1773,9 @@ function renderMatchesTable(tournament, matches) {
             return `
               <tr>
                 <td>${m.label}</td>
-                <td>${home ? teamName(home) : "-"}</td>
+<td>${home ? teamNameWithLogo(home) : "-"}</td>
                 <td>${matchPlayed(m) ? `${m.homeGoals} - ${m.awayGoals}` : "-"}</td>
-                <td>${away ? teamName(away) : "-"}</td>
+                <td>${away ? teamNameWithLogo(away) : "-"}</td>
                 <td>
                   <button class="btn secondary small" onclick="toggleMatchEditor('${m.id}')">
                     ${isOpen ? "Cerrar" : "Editar"}
@@ -1714,7 +1810,7 @@ function renderTournamentPlayerTable(rows, label) {
             <tr>
               <td>${i + 1}</td>
               <td>${titleCase(r.name)}</td>
-              <td>${titleCase(teamName(r.teamId))}</td>
+              <td>${teamNameWithLogo(r.teamId)}</td>
               <td><strong>${r.value}</strong></td>
             </tr>
           `).join("")}
@@ -1726,16 +1822,27 @@ function renderTournamentPlayerTable(rows, label) {
 
 function renderMatchesByRound(tournament, rounds) {
   let html = "";
+  const requestedRounds = Array.isArray(rounds) ? rounds : [];
+  const normalisedOrder = new Map(requestedRounds.map((round, index) => [round, index]));
 
-  rounds.forEach(round => {
-    const list = tournament.matches.filter(
-      m => m.stage === "knockout" && m.round === round
-    );
+  const knockoutRounds = [...new Set(
+    tournament.matches
+      .filter(match => match.stage === "knockout")
+      .map(match => match.round)
+      .filter(Boolean)
+  )].sort((a, b) => {
+    const aIndex = normalisedOrder.has(a) ? normalisedOrder.get(a) : 99;
+    const bIndex = normalisedOrder.has(b) ? normalisedOrder.get(b) : 99;
+    if (aIndex !== bIndex) return aIndex - bIndex;
+    return String(a).localeCompare(String(b), "es");
+  });
 
+  knockoutRounds.forEach(round => {
+    const list = tournament.matches.filter(match => match.stage === "knockout" && match.round === round);
     if (!list.length) return;
 
     html += `
-      <div class="card">
+      <div class="card knockout-round-card">
         <h3>${titleCase(round)}</h3>
         ${renderMatchesTable(tournament, list)}
       </div>
@@ -1743,6 +1850,25 @@ function renderMatchesByRound(tournament, rounds) {
   });
 
   return html;
+}
+
+function renderTournamentParticipants(tournament) {
+  const teamIds = [...new Set(tournament.teamIds || [])];
+  const teamCards = teamIds.length
+    ? teamIds.map(teamId => `<span class="participant-team-chip">${teamNameWithLogo(teamId)}</span>`).join("")
+    : `<span class="picker-empty">No hay equipos inscritos todavía.</span>`;
+
+  return `
+    <div class="card tournament-participants-card">
+      <div class="section-card-heading">
+        <div>
+          <h3>Equipos participantes</h3>
+          <p class="muted">${teamIds.length} equipo${teamIds.length === 1 ? "" : "s"} inscrito${teamIds.length === 1 ? "" : "s"} en este torneo.</p>
+        </div>
+      </div>
+      <div class="participant-team-chip-list">${teamCards}</div>
+    </div>
+  `;
 }
 
 function openTournament(id) {
@@ -1780,24 +1906,26 @@ function openTournament(id) {
         <div class="podium-item second">
           <div class="podium-position">2</div>
           ${runnerUpLogo}
-          <div class="podium-team">${titleCase(teamName(t.runnerUp || ""))}</div>
+<div class="podium-team">${teamNameWithLogo(t.runnerUp || "")}</div>
           <div class="podium-label">Subcampeón</div>
         </div>
         <div class="podium-item first">
           <div class="podium-position">1</div>
           ${championLogo}
-          <div class="podium-team">${titleCase(teamName(t.champion))}</div>
+          <div class="podium-team">${teamNameWithLogo(t.champion)}</div>
           <div class="podium-label"><i class="fas fa-trophy"></i> Campeón</div>
         </div>
         <div class="podium-item third">
           <div class="podium-position">3</div>
           ${thirdLogo}
-          <div class="podium-team">${titleCase(teamName(t.third || ""))}</div>
+          <div class="podium-team">${teamNameWithLogo(t.third || "")}</div>
           <div class="podium-label">Tercer Lugar</div>
         </div>
       </div>
     `;
   }
+
+  html += renderTournamentParticipants(t);
 
   if (t.type === "cup_groups") {
     if (t.groups && t.groups.length) {
@@ -1827,8 +1955,20 @@ function openTournament(id) {
           `;
         });
       });
+    } else {
+      html += `
+        <div class="card">
+          <p class="warning">Esta copa no tiene grupos generados. Abre el torneo desde la lista y usa “Editar” solo si necesitas corregir la configuración.</p>
+        </div>
+      `;
     }
   } else if (t.type === "direct_knockout") {
+    html += `
+      <div class="card cup-direct-intro">
+        <h3>Llaves de eliminación directa</h3>
+        <p class="muted">Los equipos se muestran en los cruces iniciales. Los siguientes partidos se completan cuando se registran los resultados anteriores.</p>
+      </div>
+    `;
   } else {
     const standings = getTournamentStandings(t);
     const playoffCount = t.type === "division_final" ? 2 : 4;
@@ -1858,7 +1998,7 @@ function openTournament(id) {
     html += `</div>`;
   }
 
-  html += renderMatchesByRound(t, ["Semifinales", "Final", "3er Lugar"]);
+  html += renderMatchesByRound(t, ["Cuartos", "Cuartos de Final", "Semifinales", "3er Lugar", "Final"]);
 
   const scorers = buildTournamentScorers(t);
   const assists = buildTournamentAssists(t);
@@ -2003,7 +2143,7 @@ function finishTournament(tournamentId) {
   const champion = prompt(`Campeón:\n${teamOptions}`, t.champion || t.teamIds[0]);
   if (champion === null) return;
 
-  const runnerUp = prompt(`Subampeón:\n${teamOptions}`, t.runnerUp || t.teamIds[1]);
+  const runnerUp = prompt(`Subcampeón:\n${teamOptions}`, t.runnerUp || t.teamIds[1]);
   if (runnerUp === null) return;
 
   const third = prompt(`Tercer lugar:\n${teamOptions}`, t.third || t.teamIds[2]);
@@ -2028,7 +2168,7 @@ function finishTournament(tournamentId) {
   if (championParticipant !== null) {
     t.participantChampion = championParticipant;
   }
-  const runnerUpParticipant = prompt(`Participante del Subampeón:\n${participantOptions}`, t.participantRunnerUp || "");
+  const runnerUpParticipant = prompt(`Participante del Subcampeón:\n${participantOptions}`, t.participantRunnerUp || "");
   if (runnerUpParticipant !== null) {
     t.participantRunnerUp = runnerUpParticipant;
   }
@@ -2137,12 +2277,12 @@ function renderMatchEditor(tournament, match, home, away) {
           <div id="goals-home-${match.id}">
             <select id="scorer-home-${match.id}">
               <option value="">Selecciona goleador</option>
-              ${homePlayers.map(p => `<option value="${p[0]}">${p[0]}</option>`).join("")}
+              ${homePlayers.map(p => `<option value="${playerName(p)}">${playerName(p)}</option>`).join("")}
             </select>
 
             <select class="mt-10" id="assist-home-${match.id}">
               <option value="">Sin asistencia</option>
-              ${homePlayers.map(p => `<option value="${p[0]}">${p[0]}</option>`).join("")}
+              ${homePlayers.map(p => `<option value="${playerName(p)}">${playerName(p)}</option>`).join("")}
             </select>
 
             <input class="mt-10" type="number" min="1" id="minute-home-${match.id}" placeholder="Minuto" />
@@ -2167,7 +2307,7 @@ function renderMatchEditor(tournament, match, home, away) {
 
             <select class="mt-10" id="card-player-home-${match.id}">
               <option value="">Selecciona jugador</option>
-              ${homePlayers.map(p => `<option value="${p[0]}">${p[0]}</option>`).join("")}
+              ${homePlayers.map(p => `<option value="${playerName(p)}">${playerName(p)}</option>`).join("")}
             </select>
 
             <input class="mt-10" type="number" min="1" id="card-minute-home-${match.id}" placeholder="Minuto" />
@@ -2196,12 +2336,12 @@ function renderMatchEditor(tournament, match, home, away) {
           <div id="goals-away-${match.id}">
             <select id="scorer-away-${match.id}">
               <option value="">Selecciona goleador</option>
-              ${awayPlayers.map(p => `<option value="${p[0]}">${p[0]}</option>`).join("")}
+              ${awayPlayers.map(p => `<option value="${playerName(p)}">${playerName(p)}</option>`).join("")}
             </select>
 
             <select class="mt-10" id="assist-away-${match.id}">
               <option value="">Sin asistencia</option>
-              ${awayPlayers.map(p => `<option value="${p[0]}">${p[0]}</option>`).join("")}
+              ${awayPlayers.map(p => `<option value="${playerName(p)}">${playerName(p)}</option>`).join("")}
             </select>
 
             <input class="mt-10" type="number" min="1" id="minute-away-${match.id}" placeholder="Minuto" />
@@ -2226,7 +2366,7 @@ function renderMatchEditor(tournament, match, home, away) {
 
             <select class="mt-10" id="card-player-away-${match.id}">
               <option value="">Selecciona jugador</option>
-              ${awayPlayers.map(p => `<option value="${p[0]}">${p[0]}</option>`).join("")}
+              ${awayPlayers.map(p => `<option value="${playerName(p)}">${playerName(p)}</option>`).join("")}
             </select>
 
             <input class="mt-10" type="number" min="1" id="card-minute-away-${match.id}" placeholder="Minuto" />
@@ -2407,9 +2547,9 @@ function renderFriendlies() {
       ${state.friendlies.map(f => `
         <div class="list-item">
           <div>
-            <strong>${teamName(f.home)} vs ${teamName(f.away)}</strong>
+            <strong>${teamNameWithLogo(f.home)} vs ${teamNameWithLogo(f.away)}</strong>
             <p>${matchPlayed(f) ? `${f.homeGoals} - ${f.awayGoals}` : "Sin resultado"}</p>
-            <p class="muted">${formatDateTime(f)} Ã‚· ${f.venue || "Sin lugar"}</p>
+            <p class="muted">${formatDateTime(f)} · ${f.venue || "Sin lugar"}</p>
           </div>
           <div class="actions">
             <button class="btn primary small" onclick="openFriendly('${f.id}')">Abrir</button>
@@ -2432,8 +2572,8 @@ function openFriendly(friendlyId) {
       <p>
         <span class="badge friendly">Amistoso</span>
       </p>
-      <p><strong>${teamName(f.home)}</strong> vs <strong>${teamName(f.away)}</strong></p>
-      <p class="muted">${formatDateTime(f)} Ã‚· ${f.venue || "Sin lugar"}</p>
+      <p>${teamNameWithLogo(f.home)} vs ${teamNameWithLogo(f.away)}</p>
+      <p class="muted">${formatDateTime(f)} · ${f.venue || "Sin lugar"}</p>
     </div>
 
     <div class="card">
@@ -2510,12 +2650,12 @@ function renderFriendlyEditor(match) {
 
           <select id="friendly-scorer-home-${match.id}">
             <option value="">Selecciona goleador</option>
-            ${homePlayers.map(p => `<option value="${p[0]}">${p[0]}</option>`).join("")}
+            ${homePlayers.map(p => `<option value="${playerName(p)}">${playerName(p)}</option>`).join("")}
           </select>
 
           <select class="mt-10" id="friendly-assist-home-${match.id}">
             <option value="">Sin asistencia</option>
-            ${homePlayers.map(p => `<option value="${p[0]}">${p[0]}</option>`).join("")}
+            ${homePlayers.map(p => `<option value="${playerName(p)}">${playerName(p)}</option>`).join("")}
           </select>
 
           <input class="mt-10" type="number" min="1" id="friendly-minute-home-${match.id}" placeholder="Minuto" />
@@ -2537,12 +2677,12 @@ function renderFriendlyEditor(match) {
 
           <select id="friendly-scorer-away-${match.id}">
             <option value="">Selecciona goleador</option>
-            ${awayPlayers.map(p => `<option value="${p[0]}">${p[0]}</option>`).join("")}
+            ${awayPlayers.map(p => `<option value="${playerName(p)}">${playerName(p)}</option>`).join("")}
           </select>
 
           <select class="mt-10" id="friendly-assist-away-${match.id}">
             <option value="">Sin asistencia</option>
-            ${awayPlayers.map(p => `<option value="${p[0]}">${p[0]}</option>`).join("")}
+            ${awayPlayers.map(p => `<option value="${playerName(p)}">${playerName(p)}</option>`).join("")}
           </select>
 
           <input class="mt-10" type="number" min="1" id="friendly-minute-away-${match.id}" placeholder="Minuto" />
@@ -2722,28 +2862,97 @@ function saveRulesConfig() {
   alert("Configuracion guardada.");
 }
 
+function getSelectedTeamIdsFromPicker() {
+  return [...document.querySelectorAll("#teamPicker .team-check:checked")].map(input => input.value);
+}
+
+function getCupPreviewGroups(teamIds) {
+  const { groupA, groupB } = splitTeamsForCupGroups(teamIds);
+  return { groupA, groupB };
+}
+
+function renderTournamentFormatUI() {
+  const type = byId("tType")?.value || "league";
+  const info = tournamentFormatInfo(type);
+  const help = byId("tournamentFormatHelp");
+  const legs = byId("tLegs");
+  const legsLabel = byId("tLegsLabel");
+  const pickerSummary = byId("teamPickerSummary");
+  const selected = getSelectedTeamIdsFromPicker();
+
+  if (help) {
+    help.innerHTML = `
+      <strong>${info.title}</strong>
+      <span>${info.description}</span>
+      <span class="format-minimum">Mínimo: ${info.minTeams} equipos.</span>
+    `;
+    help.className = `format-help format-help-${type}`;
+  }
+
+  if (legsLabel) legsLabel.textContent = info.legsLabel;
+  if (legs) {
+    const directKnockout = type === "direct_knockout";
+    legs.disabled = directKnockout;
+    legs.closest(".form-group")?.classList.toggle("field-disabled", directKnockout);
+    if (directKnockout) legs.value = "1";
+  }
+
+  if (!pickerSummary) return;
+
+  if (!selected.length) {
+    pickerSummary.innerHTML = `<span class="picker-empty">Selecciona los equipos que participarán.</span>`;
+    return;
+  }
+
+  if (type === "cup_groups") {
+    const { groupA, groupB } = getCupPreviewGroups(selected);
+    const list = ids => ids.length
+      ? ids.map(id => `<span class="team-chip">${teamNameWithLogo(id)}</span>`).join("")
+      : `<span class="picker-empty">Sin equipos</span>`;
+
+    pickerSummary.innerHTML = `
+      <div class="selection-count"><strong>${selected.length}</strong> equipos seleccionados</div>
+      <div class="cup-preview-groups">
+        <div><span class="group-title">Grupo A</span><div class="team-chip-list">${list(groupA)}</div></div>
+        <div><span class="group-title">Grupo B</span><div class="team-chip-list">${list(groupB)}</div></div>
+      </div>
+    `;
+    return;
+  }
+
+  pickerSummary.innerHTML = `
+    <div class="selection-count"><strong>${selected.length}</strong> equipos seleccionados</div>
+    <div class="team-chip-list">${selected.map(id => `<span class="team-chip">${teamNameWithLogo(id)}</span>`).join("")}</div>
+  `;
+}
+
 function renderTeamPicker() {
   if (!exists("teamPicker")) return;
 
+  const selectedBeforeRender = new Set(getSelectedTeamIdsFromPicker());
+
   byId("teamPicker").innerHTML = state.teams.map(t => `
     <label class="checkbox-item">
-      <input type="checkbox" class="team-check" value="${t.id}">
+      <input type="checkbox" class="team-check" value="${t.id}" ${selectedBeforeRender.has(t.id) ? "checked" : ""}>
       <span>${t.name}</span>
     </label>
   `).join("");
 
+  const teamChecks = [...document.querySelectorAll("#teamPicker .team-check")];
   if (exists("checkAllTeams")) {
-    byId("checkAllTeams").checked = false;
+    byId("checkAllTeams").checked = Boolean(teamChecks.length) && teamChecks.every(input => input.checked);
   }
 
-  const teamChecks = document.querySelectorAll(".team-check");
-  teamChecks.forEach(ch => {
-    ch.addEventListener("change", () => {
-      if (!exists("checkAllTeams")) return;
-      const checks = [...document.querySelectorAll(".team-check")];
-      byId("checkAllTeams").checked = checks.every(x => x.checked);
+  teamChecks.forEach(check => {
+    check.addEventListener("change", () => {
+      if (exists("checkAllTeams")) {
+        byId("checkAllTeams").checked = teamChecks.length > 0 && teamChecks.every(input => input.checked);
+      }
+      renderTournamentFormatUI();
     });
   });
+
+  renderTournamentFormatUI();
 }
 
 function renderTeamSelects() {
@@ -2763,7 +2972,7 @@ function renderTeamList() {
   byId("teamList").innerHTML = `
     <div class="list">
       ${state.teams.map(t => {
-        const imageUrl = t.imageUrl || `/escudos/${t.id}.png`;
+        const imageUrl = t.imageUrl || `escudos/${t.id}.png`;
         const initials = getTeamInitials(t.name);
         return `
         <div class="list-item">
@@ -2792,7 +3001,7 @@ function confirmDeleteTeam(teamId) {
   const team = getTeam(teamId);
   if (!team) return;
   
-  if (confirm(`Â¿Eliminar "${team.name}"? Esta acciÃ³n no se puede deshacer.`)) {
+  if (confirm(`¿Eliminar "${team.name}"? Esta acción no se puede deshacer.`)) {
     deleteTeam(teamId);
   }
 }
@@ -2812,7 +3021,7 @@ function openTeam(teamId) {
 
   const perf = computeTeamProfile(teamId);
   const fifa = state.fifaRanking.find(r => r.teamId === teamId);
-  const imageUrl = team.imageUrl || `/escudos/${team.id}.png`;
+  const imageUrl = team.imageUrl || `escudos/${team.id}.png`;
   const imageExists = team.imageUrl || true;
 
   byId("teamProfile").innerHTML = `
@@ -2850,30 +3059,107 @@ function openTeam(teamId) {
           <p><strong>Terceros lugares:</strong> ${perf.thirds}</p>
         </div>
 
+<div class="rule-box">
+          <div class="flex-between">
+            <h3><i class="fas fa-user-tie"></i> Director Técnico</h3>
+          </div>
+          ${team.coachCard ? `
+          <div class="coach-card">
+            <div class="coach-avatar">${team.coachCard.abbr}</div>
+            <div class="coach-info">
+              <div class="coach-name">${team.coach}</div>
+              <div class="coach-ability"><i class="fas fa-dice"></i> ${team.coachCard.ability}</div>
+              <div class="coach-desc">${team.coachCard.abilityDesc}</div>
+            </div>
+          </div>
+          ${team.coachCard.stadium ? `
+          <div class="coach-stadium">
+            <i class="fas fa-map-marker-alt"></i> ${team.coachCard.stadium} (${team.coachCard.population})
+          </div>
+          ` : ""}
+          ` : ""}
+        </div>
+
         <div class="rule-box">
           <div class="flex-between">
             <h3><i class="fas fa-users"></i> Plantel</h3>
             <button class="btn primary small" onclick="showAddPlayerModal('${teamId}')"><i class="fas fa-plus"></i> Agregar jugador</button>
           </div>
+
           <div class="table-wrap">
             <table>
               <thead>
-                <tr><th>Jugador</th><th>Posición</th><th></th></tr>
+                <tr><th>Jugador</th><th>Posición</th><th>Ingreso</th><th>Habilidades</th><th></th></tr>
               </thead>
               <tbody>
-                ${team.players.map((p, i) => `
-                  <tr>
-                    <td>${p[0]}</td>
-                    <td><span class="badge">${p[1]}</span></td>
-                    <td>
-                      <button class="btn danger small" onclick="confirmDeletePlayer('${teamId}', ${i})"><i class="fas fa-trash"></i></button>
-                    </td>
-                  </tr>
-                `).join("")}
+                ${team.players.map((p, i) => {
+                  const name = playerName(p);
+                  const pos = playerPosition(p);
+                  const abilities = playerAbilities(p);
+                  const start = playerStart(p);
+                  const minute = playerMinute(p);
+                  let ingreso = start ? '<span class="badge success">En cancha</span>' : (minute !== undefined ? `<span class="badge">${minute}\`</span>` : '<span class="badge secondary">Reserva</span>');
+                  let abilitiesHtml = "";
+                  if (abilities) {
+                    abilitiesHtml = Object.entries(abilities).map(([key, val]) => {
+                      const labels = { quite: "Q", paseCorto: "PC", paseLargo: "PL", amague: "AM", tiro: "TI", ataje: "AT" };
+                      return `<span class="ability-badge" title="${key}">${labels[key] || key}:${val}</span>`;
+                    }).join(" ");
+                  }
+                  return `
+                    <tr>
+                      <td><strong>${name}</strong></td>
+                      <td><span class="badge">${pos}</span></td>
+                      <td>${ingreso}</td>
+                      <td>${abilitiesHtml}</td>
+                      <td>
+                        <button class="btn danger small" onclick="confirmDeletePlayer('${teamId}', ${i})"><i class="fas fa-trash"></i></button>
+                      </td>
+                    </tr>
+                  `;
+                }).join("")}
               </tbody>
             </table>
           </div>
         </div>
+        ${team.objects ? `
+        <div class="rule-box">
+          <h3><i class="fas fa-toolbox"></i> Objetos</h3>
+          <div class="objects-grid">
+            ${team.objects.map(obj => `
+              <div class="object-card">
+                <div class="object-name">${obj.name}</div>
+                <div class="object-minute">${obj.minute}</div>
+                <div class="object-effect">${obj.effect}</div>
+                <div class="object-desc">${obj.description}</div>
+              </div>
+            `).join("")}
+          </div>
+        </div>
+        ` : ""}
+        ${team.specialActions ? `
+        <div class="rule-box">
+          <h3><i class="fas fa-bolt"></i> Acciones Especiales</h3>
+          ${[0, 10, 20, 30, 45, 50, 60, 80].map(minute => {
+            const actions = team.specialActions.filter(a => a.minute === minute);
+            if (actions.length === 0) return "";
+            return `
+              <div class="special-minute-group">
+                <h4>${minute}'</h4>
+                <div class="objects-grid">
+                  ${actions.map(a => `
+                    <div class="object-card">
+                      <div class="object-name">${a.name}</div>
+                      <div class="object-effect">${a.effect}</div>
+                      <div class="object-desc">${a.description}</div>
+                    </div>
+                  `).join("")}
+                </div>
+              </div>
+            `;
+          }).join("")}
+</div>
+        ` : ""}
       </div>
     </div>
   `;
@@ -2904,14 +3190,19 @@ async function handleTeamImageUpload(teamId, input) {
   }
 
   try {
-    const url = await FirebaseService.uploadTeamImage(teamId, file);
-    if (url) {
-      team.imageUrl = url;
-      saveState();
-      openTeam(teamId);
-    } else {
-      alert("Error al subir la imagen.");
+    let url = null;
+
+    if (window.SupabaseService && SupabaseService.isEnabled()) {
+      url = await SupabaseService.uploadTeamImage(teamId, file);
     }
+
+    if (!url) {
+      url = await fileToDataUrl(file);
+    }
+
+    team.imageUrl = url;
+    saveState();
+    openTeam(teamId);
   } catch (error) {
     console.error("Error:", error);
     alert("Error al subir la imagen: " + error.message);
@@ -2925,7 +3216,6 @@ async function removeTeamImage(teamId) {
   if (!team) return;
 
   try {
-    await FirebaseService.deleteTeamImage(teamId);
     team.imageUrl = "";
     saveState();
     openTeam(teamId);
@@ -2951,7 +3241,7 @@ function showAddPlayerModal(teamId) {
     </div>
     
     <div class="form-group">
-      <label>PosiciÃ³n</label>
+      <label>Posición</label>
       <select id="newPlayerPosition">
         <option value="Arquero">Arquero</option>
         <option value="Defensa">Defensa</option>
@@ -2992,7 +3282,7 @@ function confirmDeletePlayer(teamId, playerIndex) {
   if (!team) return;
 
   const player = team.players[playerIndex];
-  if (confirm(`Â¿Eliminar a "${player[0]}" del equipo?`)) {
+  if (confirm(`¿Eliminar a "${player[0]}" del equipo?`)) {
     team.players.splice(playerIndex, 1);
     saveState();
     openTeam(teamId);
@@ -3212,7 +3502,7 @@ function renderPalmares() {
     <div class="table-wrap">
       <table>
         <thead>
-          <tr><th>#</th><th>Equipo</th><th>Titulos</th><th>Subampe</th><th>3.er lugar</th></tr>
+          <tr><th>#</th><th>Equipo</th><th>Títulos</th><th>Subcampeonatos</th><th>3.er lugar</th></tr>
         </thead>
         <tbody>
           ${rows.map((r, i) => `
@@ -3297,7 +3587,7 @@ function renderClassicSummary() {
     return `
       <div class="classic-card">
         <p><span class="badge classic">${titleCase(c.name)}</span></p>
-        <p><strong>${teamName(c.a)}</strong> vs <strong>${teamName(c.b)}</strong></p>
+<p>${teamNameWithLogo(c.a)} vs ${teamNameWithLogo(c.b)}</p>
         <p>Partidos: ${h.total}</p>
         <p>${teamName(c.a)} gano: ${h.aWins}</p>
         <p>${teamName(c.b)} gano: ${h.bWins}</p>
@@ -3337,7 +3627,7 @@ function showH2H() {
 
   cont.innerHTML = `
     <div class="card">
-      <h3>${cls ? `<span class="badge classic">${titleCase(cls.name)}</span>` : ""} ${teamName(a)} vs ${teamName(b)}</h3>
+      <h3>${cls ? `<span class="badge classic">${titleCase(cls.name)}</span>` : ""} ${teamNameWithLogo(a)} vs ${teamNameWithLogo(b)}</h3>
       <p><strong>Partidos:</strong> ${h.total}</p>
       <p><strong>${teamName(a)} gano:</strong> ${h.aWins}</p>
       <p><strong>${teamName(b)} gano:</strong> ${h.bWins}</p>
@@ -3401,7 +3691,7 @@ function renderAggPlayerTable(rows, label) {
             <tr>
               <td>${i + 1}</td>
               <td>${titleCase(r.name)}</td>
-              <td>${titleCase(teamName(r.teamId))}</td>
+              <td>${teamNameWithLogo(r.teamId)}</td>
               <td>${r.value}</td>
             </tr>
           `).join("")}
@@ -3862,9 +4152,9 @@ function renderParticipantStats() {
         <div class="stat-row"><span>Dif:</span><strong>${s.gf - s.gc}</strong></div>
         <div class="stat-row"><span>Pts:</span><strong>${s.pts}</strong></div>
         <div class="stat-row"><span>%:</span><strong>${perf}%</strong></div>
-        <div class="stat-row"><span>Titulos:</span><strong>${s.titles}</strong></div>
+        <div class="stat-row"><span>Títulos:</span><strong>${s.titles}</strong></div>
         <div class="stat-row"><span>Sub:</span><strong>${s.runnerUps}</strong></div>
-        <div class="stat-row"><span>3Ã‚Â°:</span><strong>${s.thirds}</strong></div>
+        <div class="stat-row"><span>3°:</span><strong>${s.thirds}</strong></div>
       </div>
     `;
   }).join("");
@@ -3939,7 +4229,7 @@ function showAddParticipantModal(editId = null) {
       <label for="participantColor">Color</label>
       <input type="color" id="participantColor" value="${participant && participant.color ? participant.color : "#666666"}">
     </div>
-    <p class="muted" style="font-size:0.85rem;margin-bottom:16px">Los participantes controlan: Local = ${state.participants[0]?.name || "ÃƒÂlvaro"} y Visita = ${state.participants[1]?.name || "Carlos"}</p>
+    <p class="muted" style="font-size:0.85rem;margin-bottom:16px">Los participantes controlan: Local = ${state.participants[0]?.name || "Álvaro"} y Visita = ${state.participants[1]?.name || "Carlos"}</p>
     <div class="actions mt-10">
       <button class="btn primary" onclick="saveParticipant('${editId || ''}')">Guardar</button>
       <button class="btn" onclick="closeModal()">Cancelar</button>
@@ -4147,6 +4437,197 @@ function generateLeagueMatches(teamIds, legs = 1) {
   return out;
 }
 
+function createKnockoutMatch(round, label, options = {}) {
+  return {
+    id: uid("m"),
+    stage: "knockout",
+    round,
+    label,
+    home: options.home || null,
+    away: options.away || null,
+    homeRef: options.homeRef || null,
+    awayRef: options.awayRef || null,
+    homeGoals: null,
+    awayGoals: null,
+    homePens: null,
+    awayPens: null,
+    date: "",
+    time: "",
+    venue: "",
+    homeGoalLog: "",
+    awayGoalLog: "",
+    cards: []
+  };
+}
+
+function appendLeaguePlayoffMatches(tournament) {
+  tournament.matches.push(
+    createKnockoutMatch("Semifinales", "Semifinal 1", { homeRef: "TABLE_1", awayRef: "TABLE_4" }),
+    createKnockoutMatch("Semifinales", "Semifinal 2", { homeRef: "TABLE_2", awayRef: "TABLE_3" }),
+    createKnockoutMatch("3er Lugar", "3er Puesto", { homeRef: "S1_L", awayRef: "S2_L" }),
+    createKnockoutMatch("Final", "Final", { homeRef: "S1_W", awayRef: "S2_W" })
+  );
+}
+
+function appendDivisionFinalMatch(tournament) {
+  tournament.matches.push(
+    createKnockoutMatch("Final", "Final", { homeRef: "TABLE_1", awayRef: "TABLE_2" })
+  );
+}
+
+function splitTeamsForCupGroups(teamIds) {
+  const ids = [...new Set((teamIds || []).filter(Boolean))];
+  const groupA = [];
+  const groupB = [];
+
+  // Distribución alternada: equilibra los grupos y mantiene predecible
+  // el orden que el usuario eligió en el selector.
+  ids.forEach((teamId, index) => {
+    (index % 2 === 0 ? groupA : groupB).push(teamId);
+  });
+
+  return { groupA, groupB };
+}
+
+function generateGroupMatches(groupName, teamIds, legs = 1) {
+  return generateLeagueMatches(teamIds, legs)
+    .filter(match => match.stage === "regular")
+    .map(match => ({
+      ...match,
+      stage: "group",
+      group: groupName,
+      round: String(match.round).replace("Jornada", "Fecha"),
+      byeTeam: null
+    }));
+}
+
+function appendCupGroupMatches(tournament, teamIds, legs = 1) {
+  const { groupA, groupB } = splitTeamsForCupGroups(teamIds);
+
+  tournament.groups = [
+    { name: "Grupo A", teamIds: groupA },
+    { name: "Grupo B", teamIds: groupB }
+  ];
+
+  tournament.matches.push(
+    ...generateGroupMatches("Grupo A", groupA, legs),
+    ...generateGroupMatches("Grupo B", groupB, legs),
+    createKnockoutMatch("Semifinales", "Semifinal 1", { homeRef: "GROUP_A_1", awayRef: "GROUP_B_2" }),
+    createKnockoutMatch("Semifinales", "Semifinal 2", { homeRef: "GROUP_B_1", awayRef: "GROUP_A_2" }),
+    createKnockoutMatch("3er Lugar", "3er Puesto", { homeRef: "S1_L", awayRef: "S2_L" }),
+    createKnockoutMatch("Final", "Final", { homeRef: "S1_W", awayRef: "S2_W" })
+  );
+}
+
+function generateDirectKnockoutMatches(teamIds) {
+  const ids = [...teamIds];
+  const matches = [];
+
+  if (ids.length === 2) {
+    matches.push(createKnockoutMatch("Final", "Final", { home: ids[0], away: ids[1] }));
+    return matches;
+  }
+
+  if (ids.length === 3) {
+    matches.push(
+      createKnockoutMatch("Semifinales", "Semifinal 1", { home: ids[1], away: ids[2] }),
+      createKnockoutMatch("Final", "Final", { home: ids[0], awayRef: "S1_W" })
+    );
+    return matches;
+  }
+
+  if (ids.length === 4) {
+    matches.push(
+      createKnockoutMatch("Semifinales", "Semifinal 1", { home: ids[0], away: ids[3] }),
+      createKnockoutMatch("Semifinales", "Semifinal 2", { home: ids[1], away: ids[2] }),
+      createKnockoutMatch("3er Lugar", "3er Puesto", { homeRef: "S1_L", awayRef: "S2_L" }),
+      createKnockoutMatch("Final", "Final", { homeRef: "S1_W", awayRef: "S2_W" })
+    );
+    return matches;
+  }
+
+  if (ids.length === 5) {
+    matches.push(
+      createKnockoutMatch("Cuartos de Final", "Cuarto 1", { home: ids[3], away: ids[4] }),
+      createKnockoutMatch("Semifinales", "Semifinal 1", { home: ids[0], awayRef: "QF1_W" }),
+      createKnockoutMatch("Semifinales", "Semifinal 2", { home: ids[1], away: ids[2] }),
+      createKnockoutMatch("3er Lugar", "3er Puesto", { homeRef: "S1_L", awayRef: "S2_L" }),
+      createKnockoutMatch("Final", "Final", { homeRef: "S1_W", awayRef: "S2_W" })
+    );
+    return matches;
+  }
+
+  if (ids.length === 6) {
+    matches.push(
+      createKnockoutMatch("Cuartos de Final", "Cuarto 1", { home: ids[2], away: ids[5] }),
+      createKnockoutMatch("Cuartos de Final", "Cuarto 2", { home: ids[3], away: ids[4] }),
+      createKnockoutMatch("Semifinales", "Semifinal 1", { home: ids[0], awayRef: "QF1_W" }),
+      createKnockoutMatch("Semifinales", "Semifinal 2", { home: ids[1], awayRef: "QF2_W" }),
+      createKnockoutMatch("3er Lugar", "3er Puesto", { homeRef: "S1_L", awayRef: "S2_L" }),
+      createKnockoutMatch("Final", "Final", { homeRef: "S1_W", awayRef: "S2_W" })
+    );
+    return matches;
+  }
+
+  if (ids.length === 7) {
+    matches.push(
+      createKnockoutMatch("Cuartos de Final", "Cuarto 1", { home: ids[1], away: ids[6] }),
+      createKnockoutMatch("Cuartos de Final", "Cuarto 2", { home: ids[2], away: ids[5] }),
+      createKnockoutMatch("Cuartos de Final", "Cuarto 3", { home: ids[3], away: ids[4] }),
+      createKnockoutMatch("Semifinales", "Semifinal 1", { home: ids[0], awayRef: "QF1_W" }),
+      createKnockoutMatch("Semifinales", "Semifinal 2", { homeRef: "QF2_W", awayRef: "QF3_W" }),
+      createKnockoutMatch("3er Lugar", "3er Puesto", { homeRef: "S1_L", awayRef: "S2_L" }),
+      createKnockoutMatch("Final", "Final", { homeRef: "S1_W", awayRef: "S2_W" })
+    );
+    return matches;
+  }
+
+  matches.push(
+    createKnockoutMatch("Cuartos de Final", "Cuarto 1", { home: ids[0], away: ids[7] }),
+    createKnockoutMatch("Cuartos de Final", "Cuarto 2", { home: ids[3], away: ids[4] }),
+    createKnockoutMatch("Cuartos de Final", "Cuarto 3", { home: ids[1], away: ids[6] }),
+    createKnockoutMatch("Cuartos de Final", "Cuarto 4", { home: ids[2], away: ids[5] }),
+    createKnockoutMatch("Semifinales", "Semifinal 1", { homeRef: "QF1_W", awayRef: "QF2_W" }),
+    createKnockoutMatch("Semifinales", "Semifinal 2", { homeRef: "QF3_W", awayRef: "QF4_W" }),
+    createKnockoutMatch("3er Lugar", "3er Puesto", { homeRef: "S1_L", awayRef: "S2_L" }),
+    createKnockoutMatch("Final", "Final", { homeRef: "S1_W", awayRef: "S2_W" })
+  );
+
+  return matches;
+}
+
+function buildTournamentFixtures(tournament, teamIds, legs = 1) {
+  tournament.matches = [];
+  tournament.groups = [];
+
+  if (tournament.type === "league") {
+    tournament.matches.push(...generateLeagueMatches(teamIds, legs));
+    return;
+  }
+
+  if (tournament.type === "league_playoff") {
+    tournament.matches.push(...generateLeagueMatches(teamIds, legs));
+    appendLeaguePlayoffMatches(tournament);
+    return;
+  }
+
+  if (tournament.type === "cup_groups") {
+    appendCupGroupMatches(tournament, teamIds, legs);
+    return;
+  }
+
+  if (tournament.type === "direct_knockout") {
+    tournament.matches.push(...generateDirectKnockoutMatches(teamIds));
+    return;
+  }
+
+  if (tournament.type === "division_final") {
+    tournament.matches.push(...generateLeagueMatches(teamIds, legs));
+    appendDivisionFinalMatch(tournament);
+  }
+}
+
+
 function getNextTournamentName(lastName, lastType) {
   const name = (lastName || "").toLowerCase();
   
@@ -4208,54 +4689,7 @@ function createNextTournament() {
     participantThird: ""
   };
 
-  if (next.type === "league" || next.type === "league_playoff") {
-    tournament.matches.push(...generateLeagueMatches(tournament.teamIds, 1));
-    
-    if (next.type === "league_playoff") {
-      tournament.matches.push(
-        { id: uid("m"), stage: "knockout", round: "Semifinales", label: "Semifinal 1", homeRef: "TABLE_1", awayRef: "TABLE_4", homeGoals: null, awayGoals: null, homePens: null, awayPens: null, date: "", time: "", venue: "", homeGoalLog: "", awayGoalLog: "", cards: [] },
-        { id: uid("m"), stage: "knockout", round: "Semifinales", label: "Semifinal 2", homeRef: "TABLE_2", awayRef: "TABLE_3", homeGoals: null, awayGoals: null, homePens: null, awayPens: null, date: "", time: "", venue: "", homeGoalLog: "", awayGoalLog: "", cards: [] },
-        { id: uid("m"), stage: "knockout", round: "3er Lugar", label: "3er Puesto", homeRef: "S1_L", awayRef: "S2_L", homeGoals: null, awayGoals: null, homePens: null, awayPens: null, date: "", time: "", venue: "", homeGoalLog: "", awayGoalLog: "", cards: [] },
-        { id: uid("m"), stage: "knockout", round: "Final", label: "Final", homeRef: "S1_W", awayRef: "S2_W", homeGoals: null, awayGoals: null, homePens: null, awayPens: null, date: "", time: "", venue: "", homeGoalLog: "", awayGoalLog: "", cards: [] }
-      );
-    }
-  }
-
-  if (next.type === "cup_groups") {
-    const half = Math.floor(tournament.teamIds.length / 2);
-    const grupo1 = tournament.teamIds.slice(0, half);
-    const grupo2 = tournament.teamIds.slice(half);
-    
-    tournament.groups = [
-      { name: "Grupo 1", teamIds: grupo1 },
-      { name: "Grupo 2", teamIds: grupo2 }
-    ];
-
-    grupo1.forEach((a, i) => {
-      grupo1.forEach((b, j) => {
-        if (i < j) {
-          tournament.matches.push({ id: uid("m"), stage: "group", group: "Grupo 1", round: "Fecha " + (i * (grupo1.length - 1) + j), label: "Partido", home: a, away: b, homeGoals: null, awayGoals: null, homePens: null, awayPens: null, date: "", time: "", venue: "", homeGoalLog: "", awayGoalLog: "", cards: [] });
-          tournament.matches.push({ id: uid("m"), stage: "group", group: "Grupo 1", round: "Fecha " + ((j - i - 1) + (i * (grupo1.length - 1) + grupo1.length)), label: "Partido", home: b, away: a, homeGoals: null, awayGoals: null, homePens: null, awayPens: null, date: "", time: "", venue: "", homeGoalLog: "", awayGoalLog: "", cards: [] });
-        }
-      });
-    });
-
-    grupo2.forEach((a, i) => {
-      grupo2.forEach((b, j) => {
-        if (i < j) {
-          tournament.matches.push({ id: uid("m"), stage: "group", group: "Grupo 2", round: "Fecha " + (i * (grupo2.length - 1) + j), label: "Partido", home: a, away: b, homeGoals: null, awayGoals: null, homePens: null, awayPens: null, date: "", time: "", venue: "", homeGoalLog: "", awayGoalLog: "", cards: [] });
-          tournament.matches.push({ id: uid("m"), stage: "group", group: "Grupo 2", round: "Fecha " + ((j - i - 1) + (i * (grupo2.length - 1) + grupo2.length)), label: "Partido", home: b, away: a, homeGoals: null, awayGoals: null, homePens: null, awayPens: null, date: "", time: "", venue: "", homeGoalLog: "", awayGoalLog: "", cards: [] });
-        }
-      });
-    });
-
-    tournament.matches.push(
-      { id: uid("m"), stage: "knockout", round: "Semifinales", label: "Semifinal 1", homeRef: "GROUP_A_1", awayRef: "GROUP_B_2", homeGoals: null, awayGoals: null, homePens: null, awayPens: null, date: "", time: "", venue: "", homeGoalLog: "", awayGoalLog: "", cards: [] },
-      { id: uid("m"), stage: "knockout", round: "Semifinales", label: "Semifinal 2", homeRef: "GROUP_B_1", awayRef: "GROUP_A_2", homeGoals: null, awayGoals: null, homePens: null, awayPens: null, date: "", time: "", venue: "", homeGoalLog: "", awayGoalLog: "", cards: [] },
-      { id: uid("m"), stage: "knockout", round: "3er Lugar", label: "3er Puesto", homeRef: "S1_L", awayRef: "S2_L", homeGoals: null, awayGoals: null, homePens: null, awayPens: null, date: "", time: "", venue: "", homeGoalLog: "", awayGoalLog: "", cards: [] },
-      { id: uid("m"), stage: "knockout", round: "Final", label: "Final", homeRef: "S1_W", awayRef: "S2_W", homeGoals: null, awayGoals: null, homePens: null, awayPens: null, date: "", time: "", venue: "", homeGoalLog: "", awayGoalLog: "", cards: [] }
-    );
-  }
+  buildTournamentFixtures(tournament, tournament.teamIds, 1);
 
   state.tournaments.push(tournament);
   saveState();
@@ -4263,7 +4697,6 @@ function createNextTournament() {
   renderAll();
   openTournament(tournament.id);
 }
-
 function createTournament() {
   const name = byId("tName")?.value.trim();
   const type = byId("tType")?.value;
@@ -4278,6 +4711,26 @@ function createTournament() {
 
   if (selected.length < 2) {
     alert("Selecciona al menos 2 equipos.");
+    return;
+  }
+
+  if (type === "league_playoff" && selected.length < 4) {
+    alert("Liga + Playoff necesita al menos 4 equipos para semifinales.");
+    return;
+  }
+
+  if (type === "cup_groups" && selected.length < 4) {
+    alert("Copa con grupos necesita al menos 4 equipos: dos para el Grupo A y dos para el Grupo B.");
+    return;
+  }
+
+  if (type === "direct_knockout" && selected.length < 2) {
+    alert("La eliminación directa necesita al menos 2 equipos.");
+    return;
+  }
+
+  if (type === "direct_knockout" && selected.length > 8) {
+    alert("La eliminación directa automática soporta hasta 8 equipos. Reduce la selección o crea un formato de liga.");
     return;
   }
 
@@ -4305,26 +4758,7 @@ function createTournament() {
     participantThird: ""
   };
 
-  if (type === "league") {
-    tournament.matches.push(...generateLeagueMatches(selected, legs));
-  }
-
-  if (type === "league_playoff") {
-    tournament.matches.push(...generateLeagueMatches(selected, legs));
-    tournament.matches.push(
-      { id: uid("m"), stage: "knockout", round: "Semifinales", label: "Semifinal 1", homeRef: "TABLE_1", awayRef: "TABLE_4", homeGoals: null, awayGoals: null, homePens: null, awayPens: null, date: "", time: "", venue: "", homeGoalLog: "", awayGoalLog: "", cards: [] },
-      { id: uid("m"), stage: "knockout", round: "Semifinales", label: "Semifinal 2", homeRef: "TABLE_2", awayRef: "TABLE_3", homeGoals: null, awayGoals: null, homePens: null, awayPens: null, date: "", time: "", venue: "", homeGoalLog: "", awayGoalLog: "", cards: [] },
-      { id: uid("m"), stage: "knockout", round: "Final", label: "Final", homeRef: "S1_W", awayRef: "S2_W", homeGoals: null, awayGoals: null, homePens: null, awayPens: null, date: "", time: "", venue: "", homeGoalLog: "", awayGoalLog: "", cards: [] },
-      { id: uid("m"), stage: "knockout", round: "3er Lugar", label: "3Ã‚Â° y 4Ã‚Â°", homeRef: "S1_L", awayRef: "S2_L", homeGoals: null, awayGoals: null, homePens: null, awayPens: null, date: "", time: "", venue: "", homeGoalLog: "", awayGoalLog: "", cards: [] }
-    );
-  }
-
-  if (type === "division_final") {
-    tournament.matches.push(...generateLeagueMatches(selected, legs));
-    tournament.matches.push(
-      { id: uid("m"), stage: "knockout", round: "Final", label: "Final", homeRef: "TABLE_1", awayRef: "TABLE_2", homeGoals: null, awayGoals: null, homePens: null, awayPens: null, date: "", time: "", venue: "", homeGoalLog: "", awayGoalLog: "", cards: [] }
-    );
-  }
+  buildTournamentFixtures(tournament, selected, legs);
 
   state.tournaments.push(tournament);
   saveState();
@@ -4334,7 +4768,7 @@ function createTournament() {
 }
 
 function createDivisionsAutomatic() {
-  computeDivisións();
+  computeDivisions();
 
   const divisionA = {
     id: uid("tour"),
@@ -4426,7 +4860,7 @@ function createDivisionsAutomatic() {
   saveState();
   refreshComputedData();
   renderAll();
-  alert("Divisiónes creadas automáticamente.");
+  alert("Divisiones creadas automáticamente.");
 }
 
 function createFriendly() {
@@ -4473,11 +4907,19 @@ function createFriendly() {
 }
 
 function exportState() {
+  const date = new Date().toISOString().slice(0, 10);
+  const filename = `chutemundo-backup-${date}.json`;
+
+  if (window.ChuteStorage) {
+    ChuteStorage.downloadJson(state, filename);
+    return;
+  }
+
   const blob = new Blob([JSON.stringify(state, null, 2)], { type: "application/json" });
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
   a.href = url;
-  a.download = "torneos-chute-mundo-backup.json";
+  a.download = filename;
   a.click();
   URL.revokeObjectURL(url);
 }
@@ -4492,14 +4934,39 @@ function importState() {
 
   try {
     const parsed = JSON.parse(text);
-    normalizeState(parsed);
-    state = parsed;
+    const importedState = window.ChuteStorage
+      ? ChuteStorage.normalizeImportedPayload(parsed)
+      : parsed;
+
+    normalizeState(importedState);
+    state = importedState;
     saveState();
     refreshComputedData();
     renderAll();
-    alert("Respaldo importado.");
-  } catch {
-    alert("JSON invalido.");
+    alert("Respaldo importado correctamente.");
+  } catch (error) {
+    alert("JSON inválido o incompatible: " + (error.message || error));
+  }
+}
+
+async function importStateFromFile(file) {
+  if (!file) return;
+
+  try {
+    const text = await file.text();
+    const parsed = JSON.parse(text);
+    const importedState = window.ChuteStorage
+      ? ChuteStorage.normalizeImportedPayload(parsed)
+      : parsed;
+
+    normalizeState(importedState);
+    state = importedState;
+    saveState();
+    refreshComputedData();
+    renderAll();
+    alert("Archivo de respaldo importado correctamente.");
+  } catch (error) {
+    alert("No se pudo importar el archivo: " + (error.message || error));
   }
 }
 
@@ -4521,84 +4988,150 @@ function renderAll() {
   applyDarkModeState();
 }
 
-function initFirebaseUI() {
-  let config = DEFAULT_FIREBASE_CONFIG;
-  if (window.FirebaseService && FirebaseService.getConfig()) {
-    config = FirebaseService.getConfig();
-  }
-  if (byId("fbApiKey")) byId("fbApiKey").value = config.apiKey || "";
-  if (byId("fbAuthDomain")) byId("fbAuthDomain").value = config.authDomain || "";
-  if (byId("fbProjectId")) byId("fbProjectId").value = config.projectId || "";
-  if (byId("fbStorageBucket")) byId("fbStorageBucket").value = config.storageBucket || "";
-  if (byId("fbMessagingSenderId")) byId("fbMessagingSenderId").value = config.messagingSenderId || "";
-  if (byId("fbAppId")) byId("fbAppId").value = config.appId || "";
-  updateFirebaseUI();
+function fileToDataUrl(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result);
+    reader.onerror = () => reject(reader.error);
+    reader.readAsDataURL(file);
+  });
 }
 
-function updateFirebaseUI() {
-  const statusText = byId("firebaseStatusText");
-  const syncStatus = byId("firebaseSyncStatus");
-  const setupForm = byId("firebaseSetupForm");
-  const connectedPanel = byId("firebaseConnectedPanel");
+function initSupabaseUI() {
+  if (window.SupabaseService && SupabaseService.restoreIfEnabled()) {
+    // Conexión restaurada desde la configuración local.
+  }
+
+  const config = window.SupabaseService
+    ? SupabaseService.getConfig()
+    : { url: "", anonKey: "", table: "chutemundo_app_states", recordKey: "main", bucket: "chutemundo-assets" };
+
+  if (byId("sbUrl")) byId("sbUrl").value = config.url || "";
+  if (byId("sbAnonKey")) byId("sbAnonKey").value = config.anonKey || "";
+  if (byId("sbTable")) byId("sbTable").value = config.table || "chutemundo_app_states";
+  if (byId("sbRecordKey")) byId("sbRecordKey").value = config.recordKey || "main";
+  if (byId("sbBucket")) byId("sbBucket").value = config.bucket || "chutemundo-assets";
+
+  updateSupabaseUI();
+  if (window.ChuteStorage) ChuteStorage.updateStorageBadge();
+}
+
+function updateSupabaseUI() {
+  const statusText = byId("supabaseStatusText");
+  const syncStatus = byId("supabaseSyncStatus");
+  const setupForm = byId("supabaseSetupForm");
+  const connectedPanel = byId("supabaseConnectedPanel");
+  const lastError = byId("supabaseLastError");
 
   if (!statusText || !syncStatus) return;
 
-  if (window.FirebaseService && FirebaseService.isEnabled()) {
+  const enabled = window.SupabaseService && SupabaseService.isEnabled();
+  const hasLibrary = window.SupabaseService && SupabaseService.hasLibrary();
+
+  if (enabled) {
     statusText.textContent = "Conectado";
     statusText.style.color = "#2ecc71";
-    syncStatus.textContent = "Activa";
+    syncStatus.textContent = "Disponible";
     syncStatus.style.color = "#2ecc71";
-    setupForm.style.display = "none";
-    connectedPanel.style.display = "block";
+    if (setupForm) setupForm.style.display = "none";
+    if (connectedPanel) connectedPanel.style.display = "block";
   } else {
-    statusText.textContent = "No configurado";
+    statusText.textContent = hasLibrary ? "No configurado" : "Librería no disponible";
     statusText.style.color = "#e74c3c";
-    syncStatus.textContent = "Inactiva";
-    syncStatus.style.color = "#e74c3c";
-    setupForm.style.display = "block";
-    connectedPanel.style.display = "none";
+    syncStatus.textContent = "Manual / local";
+    syncStatus.style.color = "#f59e0b";
+    if (setupForm) setupForm.style.display = "block";
+    if (connectedPanel) connectedPanel.style.display = "none";
+  }
+
+  if (lastError && window.SupabaseService) {
+    const error = SupabaseService.getLastError();
+    lastError.textContent = error ? `Último error: ${error}` : "Sin errores recientes.";
   }
 }
 
-async function connectFirebase() {
-  const apiKey = byId("fbApiKey")?.value.trim();
-  const authDomain = byId("fbAuthDomain")?.value.trim();
-  const projectId = byId("fbProjectId")?.value.trim();
-  const storageBucket = byId("fbStorageBucket")?.value.trim();
-  const messagingSenderId = byId("fbMessagingSenderId")?.value.trim();
-  const appId = byId("fbAppId")?.value.trim();
+function readSupabaseFormConfig() {
+  return {
+    url: byId("sbUrl")?.value.trim() || "",
+    anonKey: byId("sbAnonKey")?.value.trim() || "",
+    table: byId("sbTable")?.value.trim() || "chutemundo_app_states",
+    recordKey: byId("sbRecordKey")?.value.trim() || "main",
+    bucket: byId("sbBucket")?.value.trim() || "chutemundo-assets"
+  };
+}
 
-  if (!apiKey || !authDomain || !projectId || !appId) {
-    alert("Completa todos los campos requeridos.");
+function connectSupabase() {
+  if (!window.SupabaseService) {
+    alert("SupabaseService no está disponible.");
     return;
   }
 
-  const config = {
-    apiKey,
-    authDomain,
-    projectId,
-    storageBucket,
-    messagingSenderId,
-    appId
-  };
+  const config = readSupabaseFormConfig();
 
-  const success = await window.FirebaseService.enable(config);
+  if (!config.url || !config.anonKey) {
+    alert("Completa la URL y la anon key de Supabase.");
+    return;
+  }
+
+  SupabaseService.saveConfig(config);
+  const success = SupabaseService.init();
+
+  updateSupabaseUI();
 
   if (success) {
-    updateFirebaseUI();
-    alert("Firebase conectado correctamente!");
+    alert("Supabase conectado. Usa 'Subir respaldo actual' para guardar el historial en la nube.");
   } else {
-    alert("Error al conectar con Firebase. Verifica la configuración.");
+    alert("No se pudo conectar Supabase: " + (SupabaseService.getLastError() || "revisa la configuración."));
   }
 }
 
-function disconnectFirebase() {
-  if (!confirm("Desconectar Firebase? Los datos locales seguirÃ¡n disponibles.")) return;
-  
-  if (window.FirebaseService) {
-    FirebaseService.disable();
+function disconnectSupabase() {
+  if (!confirm("¿Desconectar Supabase? Los datos locales seguirán disponibles.")) return;
+
+  if (window.SupabaseService) {
+    SupabaseService.disconnect();
   }
-  updateFirebaseUI();
+  updateSupabaseUI();
+}
+
+async function syncSupabaseNow() {
+  if (!window.SupabaseService || !SupabaseService.isEnabled()) {
+    alert("Conecta Supabase primero.");
+    return;
+  }
+
+  const result = await SupabaseService.saveState(state);
+  updateSupabaseUI();
+
+  if (result.ok) {
+    alert("Respaldo subido a Supabase correctamente.");
+  } else {
+    alert("No se pudo subir a Supabase: " + result.error);
+  }
+}
+
+async function loadSupabaseBackup() {
+  if (!window.SupabaseService || !SupabaseService.isEnabled()) {
+    alert("Conecta Supabase primero.");
+    return;
+  }
+
+  if (!confirm("Esto reemplazará los datos locales por el respaldo guardado en Supabase. ¿Continuar?")) return;
+
+  const result = await SupabaseService.loadState();
+
+  if (!result.ok) {
+    updateSupabaseUI();
+    alert("No se pudo cargar desde Supabase: " + result.error);
+    return;
+  }
+
+  normalizeState(result.state);
+  state = result.state;
+  saveState();
+  refreshComputedData();
+  renderAll();
+  alert("Respaldo cargado desde Supabase correctamente.");
 }
 
 function bindEvents() {
@@ -4612,6 +5145,10 @@ function bindEvents() {
       const enabled = localStorage.getItem(DARK_MODE_KEY) === "1";
       setDarkMode(!enabled);
     });
+  }
+
+  if (exists("tType")) {
+    byId("tType").addEventListener("change", renderTournamentFormatUI);
   }
 
   if (exists("tournamentOrder")) {
@@ -4675,9 +5212,10 @@ function bindEvents() {
 
   if (exists("checkAllTeams")) {
     byId("checkAllTeams").addEventListener("change", e => {
-      document.querySelectorAll(".team-check").forEach(ch => {
+      document.querySelectorAll("#teamPicker .team-check").forEach(ch => {
         ch.checked = e.target.checked;
       });
+      renderTournamentFormatUI();
     });
   }
 
@@ -4766,23 +5304,26 @@ function bindEvents() {
     });
   }
 
-  initFirebaseUI();
+  initSupabaseUI();
 
-  if (exists("connectFirebaseBtn")) {
-    byId("connectFirebaseBtn").addEventListener("click", connectFirebase);
+  if (exists("connectSupabaseBtn")) {
+    byId("connectSupabaseBtn").addEventListener("click", connectSupabase);
   }
 
-  if (exists("syncNowBtn")) {
-    byId("syncNowBtn").addEventListener("click", async () => {
-      if (window.FirebaseService) {
-        await FirebaseService.sync();
-        alert("Sincronización completada!");
-      }
-    });
+  if (exists("syncSupabaseBtn")) {
+    byId("syncSupabaseBtn").addEventListener("click", syncSupabaseNow);
   }
 
-  if (exists("disconnectFirebaseBtn")) {
-    byId("disconnectFirebaseBtn").addEventListener("click", disconnectFirebase);
+  if (exists("loadSupabaseBtn")) {
+    byId("loadSupabaseBtn").addEventListener("click", loadSupabaseBackup);
+  }
+
+  if (exists("disconnectSupabaseBtn")) {
+    byId("disconnectSupabaseBtn").addEventListener("click", disconnectSupabase);
+  }
+
+  if (exists("importFile")) {
+    byId("importFile").addEventListener("change", e => importStateFromFile(e.target.files?.[0]));
   }
 }
 
@@ -4822,8 +5363,8 @@ window.createNextTournament = createNextTournament;
 bindEvents();
 renderAll();
 
-if (window.FirebaseService) {
-  FirebaseService.checkOnLoad();
+if (window.ChuteStorage) {
+  ChuteStorage.updateStorageBadge();
 }
 
 
