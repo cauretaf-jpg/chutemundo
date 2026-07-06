@@ -3,96 +3,9 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <meta name="theme-color" content="#092820">
+  <meta http-equiv="refresh" content="0;url=cloud-stable.html">
   <title>Chute Mundo · Firebase</title>
-  <link rel="stylesheet" href="cloud.css?v=2.1.2">
-  <link rel="stylesheet" href="cloud-fix.css?v=2.1.2">
+  <script>location.replace('cloud-stable.html');</script>
 </head>
-<body>
-  <header class="topbar">
-    <div class="brand"><span class="brand-mark">CM</span><div><strong>Chute Mundo</strong><small>Torneos personales · Firebase</small></div></div>
-    <div class="top-actions"><span id="syncStatus" class="sync-pill">Conectando…</span><button id="authButton" class="secondary top-button">Ingresar</button></div>
-  </header>
-
-  <nav class="nav" aria-label="Navegación principal">
-    <button class="nav-button active" data-page="inicio">Inicio</button>
-    <button class="nav-button" data-page="torneos">Torneos</button>
-    <button class="nav-button" data-page="partidos">Partidos</button>
-    <button class="nav-button" data-page="equipos">Equipos</button>
-    <button class="nav-button" data-page="estadisticas">Estadísticas</button>
-    <button class="nav-button" data-page="administracion">Administración</button>
-  </nav>
-
-  <main class="container">
-    <section id="inicio" class="page">
-      <div class="hero">
-        <div><p class="eyebrow">CHUTE MUNDO v2</p><h1>Historial compartido, sin configuraciones repetidas.</h1><p>La base se sincroniza con Firebase y solo la cuenta administradora puede modificar los datos.</p></div>
-        <div class="hero-actions"><button class="nav-button" data-page="torneos">Ver torneos</button><button class="nav-button" data-page="equipos">Ver equipos</button></div>
-      </div>
-      <div class="metrics">
-        <article><b id="metricTeams">0</b><span>Equipos activos</span></article>
-        <article><b id="metricTournaments">0</b><span>Torneos</span></article>
-        <article><b id="metricMatches">0</b><span>Partidos</span></article>
-        <article><b id="metricResults">0</b><span>Resultados</span></article>
-      </div>
-      <div class="two-columns">
-        <article class="panel"><div class="panel-head"><div><p class="eyebrow">ACTIVIDAD</p><h2>Últimos movimientos</h2></div></div><div id="activityList"></div></article>
-        <article class="panel"><div class="panel-head"><div><p class="eyebrow">RANKING</p><h2>Primeros puestos</h2></div><button class="text-button nav-button" data-page="estadisticas">Ver completo</button></div><div id="homeRanking"></div></article>
-      </div>
-      <div id="adminNotice" class="notice">Para modificar resultados, equipos y torneos, inicia sesión con la cuenta administradora.</div>
-      <div id="readOnlyNotice" class="notice info" hidden>Estás viendo la base compartida en modo consulta.</div>
-    </section>
-
-    <section id="torneos" class="page" hidden>
-      <div class="page-title"><p class="eyebrow">COMPETENCIAS</p><h1>Torneos</h1><p>Selecciona equipos antes de crear un fixture.</p></div>
-      <div class="two-columns">
-        <article class="panel admin-only">
-          <h2>Crear torneo</h2>
-          <form id="tournamentForm">
-            <label>Nombre del torneo<input id="tournamentName" required maxlength="70" placeholder="Ej. Apertura de Invierno"></label>
-            <div class="form-grid"><label>Formato<select id="tournamentType"><option value="league">Liga</option><option value="groups">Copa con grupos</option><option value="knockout">Eliminación directa</option></select></label><label>Rondas de liga<select id="tournamentLegs"><option value="1">Solo ida</option><option value="2">Ida y vuelta</option></select></label></div>
-            <div id="formatHelp" class="notice info"></div>
-            <div class="select-tools"><label><input id="selectAllTeams" type="checkbox"> Seleccionar todos</label><span id="selectedCount">0 seleccionados</span></div>
-            <div id="teamPicker" class="team-picker"></div>
-            <p id="noTeams" class="empty" hidden>No hay equipos activos.</p>
-            <button class="primary wide" type="submit">Generar torneo</button>
-          </form>
-        </article>
-        <article id="loginTournamentCard" class="panel admin-locked" hidden>
-          <div class="lock-icon">↗</div><p class="eyebrow">ADMINISTRACIÓN</p><h2>Crea torneos desde tu cuenta</h2><p class="muted">Inicia sesión con tu correo de administrador para registrar equipos, copas, resultados y estadísticas en la base compartida.</p><button id="loginFromTournament" class="primary">Ingresar como administrador</button>
-        </article>
-        <article class="panel"><div class="panel-head"><div><p class="eyebrow">HISTORIAL</p><h2>Torneos creados</h2></div></div><div id="tournamentList" class="stack"></div></article>
-      </div>
-      <div id="tournamentDetail" class="detail"></div>
-    </section>
-
-    <section id="partidos" class="page" hidden>
-      <div class="page-title"><p class="eyebrow">CALENDARIO</p><h1>Partidos</h1><p>Los resultados actualizan tablas, grupos y ranking.</p></div>
-      <article class="panel"><label>Filtrar por torneo<select id="matchFilter"></select></label><div id="matchesList" class="match-list"></div></article>
-    </section>
-
-    <section id="equipos" class="page" hidden>
-      <div class="page-title"><p class="eyebrow">CLUBES</p><h1>Equipos</h1><p>Los seis equipos base se cargan al activar la base compartida.</p></div>
-      <div class="two-columns">
-        <article class="panel admin-only"><h2>Agregar equipo</h2><form id="teamForm"><label>Nombre<input id="teamName" required maxlength="60" placeholder="Ej. Barrio Norte F.C."></label><label>DT / responsable <small>(opcional)</small><input id="teamCoach" maxlength="60"></label><label>Sigla <small>(hasta 4 letras)</small><input id="teamInitials" maxlength="4" placeholder="BNFC"></label><button class="primary wide" type="submit">Agregar equipo</button></form></article>
-        <article class="panel"><div class="panel-head"><div><p class="eyebrow">PLANTEL DE CLUBES</p><h2>Equipos registrados</h2></div></div><div id="teamList" class="stack"></div></article>
-      </div>
-    </section>
-
-    <section id="estadisticas" class="page" hidden>
-      <div class="page-title"><p class="eyebrow">RENDIMIENTO</p><h1>Estadísticas</h1><p>El ranking se calcula desde los resultados de la base compartida.</p></div>
-      <div class="two-columns"><article class="panel"><div class="panel-head"><div><p class="eyebrow">GLOBAL</p><h2>Ranking histórico</h2></div></div><div id="globalRanking"></div></article><article class="panel"><div class="panel-head"><div><p class="eyebrow">LOGROS</p><h2>Palmarés</h2></div></div><div id="honoursList"></div></article></div>
-    </section>
-
-    <section id="administracion" class="page" hidden>
-      <div class="page-title"><p class="eyebrow">CONTROL</p><h1>Administración</h1><p>La base cloud funciona solo con tu cuenta administradora.</p></div>
-      <div class="two-columns"><article class="panel"><p class="eyebrow">FIREBASE</p><h2>Base compartida</h2><p id="cloudInfo" class="muted"></p><div class="actions"><button id="activateCloud" class="primary" hidden>Activar base compartida</button><button id="syncNow" class="secondary" hidden>Sincronizar ahora</button></div></article><article class="panel"><p class="eyebrow">RESPALDOS</p><h2>Tu información primero</h2><p class="muted">Descarga un respaldo antes de cambios relevantes. La restauración requiere sesión de administrador.</p><div class="actions"><button id="exportButton" class="primary">Descargar respaldo</button><label class="secondary file-label">Restaurar respaldo<input id="importFile" type="file" accept="application/json"></label></div></article></div>
-      <article class="panel danger"><p class="eyebrow">ZONA DE RIESGO</p><h2>Reiniciar datos compartidos</h2><p class="muted">Conserva equipos, pero borra torneos y resultados de esta nueva base.</p><button id="resetCloud" class="danger-button">Reiniciar torneos y resultados</button></article>
-    </section>
-  </main>
-
-  <div id="modal" class="modal" hidden><div class="modal-card"><button class="close-button" data-close-modal aria-label="Cerrar">×</button><div id="modalContent"></div></div></div>
-  <div id="toast" class="toast" hidden></div>
-  <script type="module" src="cloud-app.mjs?v=2.1.2"></script>
-</body>
+<body><p>Abriendo Chute Mundo…</p></body>
 </html>
