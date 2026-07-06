@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Chute Mundo v2</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<header class="topbar">
+  <a class="brand" href="#inicio"><span class="mark">CM</span><span><strong>Chute Mundo</strong><small>Torneos personales · v2</small></span></a>
+  <div class="top-actions"><span id="syncStatus" class="sync">Guardado local</span><button id="themeBtn" class="icon" aria-label="Cambiar tema">◐</button></div>
+</header>
+<nav class="tabs">
+  <button class="tab active" data-view="inicio">Inicio</button><button class="tab" data-view="torneos">Torneos</button><button class="tab" data-view="partidos">Partidos</button><button class="tab" data-view="equipos">Equipos</button><button class="tab" data-view="estadisticas">Estadísticas</button><button class="tab" data-view="admin">Administración</button>
+</nav>
+<main class="shell">
+  <section id="inicio" class="view active">
+    <div class="hero"><div><p class="eyebrow">CHUTE MUNDO v2</p><h1>Una base limpia para sus torneos.</h1><p>Crea ligas, copas y llaves. Registra resultados y deja que las tablas se calculen solas.</p></div><div class="hero-actions"><button class="btn primary" data-go="torneos">Crear torneo</button><button class="btn ghost" data-go="equipos">Ver equipos</button></div></div>
+    <div class="metric-grid"><article><b id="metricTeams">0</b><span>Equipos activos</span></article><article><b id="metricTournaments">0</b><span>Torneos</span></article><article><b id="metricMatches">0</b><span>Partidos</span></article><article><b id="metricPlayed">0</b><span>Resultados</span></article></div>
+    <div class="grid"><section class="panel"><header><div><p class="eyebrow">ACTIVIDAD</p><h2>Últimos movimientos</h2></div></header><div id="activityList"></div></section><section class="panel"><header><div><p class="eyebrow">RANKING</p><h2>Primeros puestos</h2></div><button class="text-btn" data-go="estadisticas">Ver completo</button></header><div id="homeRanking"></div></section></div>
+  </section>
+
+  <section id="torneos" class="view">
+    <div class="page-heading"><p class="eyebrow">COMPETENCIAS</p><h1>Crear torneo</h1><p>Los equipos se muestran antes de generar el fixture.</p></div>
+    <div class="grid align-start"><section class="panel"><form id="tournamentForm"><label>Nombre<input id="tournamentName" required maxlength="80" placeholder="Ej. Apertura de Invierno"></label><div class="field-grid"><label>Formato<select id="tournamentType"><option value="league">Liga</option><option value="league_playoff">Liga + playoff</option><option value="cup_groups">Copa con grupos</option><option value="direct_knockout">Eliminación directa</option><option value="division_final">Liga con final</option></select></label><label>Rondas<select id="tournamentLegs"><option value="1">Solo ida</option><option value="2">Ida y vuelta</option></select></label></div><div id="formatHelp" class="notice"></div><label>Equipos participantes</label><div class="picker-tools"><label class="check"><input id="selectAllTeams" type="checkbox"> Seleccionar todos</label><span id="pickedCount">0 seleccionados</span></div><div id="teamPicker" class="team-picker"></div><p id="teamPickerEmpty" class="empty hidden">No hay equipos activos. Crea uno primero.</p><button class="btn primary wide" type="submit">Generar torneo</button></form></section><section class="panel"><header><div><p class="eyebrow">HISTORIAL</p><h2>Torneos creados</h2></div></header><div id="tournamentList" class="stack"></div></section></div><section id="tournamentDetail" class="detail"></section>
+  </section>
+
+  <section id="partidos" class="view"><div class="page-heading"><p class="eyebrow">CALENDARIO</p><h1>Partidos</h1><p>Los resultados actualizan tablas, llaves y ranking.</p></div><section class="panel"><div class="filter"><label for="matchFilter">Torneo</label><select id="matchFilter"></select></div><div id="matchesList" class="matches"></div></section></section>
+
+  <section id="equipos" class="view"><div class="page-heading"><p class="eyebrow">CLUBES</p><h1>Equipos</h1><p>Los seis equipos base están disponibles desde el inicio.</p></div><div class="grid align-start"><section class="panel"><form id="teamForm"><label>Nombre<input id="teamName" required maxlength="60" placeholder="Ej. Barrio Norte F.C."></label><label>DT / responsable <span class="optional">(opcional)</span><input id="teamCoach" maxlength="60"></label><label>Sigla <span class="optional">(hasta 4 letras)</span><input id="teamInitials" maxlength="4" placeholder="BNFC"></label><button class="btn primary wide" type="submit">Agregar equipo</button></form></section><section class="panel"><header><div><p class="eyebrow">PLANTEL DE CLUBES</p><h2>Equipos registrados</h2></div></header><div id="teamList" class="teams"></div></section></div></section>
+
+  <section id="estadisticas" class="view"><div class="page-heading"><p class="eyebrow">RENDIMIENTO</p><h1>Estadísticas</h1><p>El ranking se calcula desde resultados de esta nueva etapa.</p></div><div class="grid align-start"><section class="panel"><header><div><p class="eyebrow">GLOBAL</p><h2>Ranking histórico v2</h2></div></header><div id="globalRanking"></div></section><section class="panel"><header><div><p class="eyebrow">LOGROS</p><h2>Palmarés v2</h2></div></header><div id="honoursList"></div></section></div></section>
+
+  <section id="admin" class="view"><div class="page-heading"><p class="eyebrow">CONTROL</p><h1>Administración</h1><p>Respaldos y estado de sincronización.</p></div><div class="grid align-start"><section class="panel"><p class="eyebrow">RESPALDOS</p><h2>Tu información primero</h2><p class="muted">Descarga un respaldo antes de hacer cambios importantes.</p><div class="button-row"><button id="exportBtn" class="btn primary">Descargar respaldo</button><label class="btn ghost file-btn">Restaurar respaldo<input id="importFile" type="file" accept="application/json"></label></div></section><section class="panel"><p class="eyebrow">NUBE</p><h2>Firebase</h2><p class="muted">La primera versión funciona localmente para validar el flujo. Firebase se conectará a esta base estable en la siguiente etapa, sin migrar ni mezclar tecnologías.</p><div class="notice">Estado: <strong>validación local</strong></div></section></div><section class="panel danger"><p class="eyebrow">ZONA DE RIESGO</p><h2>Reiniciar solo datos v2</h2><p class="muted">No afecta el proyecto anterior ni tus respaldos descargados.</p><button id="resetBtn" class="btn danger-btn">Reiniciar datos v2</button></section></section>
+</main>
+<div id="modal" class="modal hidden"><div class="modal-card"><button id="modalClose" class="modal-close">×</button><div id="modalBody"></div></div></div><div id="toast" class="toast hidden"></div>
+<script src="app.js"></script>
+</body>
+</html>
