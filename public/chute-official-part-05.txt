@@ -1,0 +1,160 @@
+  const append = (pairs, offset, reverse = false) => pairs.forEach((round, roundIndex) => round.forEach((pair, matchIndex) => matches.push(newMatch({ stage, group, round: `${stage === 'group' ? 'Fecha' : 'Jornada'} ${offset + roundIndex + 1}`, label: `Partido ${matchIndex + 1}`, home: reverse ? pair.away : pair.home, away: reverse ? pair.home : pair.away }))));
+  append(rounds, 0); if (legs === 2) append(rounds, rounds.length, true); return matches;
+}
+
+function buildFixtures(tournament) {
+  const teams = tournament.teamIds; const legs = tournament.config.legs; tournament.matches = []; tournament.groups = [];
+  if (tournament.type === 'league') tournament.matches.push(...leagueMatches(teams, legs));
+  if (tournament.type === 'league_playoff') {
+    tournament.matches.push(...leagueMatches(teams, legs), newMatch({ stage: 'knockout', round: 'Semifinales', label: 'Semifinal 1', homeRef: 'TABLE_1', awayRef: 'TABLE_4' }), newMatch({ stage: 'knockout', round: 'Semifinales', label: 'Semifinal 2', homeRef: 'TABLE_2', awayRef: 'TABLE_3' }), newMatch({ stage: 'knockout', round: '3er Lugar', label: '3er Puesto', homeRef: 'S1_L', awayRef: 'S2_L' }), newMatch({ stage: 'knockout', round: 'Final', label: 'Final', homeRef: 'S1_W', awayRef: 'S2_W' }));
+  }
+  if (tournament.type === 'division_final') tournament.matches.push(...leagueMatches(teams, legs), newMatch({ stage: 'knockout', round: 'Final', label: 'Final', homeRef: 'TABLE_1', awayRef: 'TABLE_2' }));
+  if (tournament.type === 'cup_groups') {
+    const groupA = teams.filter((_, index) => index % 2 === 0); const groupB = teams.filter((_, index) => index % 2 === 1);
+    tournament.groups = [{ name: 'Grupo A', teamIds: groupA }, { name: 'Grupo B', teamIds: groupB }];
+    tournament.matches.push(...leagueMatches(groupA, legs, 'group', 'Grupo A'), ...leagueMatches(groupB, legs, 'group', 'Grupo B'), newMatch({ stage: 'knockout', round: 'Semifinales', label: 'Semifinal 1', homeRef: 'GROUP_A_1', awayRef: 'GROUP_B_2' }), newMatch({ stage: 'knockout', round: 'Semifinales', label: 'Semifinal 2', homeRef: 'GROUP_B_1', awayRef: 'GROUP_A_2' }), newMatch({ stage: 'knockout', round: '3er Lugar', label: '3er Puesto', homeRef: 'S1_L', awayRef: 'S2_L' }), newMatch({ stage: 'knockout', round: 'Final', label: 'Final', homeRef: 'S1_W', awayRef: 'S2_W' }));
+  }
+  if (tournament.type === 'direct_knockout') {
+    const ids = [...teams];
+    if (ids.length === 2) {
+      tournament.matches.push(newMatch({ stage: 'knockout', round: 'Final', label: 'Final', home: ids[0], away: ids[1] }));
+    } else if (ids.length === 3) {
+      tournament.matches.push(
+        newMatch({ stage: 'knockout', round: 'Semifinales', label: 'Semifinal 1', home: ids[1], away: ids[2] }),
+        newMatch({ stage: 'knockout', round: 'Final', label: 'Final', home: ids[0], awayRef: 'S1_W' })
+      );
+    } else if (ids.length === 4) {
+      tournament.matches.push(
+        newMatch({ stage: 'knockout', round: 'Semifinales', label: 'Semifinal 1', home: ids[0], away: ids[3] }),
+        newMatch({ stage: 'knockout', round: 'Semifinales', label: 'Semifinal 2', home: ids[1], away: ids[2] }),
+        newMatch({ stage: 'knockout', round: '3er Lugar', label: '3er Puesto', homeRef: 'S1_L', awayRef: 'S2_L' }),
+        newMatch({ stage: 'knockout', round: 'Final', label: 'Final', homeRef: 'S1_W', awayRef: 'S2_W' })
+      );
+    } else if (ids.length === 5) {
+      tournament.matches.push(
+        newMatch({ stage: 'knockout', round: 'Cuartos de Final', label: 'Cuarto 1', home: ids[3], away: ids[4] }),
+        newMatch({ stage: 'knockout', round: 'Semifinales', label: 'Semifinal 1', home: ids[0], awayRef: 'QF1_W' }),
+        newMatch({ stage: 'knockout', round: 'Semifinales', label: 'Semifinal 2', home: ids[1], away: ids[2] }),
+        newMatch({ stage: 'knockout', round: '3er Lugar', label: '3er Puesto', homeRef: 'S1_L', awayRef: 'S2_L' }),
+        newMatch({ stage: 'knockout', round: 'Final', label: 'Final', homeRef: 'S1_W', awayRef: 'S2_W' })
+      );
+    } else if (ids.length === 6) {
+      tournament.matches.push(
+        newMatch({ stage: 'knockout', round: 'Cuartos de Final', label: 'Cuarto 1', home: ids[2], away: ids[5] }),
+        newMatch({ stage: 'knockout', round: 'Cuartos de Final', label: 'Cuarto 2', home: ids[3], away: ids[4] }),
+        newMatch({ stage: 'knockout', round: 'Semifinales', label: 'Semifinal 1', home: ids[0], awayRef: 'QF1_W' }),
+        newMatch({ stage: 'knockout', round: 'Semifinales', label: 'Semifinal 2', home: ids[1], awayRef: 'QF2_W' }),
+        newMatch({ stage: 'knockout', round: '3er Lugar', label: '3er Puesto', homeRef: 'S1_L', awayRef: 'S2_L' }),
+        newMatch({ stage: 'knockout', round: 'Final', label: 'Final', homeRef: 'S1_W', awayRef: 'S2_W' })
+      );
+    } else if (ids.length === 7) {
+      tournament.matches.push(
+        newMatch({ stage: 'knockout', round: 'Cuartos de Final', label: 'Cuarto 1', home: ids[1], away: ids[6] }),
+        newMatch({ stage: 'knockout', round: 'Cuartos de Final', label: 'Cuarto 2', home: ids[2], away: ids[5] }),
+        newMatch({ stage: 'knockout', round: 'Cuartos de Final', label: 'Cuarto 3', home: ids[3], away: ids[4] }),
+        newMatch({ stage: 'knockout', round: 'Semifinales', label: 'Semifinal 1', home: ids[0], awayRef: 'QF1_W' }),
+        newMatch({ stage: 'knockout', round: 'Semifinales', label: 'Semifinal 2', homeRef: 'QF2_W', awayRef: 'QF3_W' }),
+        newMatch({ stage: 'knockout', round: '3er Lugar', label: '3er Puesto', homeRef: 'S1_L', awayRef: 'S2_L' }),
+        newMatch({ stage: 'knockout', round: 'Final', label: 'Final', homeRef: 'S1_W', awayRef: 'S2_W' })
+      );
+    } else {
+      tournament.matches.push(
+        newMatch({ stage: 'knockout', round: 'Cuartos de Final', label: 'Cuarto 1', home: ids[0], away: ids[7] }),
+        newMatch({ stage: 'knockout', round: 'Cuartos de Final', label: 'Cuarto 2', home: ids[3], away: ids[4] }),
+        newMatch({ stage: 'knockout', round: 'Cuartos de Final', label: 'Cuarto 3', home: ids[1], away: ids[6] }),
+        newMatch({ stage: 'knockout', round: 'Cuartos de Final', label: 'Cuarto 4', home: ids[2], away: ids[5] }),
+        newMatch({ stage: 'knockout', round: 'Semifinales', label: 'Semifinal 1', homeRef: 'QF1_W', awayRef: 'QF2_W' }),
+        newMatch({ stage: 'knockout', round: 'Semifinales', label: 'Semifinal 2', homeRef: 'QF3_W', awayRef: 'QF4_W' }),
+        newMatch({ stage: 'knockout', round: '3er Lugar', label: '3er Puesto', homeRef: 'S1_L', awayRef: 'S2_L' }),
+        newMatch({ stage: 'knockout', round: 'Final', label: 'Final', homeRef: 'S1_W', awayRef: 'S2_W' })
+      );
+    }
+  }
+}
+
+function bindEvents() {
+  document.addEventListener('click', (event) => {
+    const pageButton = event.target.closest('[data-page]'); if (pageButton) navigate(pageButton.dataset.page);
+    const openButton = event.target.closest('[data-open-tournament]'); if (openButton) { selectedTournamentId = openButton.dataset.openTournament; navigate('torneos'); renderTournamentDetail(); }
+    const editButton = event.target.closest('[data-edit-match]'); if (editButton && canEdit()) { const [tournamentId, matchId] = editButton.dataset.editMatch.split('__'); openResultModal(tournamentId, matchId); }
+    if (event.target.matches('[data-close-modal]')) closeModal();
+  });
+  $('#modal').addEventListener('click', (event) => { if (event.target.id === 'modal') closeModal(); });
+  $('#authButton').addEventListener('click', () => { if (isAdmin()) signOut(auth); else openLoginModal(); });
+  $('#tournamentType').addEventListener('change', renderTournamentControls);
+  $('#teamPicker').addEventListener('change', updateSelectedCount);
+  $('#selectAllTeams').addEventListener('change', (event) => { $$('#teamPicker input').forEach((input) => { input.checked = event.target.checked; }); updateSelectedCount(); });
+  $('#tournamentStatusFilter').addEventListener('change', renderTournamentList);
+  $('#matchTournamentFilter').addEventListener('change', renderMatches);
+  $('#matchStatusFilter').addEventListener('change', renderMatches);
+  $('#eraFilter').addEventListener('change', renderStats);
+  $('#migrateHistory').addEventListener('click', () => migrateOfficialHistory());
+  $('#syncNow').addEventListener('click', async () => { try { await writeCloudState(); showToast('Sincronización completada.'); } catch (error) { console.error(error); showToast('No se pudo sincronizar.'); } });
+  $('#restoreOriginal').addEventListener('click', () => migrateOfficialHistory({ confirmReplace: true }));
+  $('#exportButton').addEventListener('click', () => {
+    const blob = new Blob([JSON.stringify(state, null, 2)], { type: 'application/json' }); const anchor = document.createElement('a'); anchor.href = URL.createObjectURL(blob); anchor.download = `chute-mundo-${new Date().toISOString().slice(0, 10)}.json`; anchor.click(); URL.revokeObjectURL(anchor.href);
+  });
+  $('#importFile').addEventListener('change', async (event) => {
+    const file = event.target.files?.[0]; event.target.value = ''; if (!file || !canEdit()) return showToast('Inicia sesión antes de importar.');
+    try { const imported = normalizeState(JSON.parse(await file.text())); if (!imported.teams.length || !imported.tournaments.length) throw new Error('Respaldo vacío'); if (!window.confirm(`Se importarán ${imported.tournaments.length} torneos. ¿Continuar?`)) return; state = imported; addActivity('Se restauró un respaldo JSON.'); await writeCloudState(); render(); showToast('Respaldo restaurado.'); } catch (error) { console.error(error); showToast('El archivo no es un respaldo válido.'); }
+  });
+  $('#teamForm').addEventListener('submit', (event) => {
+    event.preventDefault(); if (!canEdit()) return showToast('La base todavía no está lista para editar.');
+    const name = $('#teamName').value.trim(); if (!name) return; if (state.teams.some((team) => team.name.toLowerCase() === name.toLowerCase())) return showToast('Ese equipo ya existe.');
+    state.teams.push({ id: uid('team'), name, coach: $('#teamCoach').value.trim(), initials: ($('#teamInitials').value.trim() || teamInitials(name)).toUpperCase(), archived: false, players: [] }); event.target.reset(); addActivity(`Se agregó ${name}.`); queueSave(); render();
+  });
+  $('#tournamentForm').addEventListener('submit', (event) => {
+    event.preventDefault(); if (!canEdit()) return showToast('Espera a que el historial quede sincronizado con Firebase.');
+    const name = $('#tournamentName').value.trim(); const type = $('#tournamentType').value; const teamIds = $$('#teamPicker input:checked').map((input) => input.value); const minimum = ['league_playoff', 'cup_groups'].includes(type) ? 4 : 2;
+    if (!name) return showToast('Escribe un nombre.'); if (state.tournaments.some((tournament) => tournament.name.toLowerCase() === name.toLowerCase())) return showToast('Ya existe un torneo con ese nombre.'); if (teamIds.length < minimum) return showToast(`Este formato requiere al menos ${minimum} equipos.`); if (type === 'direct_knockout' && teamIds.length > 8) return showToast('La eliminación directa admite hasta 8 equipos.');
+    const tournament = normalizeTournament({ id: uid('tour'), name, type, status: $('#tournamentStatus').value, createdAt: new Date().toLocaleDateString('es-CL'), config: { legs: Number($('#tournamentLegs').value) }, teamIds, matches: [], groups: [], notes: [], playerScorers: [], playerAssists: [], participantLocal: state.participants[0]?.id || '', participantAway: state.participants[1]?.id || '' });
+    buildFixtures(tournament); state.tournaments.push(tournament); selectedTournamentId = tournament.id; addActivity(`Se creó ${name}.`); event.target.reset(); $('#tournamentType').value = 'league'; queueSave(); render(); navigate('torneos'); showToast('Torneo creado.');
+  });
+}
+
+async function initializeCloud() {
+  try { await setPersistence(auth, browserLocalPersistence); } catch (error) { console.warn(error); }
+  onAuthStateChanged(auth, async (user) => {
+    authUser = user || null;
+    renderAuthState();
+    if (isAdmin()) { setStatus(cloudHasHistory ? 'Sincronizado' : 'Preparando Firebase…'); await tryAutomaticMigration(); }
+    else setStatus(cloudHasHistory ? 'Consulta en tiempo real' : 'Historial recuperado');
+    render();
+  });
+
+  onSnapshot(sharedStateRef, async (snapshot) => {
+    cloudLoaded = true;
+    const remote = snapshot.exists() && snapshot.data()?.state ? normalizeState(snapshot.data().state) : null;
+    if (remote?.tournaments?.length) {
+      state = remote; cloudHasHistory = true; usingFallback = false; persistLocal(); setStatus(isAdmin() ? 'Sincronizado' : 'Consulta en tiempo real');
+    } else {
+      state = clone(legacyState || emptyState()); cloudHasHistory = false; usingFallback = true; persistLocal(); setStatus(isAdmin() ? 'Preparando Firebase…' : 'Historial recuperado');
+    }
+    selectedTournamentId = selectedTournamentId || state.tournaments.find((tournament) => tournament.status === 'active')?.id || state.tournaments.at(-1)?.id || null;
+    render();
+    await tryAutomaticMigration();
+  }, (error) => {
+    console.error(error); cloudLoaded = true; cloudHasHistory = false; usingFallback = true; state = clone(legacyState || emptyState()); setStatus('Firebase no disponible'); render();
+  });
+}
+
+async function start() {
+  bindEvents();
+  try { await initializeFirebaseServices(); } catch (error) { console.error(error); setStatus('Firebase no disponible'); }
+  try {
+    legacyState = await loadLegacyState();
+    state = clone(legacyState);
+    selectedTournamentId = state.tournaments.find((tournament) => tournament.status === 'active')?.id || state.tournaments.at(-1)?.id || null;
+    persistLocal();
+    render();
+  } catch (error) {
+    console.error(error);
+    try { state = normalizeState(JSON.parse(localStorage.getItem(LOCAL_STORAGE_KEY) || 'null')); } catch { state = emptyState(); }
+    showToast('No se pudo cargar el historial original.');
+    render();
+  }
+  if (auth && sharedStateRef) await initializeCloud();
+}
+
+
+start();
