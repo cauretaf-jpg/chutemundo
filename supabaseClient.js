@@ -213,3 +213,14 @@ window.SupabaseService = {
   getLastError,
   hasLibrary: () => true
 };
+
+// Carga las mejoras después de que app.js haya inicializado el estado y la interfaz.
+window.addEventListener("DOMContentLoaded", () => {
+  if (document.querySelector('script[data-chutemundo-enhancements="true"]')) return;
+
+  const script = document.createElement("script");
+  script.src = "chutemundo-enhancements.js?v=1.4.0";
+  script.dataset.chutemundoEnhancements = "true";
+  script.onerror = () => console.error("No se pudieron cargar las mejoras de Chute Mundo.");
+  document.body.appendChild(script);
+});

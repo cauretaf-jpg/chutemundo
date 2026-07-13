@@ -6,9 +6,9 @@ Aplicación personal para administrar los torneos de Chute Mundo: equipos, plant
 
 ## Versión actual
 
-**v1.3.1 — Publicador GitHub incluido**
+**v1.4.0 — Estadísticas completas y creación mejorada de torneos**
 
-La versión actual conserva la corrección del flujo de copas e incorpora un publicador automático para GitHub. Al elegir Copa con grupos o Eliminación directa, la aplicación muestra los equipos inscritos y, en las copas con grupos, una vista previa de Grupo A y Grupo B antes de crear el torneo.
+Esta versión amplía la página de Estadísticas con un resumen general, una tabla de todos los torneos y el rendimiento de los participantes. También mejora el flujo para crear torneos nuevos, abrirlos inmediatamente y sincronizar el respaldo con Supabase cuando la conexión está habilitada.
 
 Para publicar cambios con doble clic utiliza [`Subir_Chute_Mundo_a_GitHub.bat`](Subir_Chute_Mundo_a_GitHub.bat). Consulta las instrucciones en [`USO_PUBLICADOR_GITHUB.md`](USO_PUBLICADOR_GITHUB.md).
 
@@ -16,10 +16,14 @@ Para publicar cambios con doble clic utiliza [`Subir_Chute_Mundo_a_GitHub.bat`](
 
 - Registro y edición de equipos, escudos y plantillas.
 - Torneos de Liga, Liga + Playoff, Copa con grupos, Eliminación directa y División con final.
+- Creación de torneos nuevos y generación del torneo siguiente a partir del último.
 - Fase regular de ida o ida/vuelta cuando el formato lo permite.
 - Registro de resultados, penales, goles, asistencias, tarjetas y sedes.
 - Tabla de posiciones, fases de grupo, semifinales, tercer lugar y final.
 - Historial de torneos, palmarés, rendimiento, ranking FIFA, clásicos y disciplina.
+- Resumen estadístico global por era.
+- Tabla completa de torneos con avance, partidos, goles, equipos y campeón.
+- Estadísticas de participantes y enfrentamientos directos.
 - Partidos amistosos y estadísticas globales.
 - Modo oscuro.
 - Exportación e importación de respaldos JSON.
@@ -37,22 +41,18 @@ Luego abre la dirección indicada por la terminal.
 
 También está disponible `Iniciar_Chutemundo.bat` para Windows.
 
-## Publicar en GitHub
-
-Después de copiar esta versión sobre tu carpeta local original del proyecto, ejecuta `Subir_Chute_Mundo_a_GitHub.bat`. El script revisa los cambios, solicita un mensaje de commit y hace el `git push` automáticamente.
-
-No lo ejecutes desde una carpeta extraída sin `.git`; consulta [`USO_PUBLICADOR_GITHUB.md`](USO_PUBLICADOR_GITHUB.md).
-
-## Crear una copa correctamente
+## Crear un torneo
 
 1. Ve a **Torneos**.
-2. Ingresa el nombre.
-3. Elige `Copa con grupos` o `Eliminación directa` en **Formato**.
-4. Marca los equipos.
-5. Revisa el bloque bajo el selector:
-   - En Copa con grupos, se muestra la distribución automática de los equipos entre Grupo A y Grupo B.
-   - En Eliminación directa, se muestra el total y los equipos inscritos.
-6. Crea el torneo.
+2. Presiona **+ Nuevo torneo** o completa directamente el formulario.
+3. Ingresa un nombre único.
+4. Elige el formato, la fase regular y el estado.
+5. Marca los equipos participantes.
+6. Presiona **Crear y abrir torneo**.
+
+El sistema genera automáticamente los partidos correspondientes y abre el torneo recién creado.
+
+También puedes usar **Crear siguiente** para repetir los equipos y la configuración del último torneo con un nombre nuevo.
 
 Reglas mínimas:
 
@@ -60,6 +60,24 @@ Reglas mínimas:
 - **Liga + Playoff:** 4 equipos.
 - **Eliminación directa:** 2 a 8 equipos.
 - **Liga y División con final:** 2 equipos o más.
+
+## Estadísticas
+
+La sección **Estadísticas** incluye:
+
+- resumen de equipos, jugadores, torneos, partidos, goles y tarjetas;
+- máximo goleador y máximo asistidor;
+- líder histórico por puntos;
+- listado completo de torneos con porcentaje de avance;
+- tabla general acumulada;
+- palmarés y títulos por categoría;
+- ranking de rendimiento y ranking estilo FIFA;
+- clásicos y Head To Head;
+- goleadores y asistencias;
+- sanciones y tarjetas;
+- rendimiento de participantes.
+
+Los indicadores pueden filtrarse por Toda la Historia, Era Clásica o Era Divisiones.
 
 ## Guardado y respaldos
 
@@ -75,7 +93,9 @@ Antes de actualizar una publicación o cambiar de computador, exporta un respald
 
 ## Supabase
 
-La app incluye una integración opcional de Supabase para almacenar un respaldo completo del estado. No constituye aún una solución multiusuario completa: faltan autenticación, perfiles y políticas RLS de producción.
+La app incluye una integración opcional de Supabase para almacenar un respaldo completo del estado. Cuando Supabase está conectado, los torneos creados con el flujo mejorado solicitan además una sincronización en la nube.
+
+No constituye aún una solución multiusuario completa: faltan autenticación, perfiles y políticas RLS de producción.
 
 Documentación relacionada:
 
@@ -89,13 +109,14 @@ El proyecto incluye `vercel.json` y puede desplegarse como sitio estático. Revi
 
 ## Validaciones de esta entrega
 
-- Sintaxis JavaScript validada para `app.js`, `data.js`, `storage.js` y `supabaseClient.js`.
-- Lógica de copas validada para 4 y 6 equipos.
-- Lógica de eliminación directa validada para 6 equipos.
-- Detalle reproducible en [`VALIDACION_v1.3.md`](VALIDACION_v1.3.md).
+- Sintaxis JavaScript validada para `chutemundo-enhancements.js` y `supabaseClient.js`.
+- Compatibilidad mantenida con el estado y los respaldos existentes.
+- El flujo mejorado utiliza los mismos generadores de partidos de la aplicación principal.
+- No se eliminan ni modifican torneos existentes durante la actualización.
 
 ## Historial de versiones
 
+- **v1.4.0:** estadísticas completas visibles, tabla de todos los torneos, rendimiento de participantes y creación mejorada de nuevas competencias.
 - **v1.3.1:** incorporado `Subir_Chute_Mundo_a_GitHub.bat` y guía de uso para publicación por GitHub.
 - [`CAMBIOS_v1.3.md`](CAMBIOS_v1.3.md): copas corregidas, equipos participantes visibles y compatibilidad de datos.
 - [`CAMBIOS_v1.2.md`](CAMBIOS_v1.2.md): preparación cloud con Supabase/Vercel.
