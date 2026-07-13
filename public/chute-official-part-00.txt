@@ -1,0 +1,175 @@
+import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
+import {
+  getAuth,
+  setPersistence,
+  browserLocalPersistence,
+  onAuthStateChanged,
+  signInWithEmailAndPassword,
+  signOut
+} from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
+import {
+  getFirestore,
+  doc,
+  onSnapshot,
+  setDoc,
+  serverTimestamp
+} from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
+
+const VERSION = '3.0.0';
+const ADMIN_EMAIL = 'cauretaf@gmail.com';
+const LOCAL_STORAGE_KEY = 'chute_mundo_firebase_official_v3';
+let auth = null;
+let db = null;
+let sharedStateRef = null;
+
+async function loadFirebaseConfig() {
+  const response = await fetch('/public/cloud-stable.mjs', { cache: 'no-store' });
+  if (!response.ok) throw new Error('No se pudo leer la configuración Firebase existente.');
+  const source = await response.text();
+  const match = source.match(/const FIREBASE_CONFIG = (\{[\s\S]*?\n\});/);
+  if (!match) throw new Error('La configuración Firebase no fue encontrada.');
+  return new Function(`return ${match[1]};`)();
+}
+
+async function initializeFirebaseServices() {
+  const config = await loadFirebaseConfig();
+  const firebaseApp = initializeApp(config);
+  auth = getAuth(firebaseApp);
+  db = getFirestore(firebaseApp);
+  sharedStateRef = doc(db, 'chuteMundo', 'sharedState');
+}
+
+const $ = (selector, root = document) => root.querySelector(selector);
+const $$ = (selector, root = document) => Array.from(root.querySelectorAll(selector));
+const clone = (value) => JSON.parse(JSON.stringify(value));
+const uid = (prefix = 'id') => `${prefix}_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
+const escapeHtml = (value = '') => String(value).replace(/[&<>"']/g, (character) => ({
+  '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+}[character]));
+
+let legacyState = null;
+let state = emptyState();
+let authUser = null;
+let cloudLoaded = false;
+let cloudHasHistory = false;
+let usingFallback = true;
+let selectedTournamentId = null;
+let saveTimer = null;
+let toastTimer = null;
+let migrationRunning = false;
+
+function emptyState() {
+  return {
+    version: VERSION,
+    config: {},
+    rules: [],
+    participants: [],
+    teams: [],
+    classics: [],
+    friendlies: [],
+    tournaments: [],
+    discipline: { records: [] },
+    divisions: { A: [], B: [] },
+    fifaRanking: [],
+    activity: []
+  };
+}
+
+function playerName(player) {
+  return Array.isArray(player) ? player[0] : (player?.name || '');
+}
+
+function teamInitials(name = '') {
+  return name.split(/\s+/).filter(Boolean).map((part) => part[0]).join('').slice(0, 4).toUpperCase();
+}
+
+function normalizeMatch(match, tournamentId = '') {
+  const source = match && typeof match === 'object' ? match : {};
+  const converted = {
+    id: source.id || uid('match'),
+    tournamentId: source.tournamentId || tournamentId,
+    stage: source.stage || source.phase || 'regular',
+    round: source.round || source.stage || 'Partido',
+    label: source.label || source.stage || 'Partido',
+    group: source.group || null,
+    home: source.home ?? source.playedHomeId ?? source.homeTeamId ?? null,
+    away: source.away ?? source.playedAwayId ?? source.awayTeamId ?? null,
+    homeRef: source.homeRef || null,
+    awayRef: source.awayRef || null,
+    homeGoals: source.homeGoals ?? source.homeScore ?? null,
+    awayGoals: source.awayGoals ?? source.awayScore ?? null,
+    homePens: source.homePens ?? source.homePenalties ?? null,
+    awayPens: source.awayPens ?? source.awayPenalties ?? null,
+    date: source.date || '',
+    time: source.time || '',
+    venue: source.venue || '',
+    homeGoalLog: source.homeGoalLog || '',
+    awayGoalLog: source.awayGoalLog || '',
+    homeCardLog: source.homeCardLog || '',
+    awayCardLog: source.awayCardLog || '',
+    cards: Array.isArray(source.cards) ? source.cards : [],
+    autoAdvance: Boolean(source.autoAdvance)
+  };
+
+  if (!converted.homeRef && source.homeSource) converted.homeRef = convertOldSource(source.homeSource);
+  if (!converted.awayRef && source.awaySource) converted.awayRef = convertOldSource(source.awaySource);
+  return converted;
+}
+
+function convertOldSource(source) {
+  if (!source) return null;
+  if (source.type === 'group') return `GROUP_${source.group}_${source.rank}`;
+  if (source.type === 'match') {
+    const prefix = String(source.matchId || '').toUpperCase().includes('Q') ? 'QF' : 'S';
+    const number = String(source.matchId || '').match(/(\d+)/)?.[1] || '1';
+    return `${prefix}${number}_${source.result === 'loser' ? 'L' : 'W'}`;
+  }
+  return null;
+}
+
+function normalizeTournament(tournament, separateMatches = []) {
+  const source = tournament && typeof tournament === 'object' ? tournament : {};
+  const typeMap = { groups: 'cup_groups', knockout: 'direct_knockout' };
+  const groups = Array.isArray(source.groups)
+    ? source.groups
+    : source.groups && typeof source.groups === 'object'
+      ? Object.entries(source.groups).map(([name, teamIds]) => ({ name: `Grupo ${name}`, teamIds }))
+      : [];
+  const embeddedMatches = Array.isArray(source.matches)
+    ? source.matches
+    : separateMatches.filter((match) => match.tournamentId === source.id);
+
+  return {
+    ...source,
+    id: source.id || uid('tour'),
+    name: source.name || 'Torneo sin nombre',
+    type: typeMap[source.type] || source.type || 'league',
+    status: source.status || (source.champion ? 'historical' : 'upcoming'),
+    createdAt: source.createdAt || source.created || new Date().toLocaleDateString('es-CL'),
+    config: { ...(source.config || {}), legs: Number(source.config?.legs || source.legs || 1) },
+    teamIds: Array.isArray(source.teamIds) ? source.teamIds : (Array.isArray(source.teams) ? source.teams : []),
+    groups,
+    matches: embeddedMatches.map((match) => normalizeMatch(match, source.id)),
+    manualStandings: Array.isArray(source.manualStandings) ? source.manualStandings : [],
+    playerScorers: Array.isArray(source.playerScorers) ? source.playerScorers : [],
+    playerAssists: Array.isArray(source.playerAssists) ? source.playerAssists : [],
+    notes: Array.isArray(source.notes) ? source.notes : [],
+    champion: source.champion || null,
+    runnerUp: source.runnerUp || null,
+    third: source.third || null,
+    participantLocal: source.participantLocal || '',
+    participantAway: source.participantAway || '',
+    participantChampion: source.participantChampion || '',
+    participantRunnerUp: source.participantRunnerUp || '',
+    participantThird: source.participantThird || ''
+  };
+}
+
+function normalizeState(value) {
+  const source = value && typeof value === 'object' ? value : {};
+  const separateMatches = Array.isArray(source.matches) ? source.matches : [];
+  const teams = Array.isArray(source.teams) ? source.teams.map((team) => ({
+    ...team,
+    id: team.id || uid('team'),
+    name: team.name || 'Equipo sin nombre',
+    initials: team.initials || teamInitials(team.name),
