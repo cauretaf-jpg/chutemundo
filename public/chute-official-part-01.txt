@@ -24,7 +24,7 @@
 }
 
 async function loadLegacyState() {
-  const response = await fetch(`/data.js?v=${VERSION}`, { cache: 'no-store' });
+  const response = await fetch(`https://raw.githubusercontent.com/cauretaf-jpg/chutemundo/main/data.js?v=${VERSION}`, { cache: 'no-store' });
   if (!response.ok) throw new Error(`No se pudo leer data.js (${response.status}).`);
   const sourceText = await response.text();
   const baseData = new Function(`${sourceText}\nreturn DEFAULT_DATA;`)();
