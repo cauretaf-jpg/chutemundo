@@ -22,7 +22,7 @@ La versión oficial normaliza esos datos sin eliminar campos del modelo anterior
 
 ## Funcionamiento de la migración
 
-1. Al abrir la página, se carga y normaliza el historial de `data.js`.
+1. Al abrir la página, se carga y normaliza el historial versionado de `data.js`.
 2. La aplicación consulta el documento `chuteMundo/sharedState` en Firestore.
 3. Solo se utiliza el estado remoto si contiene, como mínimo, todos los torneos y resultados del historial original.
 4. Si Firebase está vacío o incompleto, el historial original se muestra inmediatamente como respaldo seguro.
@@ -54,7 +54,9 @@ La versión oficial normaliza esos datos sin eliminar campos del modelo anterior
 
 ## Publicación
 
-`vercel.json` reescribe la raíz `/` hacia `public/chute-official.html`, por lo que la dirección oficial continúa siendo:
+El proyecto de Vercel que utiliza `public` como directorio raíz carga la versión oficial desde `public/index.html`. El despliegue alternativo que utiliza la raíz completa del repositorio conserva además la reescritura definida en `vercel.json`.
+
+La dirección oficial continúa siendo:
 
 `https://chutemundo.vercel.app`
 
@@ -64,6 +66,7 @@ La versión oficial normaliza esos datos sin eliminar campos del modelo anterior
 - La estructura histórica se mantiene en `data.js` como respaldo reproducible.
 - Una base remota incompleta no puede reemplazar silenciosamente el historial original.
 - La migración a Firestore se ejecuta únicamente con sesión administradora.
+- La portada oficial fue verificada en una vista previa de Vercel.
 
 ## Paso único del administrador
 
