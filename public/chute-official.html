@@ -1,0 +1,170 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#092820">
+  <meta name="description" content="Historial, estadísticas y torneos de Chute Mundo sincronizados con Firebase.">
+  <title>Chute Mundo · Historial oficial</title>
+  <link rel="icon" href="/logo/logochute.png" type="image/png">
+  <link rel="stylesheet" href="/public/chute-official.css?v=3.0.0">
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <img src="/logo/logochute.png" alt="Chute Mundo" class="brand-logo">
+      <div><strong>Chute Mundo</strong><small>Historial oficial · Firebase</small></div>
+    </div>
+    <div class="top-actions">
+      <span id="syncStatus" class="sync-pill">Preparando historial…</span>
+      <button id="authButton" class="top-button">Ingresar</button>
+    </div>
+  </header>
+
+  <nav class="nav" aria-label="Navegación principal">
+    <button class="nav-button active" data-page="inicio">Inicio</button>
+    <button class="nav-button" data-page="torneos">Torneos</button>
+    <button class="nav-button" data-page="partidos">Partidos</button>
+    <button class="nav-button" data-page="equipos">Equipos</button>
+    <button class="nav-button" data-page="estadisticas">Estadísticas</button>
+    <button class="nav-button" data-page="administracion">Administración</button>
+  </nav>
+
+  <main class="container">
+    <section id="inicio" class="page">
+      <div class="hero">
+        <div>
+          <p class="eyebrow">CHUTE MUNDO v3.0</p>
+          <h1>Todos los torneos y estadísticas en una sola base.</h1>
+          <p>El historial oficial se recupera desde la base original y se sincroniza con Firebase para verlo desde cualquier dispositivo.</p>
+        </div>
+        <div class="hero-actions">
+          <button class="primary nav-button" data-page="torneos">Ver torneos</button>
+          <button class="secondary nav-button" data-page="estadisticas">Ver estadísticas</button>
+        </div>
+      </div>
+
+      <div id="sourceNotice" class="notice info">Cargando historial oficial…</div>
+      <div class="metrics" id="homeMetrics"></div>
+
+      <div class="two-columns">
+        <article class="panel">
+          <div class="panel-head"><div><p class="eyebrow">COMPETENCIA</p><h2>Torneo activo</h2></div></div>
+          <div id="activeTournamentCard"></div>
+        </article>
+        <article class="panel">
+          <div class="panel-head"><div><p class="eyebrow">RANKING</p><h2>Primeros puestos</h2></div><button class="text-button nav-button" data-page="estadisticas">Ver completo</button></div>
+          <div id="homeRanking"></div>
+        </article>
+      </div>
+
+      <article class="panel">
+        <div class="panel-head"><div><p class="eyebrow">HISTORIA</p><h2>Últimos torneos</h2></div></div>
+        <div id="recentTournaments" class="stack"></div>
+      </article>
+    </section>
+
+    <section id="torneos" class="page" hidden>
+      <div class="page-title"><p class="eyebrow">COMPETENCIAS</p><h1>Torneos</h1><p>Crea nuevas competencias sin perder el historial anterior.</p></div>
+      <div class="two-columns">
+        <article class="panel admin-only" hidden>
+          <h2>Crear torneo</h2>
+          <form id="tournamentForm">
+            <label>Nombre del torneo<input id="tournamentName" required maxlength="80" placeholder="Ej. 8vo Torneo - Clausura"></label>
+            <div class="form-grid">
+              <label>Formato
+                <select id="tournamentType">
+                  <option value="league">Liga</option>
+                  <option value="league_playoff">Liga + Playoff</option>
+                  <option value="cup_groups">Copa con grupos</option>
+                  <option value="direct_knockout">Eliminación directa</option>
+                  <option value="division_final">División con final</option>
+                </select>
+              </label>
+              <label>Fase regular<select id="tournamentLegs"><option value="1">Solo ida</option><option value="2">Ida y vuelta</option></select></label>
+              <label>Estado<select id="tournamentStatus"><option value="upcoming">Próximo</option><option value="active">Activo</option></select></label>
+            </div>
+            <div id="formatHelp" class="notice info"></div>
+            <div class="select-tools"><label><input id="selectAllTeams" type="checkbox"> Seleccionar todos</label><span id="selectedCount">0 seleccionados</span></div>
+            <div id="teamPicker" class="team-picker"></div>
+            <button class="primary wide" type="submit">Crear y abrir torneo</button>
+          </form>
+        </article>
+        <article class="panel">
+          <div class="panel-head"><div><p class="eyebrow">HISTORIAL</p><h2>Torneos registrados</h2></div><select id="tournamentStatusFilter" class="compact-select"><option value="all">Todos</option><option value="active">Activos</option><option value="upcoming">Próximos</option><option value="historical">Históricos</option></select></div>
+          <div id="tournamentList" class="stack"></div>
+        </article>
+      </div>
+      <div id="tournamentDetail" class="detail"></div>
+    </section>
+
+    <section id="partidos" class="page" hidden>
+      <div class="page-title"><p class="eyebrow">CALENDARIO</p><h1>Partidos</h1><p>Consulta y registra resultados de cualquier torneo.</p></div>
+      <article class="panel">
+        <div class="form-grid filters"><label>Torneo<select id="matchTournamentFilter"></select></label><label>Estado<select id="matchStatusFilter"><option value="all">Todos</option><option value="played">Jugados</option><option value="pending">Pendientes</option></select></label></div>
+        <div id="matchesList" class="match-list"></div>
+      </article>
+    </section>
+
+    <section id="equipos" class="page" hidden>
+      <div class="page-title"><p class="eyebrow">CLUBES</p><h1>Equipos</h1><p>Planteles y responsables conservados desde la base histórica.</p></div>
+      <div class="two-columns">
+        <article class="panel admin-only" hidden>
+          <h2>Agregar equipo</h2>
+          <form id="teamForm">
+            <label>Nombre<input id="teamName" required maxlength="60"></label>
+            <label>DT / responsable<input id="teamCoach" maxlength="60"></label>
+            <label>Sigla<input id="teamInitials" maxlength="4"></label>
+            <button class="primary wide" type="submit">Agregar equipo</button>
+          </form>
+        </article>
+        <article class="panel"><div class="panel-head"><div><p class="eyebrow">REGISTRO</p><h2>Equipos inscritos</h2></div></div><div id="teamList" class="stack"></div></article>
+      </div>
+    </section>
+
+    <section id="estadisticas" class="page" hidden>
+      <div class="page-title"><p class="eyebrow">RENDIMIENTO</p><h1>Estadísticas completas</h1><p>Todos los indicadores se calculan desde los resultados históricos y actuales.</p></div>
+      <article class="panel filter-panel"><label>Periodo<select id="eraFilter"><option value="all">Toda la historia</option><option value="classic">Era clásica</option><option value="division">Era divisiones</option></select></label></article>
+      <div id="statsOverview" class="metrics stats-metrics"></div>
+
+      <div class="two-columns">
+        <article class="panel"><div class="panel-head"><div><p class="eyebrow">GLOBAL</p><h2>Tabla histórica</h2></div></div><div id="globalTable"></div></article>
+        <article class="panel"><div class="panel-head"><div><p class="eyebrow">TÍTULOS</p><h2>Palmarés</h2></div></div><div id="honoursList"></div></article>
+      </div>
+
+      <article class="panel"><div class="panel-head"><div><p class="eyebrow">TORNEOS</p><h2>Resumen por competencia</h2></div></div><div id="tournamentStats"></div></article>
+
+      <div class="two-columns">
+        <article class="panel"><div class="panel-head"><div><p class="eyebrow">JUGADORES</p><h2>Goleadores</h2></div></div><div id="topScorers"></div></article>
+        <article class="panel"><div class="panel-head"><div><p class="eyebrow">JUGADORES</p><h2>Asistencias</h2></div></div><div id="topAssists"></div></article>
+      </div>
+
+      <div class="two-columns">
+        <article class="panel"><div class="panel-head"><div><p class="eyebrow">RIVALIDADES</p><h2>Clásicos</h2></div></div><div id="classicSummary"></div></article>
+        <article class="panel"><div class="panel-head"><div><p class="eyebrow">CONTROLADORES</p><h2>Participantes</h2></div></div><div id="participantStats"></div></article>
+      </div>
+
+      <article class="panel"><div class="panel-head"><div><p class="eyebrow">RÉCORDS</p><h2>Récords históricos</h2></div></div><div id="recordsGrid" class="records-grid"></div></article>
+    </section>
+
+    <section id="administracion" class="page" hidden>
+      <div class="page-title"><p class="eyebrow">CONTROL</p><h1>Administración</h1><p>Solo la cuenta administradora puede modificar la base compartida.</p></div>
+      <div class="two-columns">
+        <article class="panel">
+          <p class="eyebrow">FIREBASE</p><h2>Base compartida</h2><p id="cloudInfo" class="muted"></p>
+          <div class="actions"><button id="migrateHistory" class="primary" hidden>Restaurar historial oficial</button><button id="syncNow" class="secondary" hidden>Sincronizar ahora</button></div>
+        </article>
+        <article class="panel">
+          <p class="eyebrow">RESPALDOS</p><h2>Exportar o restaurar</h2><p class="muted">El respaldo contiene equipos, torneos, partidos y estadísticas.</p>
+          <div class="actions"><button id="exportButton" class="primary">Descargar JSON</button><label class="secondary file-label">Importar JSON<input id="importFile" type="file" accept="application/json"></label></div>
+        </article>
+      </div>
+      <article class="panel danger admin-only" hidden><p class="eyebrow">ZONA DE RIESGO</p><h2>Restaurar la base histórica original</h2><p class="muted">Reemplaza cambios posteriores por el historial oficial contenido en el proyecto.</p><button id="restoreOriginal" class="danger-button">Restaurar historial original</button></article>
+    </section>
+  </main>
+
+  <div id="modal" class="modal" hidden><div class="modal-card"><button class="close-button" data-close-modal aria-label="Cerrar">×</button><div id="modalContent"></div></div></div>
+  <div id="toast" class="toast" hidden></div>
+  <script type="module" src="/public/chute-official.mjs?v=3.0.0"></script>
+</body>
+</html>
