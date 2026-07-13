@@ -1,0 +1,175 @@
+    coach: team.coach || '',
+    archived: Boolean(team.archived),
+    players: Array.isArray(team.players) ? team.players : []
+  })) : [];
+
+  return {
+    ...emptyState(),
+    ...source,
+    version: VERSION,
+    config: source.config || {},
+    rules: Array.isArray(source.rules) ? source.rules : [],
+    participants: Array.isArray(source.participants) ? source.participants : [],
+    teams,
+    classics: Array.isArray(source.classics) ? source.classics : [],
+    friendlies: Array.isArray(source.friendlies) ? source.friendlies.map((match) => normalizeMatch(match, 'friendly')) : [],
+    tournaments: Array.isArray(source.tournaments)
+      ? source.tournaments.map((tournament) => normalizeTournament(tournament, separateMatches))
+      : [],
+    discipline: source.discipline || { records: [] },
+    divisions: source.divisions || { A: [], B: [] },
+    fifaRanking: Array.isArray(source.fifaRanking) ? source.fifaRanking : [],
+    activity: Array.isArray(source.activity) ? source.activity : []
+  };
+}
+
+async function loadLegacyState() {
+  const response = await fetch(`/data.js?v=${VERSION}`, { cache: 'no-store' });
+  if (!response.ok) throw new Error(`No se pudo leer data.js (${response.status}).`);
+  const sourceText = await response.text();
+  const baseData = new Function(`${sourceText}\nreturn DEFAULT_DATA;`)();
+  const normalized = normalizeState(baseData);
+  normalized.activity = [{
+    id: uid('activity'),
+    text: `Historial oficial recuperado: ${normalized.tournaments.length} torneos.`,
+    at: Date.now()
+  }];
+  return normalized;
+}
+
+function persistLocal() {
+  localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(state));
+}
+
+function isAdmin() {
+  return Boolean(authUser?.email && authUser.email.toLowerCase() === ADMIN_EMAIL);
+}
+
+function canEdit() {
+  return isAdmin() && cloudLoaded && cloudHasHistory;
+}
+
+function setStatus(text) {
+  const target = $('#syncStatus');
+  if (target) target.textContent = text;
+}
+
+function showToast(text) {
+  const target = $('#toast');
+  if (!target) return;
+  target.textContent = text;
+  target.hidden = false;
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => { target.hidden = true; }, 3600);
+}
+
+function teamById(id) {
+  return state.teams.find((team) => team.id === id) || null;
+}
+
+function teamName(id) {
+  return teamById(id)?.name || 'Por definir';
+}
+
+function participantName(id) {
+  return state.participants.find((participant) => participant.id === id)?.name || 'Sin asignar';
+}
+
+function tournamentById(id) {
+  return state.tournaments.find((tournament) => tournament.id === id) || null;
+}
+
+function matchPlayed(match) {
+  return match && match.homeGoals !== null && match.homeGoals !== '' && match.awayGoals !== null && match.awayGoals !== '';
+}
+
+function typeLabel(type) {
+  return ({
+    league: 'Liga',
+    league_playoff: 'Liga + Playoff',
+    cup_groups: 'Copa con grupos',
+    direct_knockout: 'Eliminación directa',
+    division_final: 'División con final'
+  })[type] || type;
+}
+
+function statusLabel(status) {
+  return ({ upcoming: 'Próximo', active: 'Activo', historical: 'Histórico' })[status] || status;
+}
+
+function allOfficialMatches(tournaments = state.tournaments) {
+  return tournaments.flatMap((tournament) => tournament.matches.map((match) => ({ ...match, tournamentId: tournament.id })));
+}
+
+function sortStandings(rows) {
+  return rows.sort((a, b) =>
+    b.pts - a.pts || b.dg - a.dg || b.gf - a.gf || a.gc - b.gc || teamName(a.teamId).localeCompare(teamName(b.teamId), 'es')
+  ).map((row, index) => ({ ...row, pos: index + 1 }));
+}
+
+function computeStandingsFromMatches(teamIds, matches) {
+  const table = Object.fromEntries(teamIds.map((teamId) => [teamId, { teamId, pj: 0, pg: 0, pe: 0, pp: 0, gf: 0, gc: 0, dg: 0, pts: 0 }]));
+  matches.filter(matchPlayed).forEach((match) => {
+    const homeId = match.home;
+    const awayId = match.away;
+    const home = table[homeId];
+    const away = table[awayId];
+    if (!home || !away) return;
+    const homeGoals = Number(match.homeGoals);
+    const awayGoals = Number(match.awayGoals);
+    home.pj += 1; away.pj += 1;
+    home.gf += homeGoals; home.gc += awayGoals;
+    away.gf += awayGoals; away.gc += homeGoals;
+    if (homeGoals > awayGoals) { home.pg += 1; away.pp += 1; home.pts += 3; }
+    else if (awayGoals > homeGoals) { away.pg += 1; home.pp += 1; away.pts += 3; }
+    else { home.pe += 1; away.pe += 1; home.pts += 1; away.pts += 1; }
+  });
+  Object.values(table).forEach((row) => { row.dg = row.gf - row.gc; });
+  return sortStandings(Object.values(table));
+}
+
+function getTournamentStandings(tournament) {
+  if (tournament.manualStandings?.length) return [...tournament.manualStandings].sort((a, b) => a.pos - b.pos);
+  return computeStandingsFromMatches(tournament.teamIds, tournament.matches.filter((match) => match.stage === 'regular'));
+}
+
+function getGroupStandings(tournament, groupName) {
+  const group = tournament.groups.find((item) => item.name === groupName);
+  if (!group) return [];
+  return computeStandingsFromMatches(group.teamIds, tournament.matches.filter((match) => match.stage === 'group' && match.group === groupName));
+}
+
+function determineWinnerId(match, tournament = null) {
+  if (!matchPlayed(match)) return null;
+  const home = tournament ? resolveHome(tournament, match) : match.home;
+  const away = tournament ? resolveAway(tournament, match) : match.away;
+  if (Number(match.homeGoals) > Number(match.awayGoals)) return home;
+  if (Number(match.awayGoals) > Number(match.homeGoals)) return away;
+  if (match.homePens !== null && match.awayPens !== null) {
+    if (Number(match.homePens) > Number(match.awayPens)) return home;
+    if (Number(match.awayPens) > Number(match.homePens)) return away;
+  }
+  return null;
+}
+
+function determineLoserId(match, tournament = null) {
+  const winner = determineWinnerId(match, tournament);
+  if (!winner) return null;
+  const home = tournament ? resolveHome(tournament, match) : match.home;
+  const away = tournament ? resolveAway(tournament, match) : match.away;
+  return winner === home ? away : home;
+}
+
+function resolveRef(tournament, reference) {
+  if (!reference) return null;
+  if (reference.startsWith('TABLE_')) return getTournamentStandings(tournament)[Number(reference.split('_')[1]) - 1]?.teamId || null;
+  const groupMatch = reference.match(/^GROUP_([AB])_(\d+)$/);
+  if (groupMatch) return getGroupStandings(tournament, `Grupo ${groupMatch[1]}`)[Number(groupMatch[2]) - 1]?.teamId || null;
+  const bracketReference = reference.match(/^(QF|S)(\d+)_(W|L)$/);
+  if (bracketReference) {
+    const [, prefix, number, result] = bracketReference;
+    const round = prefix === 'QF' ? 'Cuartos de Final' : 'Semifinales';
+    const labelOptions = prefix === 'QF' ? [`Cuarto ${number}`, `Cuartos ${number}`] : [`Semifinal ${number}`];
+    const source = tournament.matches.find((match) => match.stage === 'knockout' && match.round === round && labelOptions.includes(match.label));
+    if (!source || !matchPlayed(source)) return null;
+    return result === 'W' ? determineWinnerId(source, tournament) : determineLoserId(source, tournament);
