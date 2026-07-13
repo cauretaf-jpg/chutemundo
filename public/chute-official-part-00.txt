@@ -23,7 +23,7 @@ let db = null;
 let sharedStateRef = null;
 
 async function loadFirebaseConfig() {
-  const response = await fetch('/public/cloud-stable.mjs', { cache: 'no-store' });
+  const response = await fetch('/cloud-stable.mjs', { cache: 'no-store' });
   if (!response.ok) throw new Error('No se pudo leer la configuración Firebase existente.');
   const source = await response.text();
   const match = source.match(/const FIREBASE_CONFIG = (\{[\s\S]*?\n\});/);
