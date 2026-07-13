@@ -1,12 +1,13 @@
 {
   "name": "chutemundo",
-  "version": "1.4.0",
+  "version": "3.0.0",
   "private": true,
-  "description": "App web para gestionar torneos, estadísticas y competiciones personales de Chute Mundo.",
+  "description": "Historial, estadísticas y gestión de torneos de Chute Mundo sincronizados con Firebase.",
   "scripts": {
     "dev": "npx serve . -l 5173",
-    "build": "node -e \"console.log('Chutemundo es una app estática: no requiere build.')\"",
-    "preview": "npx serve . -l 4173"
+    "build": "node -e \"console.log('Chute Mundo es una app estática: no requiere build.')\"",
+    "preview": "npx serve . -l 4173",
+    "check:official": "node --check public/chute-official-loader.mjs"
   },
   "devDependencies": {
     "serve": "^14.2.4"

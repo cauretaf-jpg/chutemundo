@@ -1,0 +1,175 @@
+  const rows = Object.fromEntries(state.participants.map((participant) => [participant.id, { ...participant, pj: 0, pg: 0, pe: 0, pp: 0, gf: 0, gc: 0, pts: 0, titles: 0, runners: 0, thirds: 0 }]));
+  tournaments.forEach((tournament) => {
+    tournament.matches.filter(matchPlayed).forEach((match) => {
+      const local = rows[tournament.participantLocal];
+      const away = rows[tournament.participantAway];
+      if (!local || !away) return;
+      const homeGoals = Number(match.homeGoals); const awayGoals = Number(match.awayGoals);
+      local.pj += 1; away.pj += 1; local.gf += homeGoals; local.gc += awayGoals; away.gf += awayGoals; away.gc += homeGoals;
+      if (homeGoals > awayGoals) { local.pg += 1; away.pp += 1; local.pts += 3; }
+      else if (awayGoals > homeGoals) { away.pg += 1; local.pp += 1; away.pts += 3; }
+      else { local.pe += 1; away.pe += 1; local.pts += 1; away.pts += 1; }
+    });
+    if (rows[tournament.participantChampion]) rows[tournament.participantChampion].titles += 1;
+    if (rows[tournament.participantRunnerUp]) rows[tournament.participantRunnerUp].runners += 1;
+    if (rows[tournament.participantThird]) rows[tournament.participantThird].thirds += 1;
+  });
+  return Object.values(rows).sort((a, b) => b.titles - a.titles || b.pts - a.pts);
+}
+
+function computeRecords(tournaments) {
+  const matches = tournaments.flatMap((tournament) => tournament.matches.filter(matchPlayed).map((match) => ({ tournament, match, home: resolveHome(tournament, match), away: resolveAway(tournament, match) }))).filter((row) => row.home && row.away);
+  const biggest = [...matches].sort((a, b) => Math.abs(Number(b.match.homeGoals) - Number(b.match.awayGoals)) - Math.abs(Number(a.match.homeGoals) - Number(a.match.awayGoals)))[0];
+  const mostGoals = [...matches].sort((a, b) => (Number(b.match.homeGoals) + Number(b.match.awayGoals)) - (Number(a.match.homeGoals) + Number(a.match.awayGoals)))[0];
+  const totals = { matches: matches.length, goals: matches.reduce((sum, row) => sum + Number(row.match.homeGoals) + Number(row.match.awayGoals), 0) };
+  const titles = new Map();
+  tournaments.forEach((tournament) => { if (tournament.champion) titles.set(tournament.champion, (titles.get(tournament.champion) || 0) + 1); });
+  const mostTitles = [...titles.entries()].sort((a, b) => b[1] - a[1])[0];
+  return { biggest, mostGoals, totals, mostTitles };
+}
+
+function renderStats() {
+  const tournaments = filteredTournaments();
+  const standings = buildGlobalStandings(tournaments);
+  const matches = tournaments.flatMap((tournament) => tournament.matches.filter((match) => match.stage !== 'bye'));
+  const played = matches.filter(matchPlayed);
+  const goals = played.reduce((sum, match) => sum + Number(match.homeGoals || 0) + Number(match.awayGoals || 0), 0);
+  const scorers = playerRows('goals', tournaments);
+  const assists = playerRows('assists', tournaments);
+  $('#statsOverview').innerHTML = [
+    metricCard(tournaments.length, 'Torneos'),
+    metricCard(played.length, 'Partidos jugados'),
+    metricCard(goals, 'Goles', played.length ? `${(goals / played.length).toFixed(2)} por partido` : ''),
+    metricCard(standings[0] ? teamName(standings[0].teamId) : '—', 'Líder histórico', standings[0] ? `${standings[0].pts} puntos` : ''),
+    metricCard(scorers[0]?.name || '—', 'Máximo goleador', scorers[0] ? `${scorers[0].value} goles` : ''),
+    metricCard(assists[0]?.name || '—', 'Máximo asistidor', assists[0] ? `${assists[0].value} asistencias` : '')
+  ].join('');
+  $('#globalTable').innerHTML = renderStandingsTable(standings);
+
+  const honours = state.teams.map((team) => ({
+    teamId: team.id,
+    titles: tournaments.filter((tournament) => tournament.champion === team.id).length,
+    runners: tournaments.filter((tournament) => tournament.runnerUp === team.id).length,
+    thirds: tournaments.filter((tournament) => tournament.third === team.id).length
+  })).filter((row) => row.titles || row.runners || row.thirds).sort((a, b) => b.titles - a.titles || b.runners - a.runners || b.thirds - a.thirds);
+  $('#honoursList').innerHTML = honours.length ? honours.map((row, index) => `<div class="rank-row"><b>${index + 1}</b><div><strong>${escapeHtml(teamName(row.teamId))}</strong><small>${row.runners} subcampeonatos · ${row.thirds} terceros</small></div><strong>${row.titles} títulos</strong></div>`).join('') : '<p class="empty">Sin títulos.</p>';
+
+  $('#tournamentStats').innerHTML = `<div class="table-wrap"><table><thead><tr><th>Torneo</th><th>Formato</th><th>Estado</th><th>Equipos</th><th>Jugados</th><th>Goles</th><th>Campeón</th></tr></thead><tbody>${[...tournaments].reverse().map((tournament) => {
+    const tournamentMatches = tournament.matches.filter((match) => match.stage !== 'bye');
+    const tournamentPlayed = tournamentMatches.filter(matchPlayed);
+    const tournamentGoals = tournamentPlayed.reduce((sum, match) => sum + Number(match.homeGoals || 0) + Number(match.awayGoals || 0), 0);
+    return `<tr><td>${escapeHtml(tournament.name)}</td><td>${escapeHtml(typeLabel(tournament.type))}</td><td>${escapeHtml(statusLabel(tournament.status))}</td><td>${tournament.teamIds.length}</td><td>${tournamentPlayed.length}/${tournamentMatches.length}</td><td>${tournamentGoals}</td><td>${tournament.champion ? escapeHtml(teamName(tournament.champion)) : '—'}</td></tr>`;
+  }).join('')}</tbody></table></div>`;
+  $('#topScorers').innerHTML = renderPlayerTable(scorers, 'Goles');
+  $('#topAssists').innerHTML = renderPlayerTable(assists, 'Asistencias');
+
+  $('#classicSummary').innerHTML = state.classics.map((classic) => {
+    const result = computeClassic(classic, tournaments);
+    return `<div class="record-card"><strong>${escapeHtml(classic.name)}</strong><p>${escapeHtml(teamName(classic.a))} ${result.aWins} triunfos · ${result.draws} empates · ${result.bWins} triunfos ${escapeHtml(teamName(classic.b))}</p><small class="muted">${result.matches} partidos · goles ${result.goalsA}-${result.goalsB}</small></div>`;
+  }).join('') || '<p class="empty">Sin clásicos configurados.</p>';
+
+  const participants = computeParticipants(tournaments);
+  $('#participantStats').innerHTML = participants.length ? `<div class="table-wrap"><table><thead><tr><th>Participante</th><th>PJ</th><th>PG</th><th>PE</th><th>PP</th><th>GF</th><th>GC</th><th>PTS</th><th>Títulos</th></tr></thead><tbody>${participants.map((row) => `<tr><td>${escapeHtml(row.name)}</td><td>${row.pj}</td><td>${row.pg}</td><td>${row.pe}</td><td>${row.pp}</td><td>${row.gf}</td><td>${row.gc}</td><td>${row.pts}</td><td>${row.titles}</td></tr>`).join('')}</tbody></table></div>` : '<p class="empty">Sin participantes asignados.</p>';
+
+  const records = computeRecords(tournaments);
+  $('#recordsGrid').innerHTML = [
+    records.biggest ? `<div class="record-card"><strong>Mayor goleada</strong><span>${escapeHtml(teamName(records.biggest.home))} ${records.biggest.match.homeGoals}-${records.biggest.match.awayGoals} ${escapeHtml(teamName(records.biggest.away))}</span><small class="muted">${escapeHtml(records.biggest.tournament.name)}</small></div>` : '',
+    records.mostGoals ? `<div class="record-card"><strong>Partido con más goles</strong><span>${escapeHtml(teamName(records.mostGoals.home))} ${records.mostGoals.match.homeGoals}-${records.mostGoals.match.awayGoals} ${escapeHtml(teamName(records.mostGoals.away))}</span><small class="muted">${Number(records.mostGoals.match.homeGoals) + Number(records.mostGoals.match.awayGoals)} goles</small></div>` : '',
+    `<div class="record-card"><strong>Totales históricos</strong><span>${records.totals.matches} partidos · ${records.totals.goals} goles</span><small class="muted">${records.totals.matches ? (records.totals.goals / records.totals.matches).toFixed(2) : '0'} goles por partido</small></div>`,
+    records.mostTitles ? `<div class="record-card"><strong>Más títulos</strong><span>${escapeHtml(teamName(records.mostTitles[0]))}</span><small class="muted">${records.mostTitles[1]} campeonatos</small></div>` : ''
+  ].filter(Boolean).join('');
+}
+
+function renderAdmin() {
+  const info = $('#cloudInfo');
+  if (cloudHasHistory) info.textContent = `Firebase contiene ${state.tournaments.length} torneos. Los cambios se comparten entre dispositivos.`;
+  else if (isAdmin()) info.textContent = 'El historial está visible como respaldo local y se está preparando para guardarlo en Firebase.';
+  else info.textContent = 'El historial está visible. Inicia sesión como administrador para dejarlo guardado en Firebase.';
+}
+
+function render() {
+  renderAuthState();
+  renderSourceNotice();
+  renderHome();
+  renderTournamentControls();
+  renderTournamentList();
+  renderTournamentDetail();
+  renderMatches();
+  renderTeams();
+  renderStats();
+  renderAdmin();
+}
+
+function openModal(html) {
+  $('#modalContent').innerHTML = html;
+  $('#modal').hidden = false;
+}
+
+function closeModal() {
+  $('#modal').hidden = true;
+  $('#modalContent').innerHTML = '';
+}
+
+function openLoginModal() {
+  openModal(`<h2>Ingreso administrador</h2><p>Utiliza la cuenta autorizada para modificar torneos y resultados.</p><form id="loginForm"><label>Correo<input value="${ADMIN_EMAIL}" disabled></label><label>Contraseña<input id="loginPassword" type="password" required minlength="6" autocomplete="current-password"></label><div class="modal-actions"><button type="button" class="secondary" data-close-modal>Cancelar</button><button class="primary" type="submit">Ingresar</button></div></form>`);
+  $('#loginForm').addEventListener('submit', async (event) => {
+    event.preventDefault();
+    try {
+      await signInWithEmailAndPassword(auth, ADMIN_EMAIL, $('#loginPassword').value);
+      closeModal();
+      showToast('Sesión iniciada.');
+    } catch (error) {
+      console.error(error);
+      showToast('No se pudo iniciar sesión. Revisa la contraseña.');
+    }
+  });
+}
+
+function openResultModal(tournamentId, matchId) {
+  const tournament = tournamentById(tournamentId);
+  const match = tournament?.matches.find((item) => item.id === matchId);
+  if (!tournament || !match) return;
+  const home = resolveHome(tournament, match);
+  const away = resolveAway(tournament, match);
+  if (!home || !away) return showToast('Este partido depende de resultados anteriores.');
+  const knockout = match.stage === 'knockout';
+  openModal(`<h2>${escapeHtml(match.round)}</h2><p>${escapeHtml(teamName(home))} vs. ${escapeHtml(teamName(away))}</p><form id="resultForm"><div class="form-grid"><label>${escapeHtml(teamName(home))}<input id="homeGoals" type="number" min="0" required value="${match.homeGoals ?? ''}"></label><label>${escapeHtml(teamName(away))}<input id="awayGoals" type="number" min="0" required value="${match.awayGoals ?? ''}"></label></div>${knockout ? `<div class="form-grid"><label>Penales ${escapeHtml(teamName(home))}<input id="homePens" type="number" min="0" value="${match.homePens ?? ''}"></label><label>Penales ${escapeHtml(teamName(away))}<input id="awayPens" type="number" min="0" value="${match.awayPens ?? ''}"></label></div>` : ''}<label>Fecha<input id="matchDate" type="date" value="${escapeHtml(match.date || '')}"></label><label>Lugar<input id="matchVenue" value="${escapeHtml(match.venue || '')}"></label><div class="modal-actions"><button type="button" class="secondary" data-close-modal>Cancelar</button><button class="primary" type="submit">Guardar resultado</button></div></form>`);
+  $('#resultForm').addEventListener('submit', (event) => {
+    event.preventDefault();
+    const homeGoals = Number($('#homeGoals').value);
+    const awayGoals = Number($('#awayGoals').value);
+    if (!Number.isInteger(homeGoals) || !Number.isInteger(awayGoals) || homeGoals < 0 || awayGoals < 0) return showToast('Ingresa marcadores válidos.');
+    let homePens = null; let awayPens = null;
+    if (knockout && homeGoals === awayGoals) {
+      homePens = Number($('#homePens').value); awayPens = Number($('#awayPens').value);
+      if (!Number.isInteger(homePens) || !Number.isInteger(awayPens) || homePens < 0 || awayPens < 0 || homePens === awayPens) return showToast('Los penales deben definir un ganador.');
+    }
+    match.home = home; match.away = away; match.homeGoals = homeGoals; match.awayGoals = awayGoals; match.homePens = homePens; match.awayPens = awayPens; match.date = $('#matchDate').value; match.venue = $('#matchVenue').value.trim();
+    updateTournamentPodium(tournament);
+    addActivity(`Resultado: ${teamName(home)} ${homeGoals}-${awayGoals} ${teamName(away)}.`);
+    queueSave(); closeModal(); render(); showToast('Resultado guardado.');
+  });
+}
+
+function roundRobin(teamIds) {
+  const teams = [...teamIds];
+  if (teams.length % 2) teams.push(null);
+  const rounds = [];
+  for (let round = 0; round < teams.length - 1; round += 1) {
+    const pairs = [];
+    for (let index = 0; index < teams.length / 2; index += 1) {
+      const a = teams[index]; const b = teams[teams.length - 1 - index];
+      if (a && b) pairs.push(round % 2 === 0 ? { home: a, away: b } : { home: b, away: a });
+    }
+    rounds.push(pairs);
+    const fixed = teams[0]; const rest = teams.slice(1); rest.unshift(rest.pop()); teams.splice(0, teams.length, fixed, ...rest);
+  }
+  return rounds;
+}
+
+function newMatch(data = {}) {
+  return { id: uid('m'), stage: data.stage || 'regular', round: data.round || 'Jornada', label: data.label || 'Partido', group: data.group || null, home: data.home || null, away: data.away || null, homeRef: data.homeRef || null, awayRef: data.awayRef || null, homeGoals: null, awayGoals: null, homePens: null, awayPens: null, date: '', time: '', venue: '', homeGoalLog: '', awayGoalLog: '', cards: [] };
+}
+
+function leagueMatches(teamIds, legs = 1, stage = 'regular', group = null) {
+  const rounds = roundRobin(teamIds); const matches = [];
