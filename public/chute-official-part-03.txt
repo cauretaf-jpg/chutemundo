@@ -1,0 +1,175 @@
+  }
+}
+
+function metricCard(value, label, detail = '') {
+  return `<article><b>${escapeHtml(value)}</b><span>${escapeHtml(label)}</span>${detail ? `<small class="muted">${escapeHtml(detail)}</small>` : ''}</article>`;
+}
+
+function renderHome() {
+  const matches = allOfficialMatches().filter((match) => match.stage !== 'bye');
+  const played = matches.filter(matchPlayed);
+  const goals = played.reduce((sum, match) => sum + Number(match.homeGoals || 0) + Number(match.awayGoals || 0), 0);
+  const players = state.teams.reduce((sum, team) => sum + (team.players?.length || 0), 0);
+  $('#homeMetrics').innerHTML = [
+    metricCard(state.teams.filter((team) => !team.archived).length, 'Equipos', `${players} jugadores`),
+    metricCard(state.tournaments.length, 'Torneos', `${state.tournaments.filter((tournament) => tournament.champion).length} finalizados`),
+    metricCard(played.length, 'Partidos jugados', `${matches.length - played.length} pendientes`),
+    metricCard(goals, 'Goles registrados', played.length ? `${(goals / played.length).toFixed(2)} por partido` : '')
+  ].join('');
+
+  const active = state.tournaments.find((tournament) => tournament.status === 'active');
+  $('#activeTournamentCard').innerHTML = active ? (() => {
+    const matchesActive = active.matches.filter((match) => match.stage !== 'bye');
+    const playedActive = matchesActive.filter(matchPlayed).length;
+    const leader = getTournamentStandings(active)[0];
+    return `<h3>${escapeHtml(active.name)}</h3><p>${escapeHtml(typeLabel(active.type))} · ${playedActive}/${matchesActive.length} partidos</p><p>Líder actual: <strong>${leader ? escapeHtml(teamName(leader.teamId)) : 'Sin tabla'}</strong></p><button class="primary mini-button" data-open-tournament="${active.id}">Abrir torneo</button>`;
+  })() : '<p class="empty">No hay un torneo activo.</p>';
+
+  $('#homeRanking').innerHTML = rankingMarkup(buildGlobalStandings().slice(0, 5));
+  $('#recentTournaments').innerHTML = [...state.tournaments].slice(-4).reverse().map(tournamentListItem).join('') || '<p class="empty">No hay torneos.</p>';
+}
+
+function tournamentListItem(tournament) {
+  const matches = tournament.matches.filter((match) => match.stage !== 'bye');
+  const played = matches.filter(matchPlayed).length;
+  return `<article class="list-item"><div><strong>${escapeHtml(tournament.name)}</strong><small>${escapeHtml(typeLabel(tournament.type))} · ${tournament.teamIds.length} equipos · ${played}/${matches.length} jugados</small>${tournament.champion ? `<em>Campeón: ${escapeHtml(teamName(tournament.champion))}</em>` : ''}</div><button class="mini-button" data-open-tournament="${tournament.id}">Abrir</button></article>`;
+}
+
+function renderTournamentControls() {
+  const type = $('#tournamentType')?.value || 'league';
+  const descriptions = {
+    league: 'Todos contra todos. Puedes usar una o dos ruedas.',
+    league_playoff: 'Fase regular y semifinales entre los cuatro primeros.',
+    cup_groups: 'Dos grupos; los dos mejores de cada grupo avanzan a semifinales.',
+    direct_knockout: 'Llaves directas para 2 a 8 equipos.',
+    division_final: 'Fase regular y final entre primero y segundo.'
+  };
+  $('#formatHelp').textContent = descriptions[type];
+  $('#tournamentLegs').disabled = type === 'direct_knockout';
+}
+
+function renderTeamPicker() {
+  const picker = $('#teamPicker');
+  if (!picker) return;
+  const selected = $$('input:checked', picker).map((input) => input.value);
+  const teams = state.teams.filter((team) => !team.archived);
+  picker.innerHTML = teams.map((team) => `<label class="team-check"><input type="checkbox" value="${team.id}" ${selected.includes(team.id) ? 'checked' : ''}><span class="team-badge">${escapeHtml(team.initials)}</span><span>${escapeHtml(team.name)}</span></label>`).join('');
+  updateSelectedCount();
+}
+
+function updateSelectedCount() {
+  const picker = $('#teamPicker');
+  if (!picker) return;
+  const selected = $$('input:checked', picker).length;
+  const total = $$('input', picker).length;
+  $('#selectedCount').textContent = `${selected} seleccionado${selected === 1 ? '' : 's'}`;
+  $('#selectAllTeams').checked = total > 0 && selected === total;
+}
+
+function renderTournamentList() {
+  const filter = $('#tournamentStatusFilter')?.value || 'all';
+  const tournaments = [...state.tournaments].filter((tournament) => filter === 'all' || tournament.status === filter).reverse();
+  $('#tournamentList').innerHTML = tournaments.map(tournamentListItem).join('') || '<p class="empty">No hay torneos para este filtro.</p>';
+}
+
+function renderStandingsTable(rows, highlight = 0) {
+  if (!rows.length) return '<p class="empty">Sin datos de tabla.</p>';
+  return `<div class="table-wrap"><table><thead><tr><th>#</th><th>Equipo</th><th>PJ</th><th>PG</th><th>PE</th><th>PP</th><th>GF</th><th>GC</th><th>DG</th><th>PTS</th></tr></thead><tbody>${rows.map((row, index) => `<tr class="${index < highlight ? 'playoff-zone' : ''}"><td>${row.pos || index + 1}</td><td>${escapeHtml(teamName(row.teamId))}</td><td>${row.pj}</td><td>${row.pg}</td><td>${row.pe}</td><td>${row.pp}</td><td>${row.gf}</td><td>${row.gc}</td><td>${row.dg ?? row.gf - row.gc}</td><td><strong>${row.pts}</strong></td></tr>`).join('')}</tbody></table></div>`;
+}
+
+function matchMarkup(tournament, match) {
+  const home = resolveHome(tournament, match);
+  const away = resolveAway(tournament, match);
+  const played = matchPlayed(match);
+  const score = played ? `${match.homeGoals} - ${match.awayGoals}${match.homePens !== null && match.awayPens !== null ? ` (${match.homePens}-${match.awayPens} pen.)` : ''}` : 'Pendiente';
+  return `<article class="match-card"><div class="match-main"><strong>${escapeHtml(teamName(home))}</strong><span class="score">${escapeHtml(score)}</span><strong class="away">${escapeHtml(teamName(away))}</strong>${canEdit() && home && away ? `<button class="mini-button" data-edit-match="${tournament.id}__${match.id}">${played ? 'Editar' : 'Registrar'}</button>` : ''}</div><div class="match-meta">${escapeHtml(match.round || '')} · ${escapeHtml(match.label || '')}${match.venue ? ` · ${escapeHtml(match.venue)}` : ''}</div></article>`;
+}
+
+function updateTournamentPodium(tournament) {
+  const finalMatch = [...tournament.matches].reverse().find((match) => match.stage === 'knockout' && String(match.round).toLowerCase() === 'final' && matchPlayed(match));
+  if (finalMatch) {
+    tournament.champion = determineWinnerId(finalMatch, tournament);
+    tournament.runnerUp = determineLoserId(finalMatch, tournament);
+    tournament.status = 'historical';
+  }
+  const thirdMatch = tournament.matches.find((match) => match.stage === 'knockout' && String(match.round).toLowerCase().includes('3er') && matchPlayed(match));
+  if (thirdMatch) tournament.third = determineWinnerId(thirdMatch, tournament);
+}
+
+function renderTournamentDetail() {
+  const root = $('#tournamentDetail');
+  const tournament = tournamentById(selectedTournamentId);
+  if (!tournament) { root.innerHTML = ''; return; }
+  updateTournamentPodium(tournament);
+  let html = `<article class="panel"><div class="tournament-head"><div><p class="eyebrow">DETALLE</p><h2>${escapeHtml(tournament.name)}</h2><div class="badges"><span class="badge">${escapeHtml(typeLabel(tournament.type))}</span><span class="badge ${escapeHtml(tournament.status)}">${escapeHtml(statusLabel(tournament.status))}</span><span class="badge">${escapeHtml(tournament.createdAt)}</span></div></div></div><div class="participant-chips section-block">${tournament.teamIds.map((id) => `<span class="chip">${escapeHtml(teamName(id))}</span>`).join('')}</div></article>`;
+
+  if (tournament.champion) {
+    html += `<div class="podium"><div class="podium-item second"><b>2°</b>${escapeHtml(teamName(tournament.runnerUp))}</div><div class="podium-item first"><b>1°</b>${escapeHtml(teamName(tournament.champion))}</div><div class="podium-item third"><b>3°</b>${escapeHtml(teamName(tournament.third))}</div></div>`;
+  }
+  if (tournament.notes?.length) html += `<article class="panel">${tournament.notes.map((note) => `<div class="notice warning">${escapeHtml(note)}</div>`).join('')}</article>`;
+
+  if (tournament.type === 'cup_groups') {
+    tournament.groups.forEach((group) => {
+      html += `<article class="panel section-block"><h3>${escapeHtml(group.name)}</h3>${renderStandingsTable(getGroupStandings(tournament, group.name), 2)}<div class="match-list section-block">${tournament.matches.filter((match) => match.stage === 'group' && match.group === group.name).map((match) => matchMarkup(tournament, match)).join('')}</div></article>`;
+    });
+  } else if (['league', 'league_playoff', 'division_final'].includes(tournament.type)) {
+    const highlight = tournament.type === 'league_playoff' ? 4 : tournament.type === 'division_final' ? 2 : 0;
+    html += `<article class="panel section-block"><h3>Tabla de posiciones</h3>${renderStandingsTable(getTournamentStandings(tournament), highlight)}</article>`;
+    const regular = tournament.matches.filter((match) => match.stage === 'regular');
+    if (regular.length) html += `<article class="panel section-block"><h3>Fase regular</h3><div class="match-list">${regular.map((match) => matchMarkup(tournament, match)).join('')}</div></article>`;
+  }
+
+  const knockout = tournament.matches.filter((match) => match.stage === 'knockout');
+  if (knockout.length) {
+    const rounds = [...new Set(knockout.map((match) => match.round))];
+    html += rounds.map((round) => `<article class="panel section-block"><h3>${escapeHtml(round)}</h3><div class="match-list">${knockout.filter((match) => match.round === round).map((match) => matchMarkup(tournament, match)).join('')}</div></article>`).join('');
+  }
+  root.innerHTML = html;
+}
+
+function renderMatches() {
+  const tournamentFilter = $('#matchTournamentFilter');
+  const previous = tournamentFilter.value || 'all';
+  tournamentFilter.innerHTML = `<option value="all">Todos los torneos</option>${state.tournaments.map((tournament) => `<option value="${tournament.id}">${escapeHtml(tournament.name)}</option>`).join('')}`;
+  tournamentFilter.value = state.tournaments.some((tournament) => tournament.id === previous) ? previous : 'all';
+  const status = $('#matchStatusFilter').value || 'all';
+  const rows = state.tournaments.flatMap((tournament) => tournament.matches.map((match) => ({ tournament, match })))
+    .filter(({ tournament }) => tournamentFilter.value === 'all' || tournament.id === tournamentFilter.value)
+    .filter(({ match }) => match.stage !== 'bye')
+    .filter(({ match }) => status === 'all' || (status === 'played' ? matchPlayed(match) : !matchPlayed(match)));
+  $('#matchesList').innerHTML = rows.map(({ tournament, match }) => `<div><p class="eyebrow">${escapeHtml(tournament.name)}</p>${matchMarkup(tournament, match)}</div>`).join('') || '<p class="empty">No hay partidos para este filtro.</p>';
+}
+
+function renderTeams() {
+  renderTeamPicker();
+  $('#teamList').innerHTML = state.teams.map((team) => `<article class="team-row"><div class="team-ident"><span class="team-badge">${escapeHtml(team.initials)}</span><div><strong>${escapeHtml(team.name)}</strong><small>${team.coach ? `DT: ${escapeHtml(team.coach)}` : 'Sin DT'} · ${team.players?.length || 0} jugadores</small></div></div></article>`).join('') || '<p class="empty">No hay equipos.</p>';
+}
+
+function rankingMarkup(rows) {
+  if (!rows.length) return '<p class="empty">Sin resultados.</p>';
+  return rows.map((row, index) => `<div class="rank-row"><b>${index + 1}</b><div><strong>${escapeHtml(teamName(row.teamId))}</strong><small>${row.pj} PJ · ${row.gf}-${row.gc} goles · DG ${row.dg}</small></div><strong>${row.pts} pts</strong></div>`).join('');
+}
+
+function renderPlayerTable(rows, label) {
+  if (!rows.length) return '<p class="empty">No hay datos individuales registrados.</p>';
+  return `<div class="table-wrap"><table><thead><tr><th>#</th><th>Jugador</th><th>Equipo</th><th>Part.</th><th>${escapeHtml(label)}</th></tr></thead><tbody>${rows.map((row, index) => `<tr><td>${index + 1}</td><td>${escapeHtml(row.name)}</td><td>${escapeHtml(teamName(row.teamId))}</td><td>${row.appearances}</td><td><strong>${row.value}</strong></td></tr>`).join('')}</tbody></table></div>`;
+}
+
+function computeClassic(classic, tournaments) {
+  const matches = [];
+  tournaments.forEach((tournament) => tournament.matches.filter(matchPlayed).forEach((match) => {
+    const home = resolveHome(tournament, match);
+    const away = resolveAway(tournament, match);
+    if ((home === classic.a && away === classic.b) || (home === classic.b && away === classic.a)) matches.push({ tournament, match, home, away });
+  }));
+  let aWins = 0; let bWins = 0; let draws = 0; let goalsA = 0; let goalsB = 0;
+  matches.forEach(({ match, home }) => {
+    const scoreA = home === classic.a ? Number(match.homeGoals) : Number(match.awayGoals);
+    const scoreB = home === classic.a ? Number(match.awayGoals) : Number(match.homeGoals);
+    goalsA += scoreA; goalsB += scoreB;
+    if (scoreA > scoreB) aWins += 1; else if (scoreB > scoreA) bWins += 1; else draws += 1;
+  });
+  return { matches: matches.length, aWins, bWins, draws, goalsA, goalsB };
+}
+
+function computeParticipants(tournaments) {
