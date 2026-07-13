@@ -1,0 +1,175 @@
+  }
+  return reference;
+}
+
+function resolveHome(tournament, match) {
+  return match.home || resolveRef(tournament, match.homeRef);
+}
+
+function resolveAway(tournament, match) {
+  return match.away || resolveRef(tournament, match.awayRef);
+}
+
+function parseGoalLog(text) {
+  if (!text?.trim()) return [];
+  return text.split('\n').map((line) => line.trim()).filter(Boolean).map((line) => {
+    const [scorer = '', assist = '', minute = ''] = line.split('|').map((part) => part.trim());
+    return { scorer, assist, minute };
+  });
+}
+
+function playerRows(kind, tournaments = state.tournaments) {
+  const map = new Map();
+  const field = kind === 'goals' ? 'playerScorers' : 'playerAssists';
+  tournaments.forEach((tournament) => {
+    (tournament[field] || []).forEach((row) => {
+      const [name, teamId, appearances, value] = row;
+      const key = `${name}__${teamId}`;
+      const current = map.get(key) || { name, teamId, appearances: 0, value: 0 };
+      current.appearances += Number(appearances || 0);
+      current.value += Number(value || 0);
+      map.set(key, current);
+    });
+    tournament.matches.filter(matchPlayed).forEach((match) => {
+      const home = resolveHome(tournament, match);
+      const away = resolveAway(tournament, match);
+      [
+        [home, parseGoalLog(match.homeGoalLog)],
+        [away, parseGoalLog(match.awayGoalLog)]
+      ].forEach(([teamId, entries]) => entries.forEach((entry) => {
+        const name = kind === 'goals' ? entry.scorer : entry.assist;
+        if (!name || !teamId || (kind === 'assists' && name.toLowerCase() === 'sin asistencia')) return;
+        const key = `${name}__${teamId}`;
+        if ((tournament[field] || []).some((row) => row[0] === name && row[1] === teamId)) return;
+        const current = map.get(key) || { name, teamId, appearances: 0, value: 0 };
+        current.value += 1;
+        map.set(key, current);
+      }));
+    });
+  });
+  return [...map.values()].sort((a, b) => b.value - a.value || b.appearances - a.appearances || a.name.localeCompare(b.name, 'es'));
+}
+
+function tournamentEra(tournament) {
+  if (tournament.era) return tournament.era;
+  const name = String(tournament.name || '').toLowerCase();
+  return name.includes('división') || name.includes('division') ? 'division' : 'classic';
+}
+
+function filteredTournaments() {
+  const era = $('#eraFilter')?.value || 'all';
+  return era === 'all' ? state.tournaments : state.tournaments.filter((tournament) => tournamentEra(tournament) === era);
+}
+
+function buildGlobalStandings(tournaments = state.tournaments) {
+  const table = Object.fromEntries(state.teams.map((team) => [team.id, { teamId: team.id, pj: 0, pg: 0, pe: 0, pp: 0, gf: 0, gc: 0, dg: 0, pts: 0 }]));
+  tournaments.forEach((tournament) => {
+    if (tournament.manualStandings?.length) {
+      tournament.manualStandings.forEach((source) => {
+        const row = table[source.teamId];
+        if (!row) return;
+        ['pj', 'pg', 'pe', 'pp', 'gf', 'gc', 'pts'].forEach((key) => { row[key] += Number(source[key] || 0); });
+      });
+    }
+    tournament.matches.filter(matchPlayed).forEach((match) => {
+      if (tournament.manualStandings?.length && match.stage === 'regular') return;
+      const homeId = resolveHome(tournament, match);
+      const awayId = resolveAway(tournament, match);
+      const home = table[homeId];
+      const away = table[awayId];
+      if (!home || !away) return;
+      const homeGoals = Number(match.homeGoals);
+      const awayGoals = Number(match.awayGoals);
+      home.pj += 1; away.pj += 1;
+      home.gf += homeGoals; home.gc += awayGoals;
+      away.gf += awayGoals; away.gc += homeGoals;
+      if (homeGoals > awayGoals) { home.pg += 1; away.pp += 1; home.pts += 3; }
+      else if (awayGoals > homeGoals) { away.pg += 1; home.pp += 1; away.pts += 3; }
+      else { home.pe += 1; away.pe += 1; home.pts += 1; away.pts += 1; }
+    });
+  });
+  Object.values(table).forEach((row) => { row.dg = row.gf - row.gc; });
+  return sortStandings(Object.values(table)).filter((row) => row.pj > 0);
+}
+
+function addActivity(text) {
+  state.activity = Array.isArray(state.activity) ? state.activity : [];
+  state.activity.unshift({ id: uid('activity'), text, at: Date.now() });
+  state.activity = state.activity.slice(0, 50);
+}
+
+async function writeCloudState({ force = false } = {}) {
+  if (!isAdmin() || !cloudLoaded || (!cloudHasHistory && !force)) throw new Error('La base no está disponible para edición.');
+  setStatus('Guardando…');
+  await setDoc(sharedStateRef, {
+    state: normalizeState(state),
+    version: VERSION,
+    updatedAt: serverTimestamp(),
+    updatedBy: ADMIN_EMAIL,
+    migratedFrom: 'data.js'
+  }, { merge: true });
+  cloudHasHistory = true;
+  usingFallback = false;
+  persistLocal();
+  setStatus('Sincronizado');
+}
+
+function queueSave() {
+  persistLocal();
+  if (!canEdit()) return;
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(async () => {
+    try { await writeCloudState(); }
+    catch (error) { console.error(error); setStatus('Error al guardar'); showToast('Firebase rechazó el guardado.'); }
+  }, 400);
+}
+
+async function migrateOfficialHistory({ confirmReplace = false } = {}) {
+  if (!isAdmin()) return showToast('Inicia sesión con la cuenta administradora.');
+  if (!legacyState || migrationRunning) return;
+  if (confirmReplace && !window.confirm('Se reemplazará la base compartida por el historial oficial original. ¿Continuar?')) return;
+  migrationRunning = true;
+  try {
+    state = clone(legacyState);
+    addActivity(`Historial oficial restaurado en Firebase (${state.tournaments.length} torneos).`);
+    await writeCloudState({ force: true });
+    selectedTournamentId = state.tournaments.find((tournament) => tournament.status === 'active')?.id || state.tournaments.at(-1)?.id || null;
+    render();
+    showToast('Historial oficial restaurado y sincronizado.');
+  } catch (error) {
+    console.error(error);
+    showToast('No se pudo guardar el historial en Firebase. Revisa la sesión y las reglas.');
+  } finally {
+    migrationRunning = false;
+  }
+}
+
+async function tryAutomaticMigration() {
+  if (!isAdmin() || !cloudLoaded || cloudHasHistory || !legacyState || migrationRunning) return;
+  await migrateOfficialHistory();
+}
+
+function navigate(page) {
+  $$('.page').forEach((section) => { section.hidden = section.id !== page; });
+  $$('.nav-button[data-page]').forEach((button) => button.classList.toggle('active', button.dataset.page === page));
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function renderAuthState() {
+  $('#authButton').textContent = isAdmin() ? 'Cerrar sesión' : 'Ingresar';
+  $$('.admin-only').forEach((element) => { element.hidden = !isAdmin(); });
+  const migrateButton = $('#migrateHistory');
+  if (migrateButton) migrateButton.hidden = !(isAdmin() && !cloudHasHistory);
+  const syncButton = $('#syncNow');
+  if (syncButton) syncButton.hidden = !canEdit();
+}
+
+function renderSourceNotice() {
+  const notice = $('#sourceNotice');
+  if (!notice) return;
+  if (cloudHasHistory) {
+    notice.className = 'notice success';
+    notice.textContent = `Base Firebase activa: ${state.tournaments.length} torneos y ${allOfficialMatches().filter(matchPlayed).length} resultados sincronizados.`;
+  } else {
+    notice.className = 'notice warning';
+    notice.textContent = `Historial recuperado desde la base original (${state.tournaments.length} torneos). Inicia sesión como administrador para guardarlo definitivamente en Firebase.`;
