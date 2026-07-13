@@ -125,7 +125,14 @@ async function initializeCloud() {
   onSnapshot(sharedStateRef, async (snapshot) => {
     cloudLoaded = true;
     const remote = snapshot.exists() && snapshot.data()?.state ? normalizeState(snapshot.data().state) : null;
-    if (remote?.tournaments?.length) {
+    const legacyPlayed = legacyState ? allOfficialMatches(legacyState.tournaments).filter(matchPlayed).length : 0;
+    const remotePlayed = remote ? allOfficialMatches(remote.tournaments).filter(matchPlayed).length : 0;
+    const remoteHasExpectedHistory = Boolean(
+      remote && legacyState &&
+      remote.tournaments.length >= legacyState.tournaments.length &&
+      remotePlayed >= legacyPlayed
+    );
+    if (remoteHasExpectedHistory) {
       state = remote; cloudHasHistory = true; usingFallback = false; persistLocal(); setStatus(isAdmin() ? 'Sincronizado' : 'Consulta en tiempo real');
     } else {
       state = clone(legacyState || emptyState()); cloudHasHistory = false; usingFallback = true; persistLocal(); setStatus(isAdmin() ? 'Preparando Firebase…' : 'Historial recuperado');
