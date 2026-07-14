@@ -101,8 +101,12 @@ function addActivity(text) {
 async function writeCloudState({ force = false } = {}) {
   if (!isAdmin() || !cloudLoaded) throw new Error('La sesión administrativa o Firebase todavía no están disponibles.');
   setStatus('Guardando…');
+  const normalizedState = normalizeState(state);
+  const serializedState = JSON.stringify(normalizedState);
   await setDoc(sharedStateRef, {
-    state: normalizeState(state),
+    state: serializedState,
+    stateEncoding: 'json-v1',
+    stateBytes: new Blob([serializedState]).size,
     version: VERSION,
     updatedAt: serverTimestamp(),
     updatedBy: ADMIN_EMAIL,
