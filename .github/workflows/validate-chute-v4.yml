@@ -34,6 +34,7 @@ jobs:
           node --check public/chute-detail-ui.mjs
           node --check public/chute-detail-events.mjs
           node --check public/chute-detail-diagnostics.mjs
+          node --check scripts/smoke-chute-v4.mjs
 
       - name: Validate required files
         run: |
@@ -45,3 +46,16 @@ jobs:
           grep -q "mergeStateHistory" /tmp/chute-official-runtime.mjs
           grep -q "data-cm-add-goal" public/chute-detail-events.mjs
           grep -q "data-cm-add-card" public/chute-detail-events.mjs
+
+      - name: Install browser test dependencies
+        run: |
+          npm install --no-save serve@14.2.4 playwright@1.52.0
+          npx playwright install --with-deps chromium
+
+      - name: Run browser smoke test
+        run: |
+          npx serve public -l 4173 --no-clipboard > /tmp/chute-server.log 2>&1 &
+          SERVER_PID=$!
+          trap 'kill $SERVER_PID' EXIT
+          sleep 3
+          node scripts/smoke-chute-v4.mjs
