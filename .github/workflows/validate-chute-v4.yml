@@ -50,6 +50,7 @@ jobs:
           test -s public/chute-detail.css
           test -s public/chute-groups.css
           test -s public/chute-premium.css
+          test -s public/chute-premium-overrides.css
           test -s public/chute-premium-ui.mjs
           test -s public/chute-mutation-guard.mjs
           grep -q "goals: Array.isArray(source.goals)" /tmp/chute-official-runtime.mjs
