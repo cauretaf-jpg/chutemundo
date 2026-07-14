@@ -99,7 +99,7 @@ function addActivity(text) {
 }
 
 async function writeCloudState({ force = false } = {}) {
-  if (!isAdmin() || !cloudLoaded || (!cloudHasHistory && !force)) throw new Error('La base no está disponible para edición.');
+  if (!isAdmin() || !cloudLoaded) throw new Error('La sesión administrativa o Firebase todavía no están disponibles.');
   setStatus('Guardando…');
   await setDoc(sharedStateRef, {
     state: normalizeState(state),
@@ -116,11 +116,11 @@ async function writeCloudState({ force = false } = {}) {
 
 function queueSave() {
   persistLocal();
-  if (!canEdit()) return;
+  if (!isAdmin() || !cloudLoaded) return;
   clearTimeout(saveTimer);
   saveTimer = setTimeout(async () => {
     try { await writeCloudState(); }
-    catch (error) { console.error(error); setStatus('Error al guardar'); showToast('Firebase rechazó el guardado.'); }
+    catch (error) { console.error(error); setStatus('Error al guardar'); showToast(`Firebase rechazó el guardado: ${error.code || error.message || 'error desconocido'}.`); }
   }, 400);
 }
 
@@ -138,7 +138,7 @@ async function migrateOfficialHistory({ confirmReplace = false } = {}) {
     showToast('Historial oficial restaurado y sincronizado.');
   } catch (error) {
     console.error(error);
-    showToast('No se pudo guardar el historial en Firebase. Revisa la sesión y las reglas.');
+    showToast(`No se pudo guardar el historial en Firebase: ${error.code || error.message || 'error desconocido'}.`);
   } finally {
     migrationRunning = false;
   }
@@ -161,7 +161,7 @@ function renderAuthState() {
   const migrateButton = $('#migrateHistory');
   if (migrateButton) migrateButton.hidden = !(isAdmin() && !cloudHasHistory);
   const syncButton = $('#syncNow');
-  if (syncButton) syncButton.hidden = !canEdit();
+  if (syncButton) syncButton.hidden = !(isAdmin() && cloudLoaded);
 }
 
 function renderSourceNotice() {

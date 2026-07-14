@@ -46,7 +46,7 @@ function isAdmin() {
 }
 
 function canEdit() {
-  return isAdmin() && cloudLoaded && cloudHasHistory;
+  return isAdmin() && cloudLoaded;
 }
 
 function setStatus(text) {
