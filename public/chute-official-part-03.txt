@@ -17,12 +17,14 @@ function renderHome() {
     metricCard(goals, 'Goles registrados', played.length ? `${(goals / played.length).toFixed(2)} por partido` : '')
   ].join('');
 
-  const active = state.tournaments.find((tournament) => tournament.status === 'active');
+  const active = [...state.tournaments].reverse().find((tournament) => tournament.status === 'active');
   $('#activeTournamentCard').innerHTML = active ? (() => {
     const matchesActive = active.matches.filter((match) => match.stage !== 'bye');
     const playedActive = matchesActive.filter(matchPlayed).length;
-    const leader = getTournamentStandings(active)[0];
-    return `<h3>${escapeHtml(active.name)}</h3><p>${escapeHtml(typeLabel(active.type))} · ${playedActive}/${matchesActive.length} partidos</p><p>Líder actual: <strong>${leader ? escapeHtml(teamName(leader.teamId)) : 'Sin tabla'}</strong></p><button class="primary mini-button" data-open-tournament="${active.id}">Abrir torneo</button>`;
+    const leader = active.type === 'cup_groups'
+      ? getGroupStandings(active, active.groups[0]?.name || 'Grupo A')[0]
+      : getTournamentStandings(active)[0];
+    return `<h3>${escapeHtml(active.name)}</h3><p>${escapeHtml(typeLabel(active.type))} · ${playedActive}/${matchesActive.length} partidos</p><p>${active.type === 'cup_groups' ? 'Líder Grupo A' : 'Líder actual'}: <strong>${leader ? escapeHtml(teamName(leader.teamId)) : 'Sin tabla'}</strong></p><button class="primary mini-button" data-open-tournament="${active.id}">Abrir torneo</button>`;
   })() : '<p class="empty">No hay un torneo activo.</p>';
 
   $('#homeRanking').innerHTML = rankingMarkup(buildGlobalStandings().slice(0, 5));
