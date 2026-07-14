@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - feature/v4-detalle-total
+      - fix/firestore-json-state
   pull_request:
     branches:
       - main
@@ -36,7 +37,7 @@ jobs:
           node --check public/chute-detail-diagnostics.mjs
           node --check scripts/smoke-chute-v4.mjs
 
-      - name: Validate required files
+      - name: Validate required files and Firebase encoding
         run: |
           test -s public/index.html
           test -s public/chute-official.css
@@ -44,6 +45,9 @@ jobs:
           grep -q "goals: Array.isArray(source.goals)" /tmp/chute-official-runtime.mjs
           grep -q "cards: Array.isArray(source.cards)" /tmp/chute-official-runtime.mjs
           grep -q "mergeStateHistory" /tmp/chute-official-runtime.mjs
+          grep -q "typeof parsedValue === 'string'" /tmp/chute-official-runtime.mjs
+          grep -q "state: serializedState" /tmp/chute-official-runtime.mjs
+          grep -q "stateEncoding: 'json-v1'" /tmp/chute-official-runtime.mjs
           grep -q "data-cm-add-goal" public/chute-detail-events.mjs
           grep -q "data-cm-add-card" public/chute-detail-events.mjs
 
