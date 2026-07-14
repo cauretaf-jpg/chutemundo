@@ -15,7 +15,7 @@ import {
   serverTimestamp
 } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
 
-const VERSION = '4.0.0';
+const VERSION = '4.0.1';
 const ADMIN_EMAIL = 'cauretaf@gmail.com';
 const LOCAL_STORAGE_KEY = 'chute_mundo_firebase_official_v3';
 let auth = null;
@@ -168,7 +168,12 @@ function normalizeTournament(tournament, separateMatches = []) {
 }
 
 function normalizeState(value) {
-  const source = value && typeof value === 'object' ? value : {};
+  let parsedValue = value;
+  if (typeof parsedValue === 'string') {
+    try { parsedValue = JSON.parse(parsedValue); }
+    catch (error) { console.error('Estado Firebase JSON inválido.', error); parsedValue = {}; }
+  }
+  const source = parsedValue && typeof parsedValue === 'object' ? parsedValue : {};
   const separateMatches = Array.isArray(source.matches) ? source.matches : [];
   const teams = Array.isArray(source.teams) ? source.teams.map((team) => ({
     ...team,
