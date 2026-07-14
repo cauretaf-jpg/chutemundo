@@ -52,7 +52,7 @@ jobs:
           node --check public/chute-game-minute-stats.mjs
           node --check public/chute-v54.mjs
           node --check public/chute-v54-form-guard.mjs
-          node --check scripts/smoke-chute-v5.mjs
+          node --check scripts/smoke-chute-v54.mjs
 
       - name: Validate required files and Firebase encoding
         run: |
@@ -118,7 +118,7 @@ jobs:
           SERVER_PID=$!
           trap 'kill $SERVER_PID' EXIT
           sleep 3
-          node scripts/smoke-chute-v5.mjs 2>&1 | tee /tmp/chute-smoke.log
+          node scripts/smoke-chute-v54.mjs 2>&1 | tee /tmp/chute-smoke.log
 
       - name: Upload visual diagnostics
         if: always()
