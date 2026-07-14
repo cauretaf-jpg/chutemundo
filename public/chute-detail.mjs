@@ -12,6 +12,8 @@ if (!document.querySelector('link[href*="chute-detail.css"]')) {
   link.href = '/chute-detail.css?v=4.0.2';
   document.head.appendChild(link);
 }
+
+await import('/chute-mutation-guard.mjs?v=4.0.2');
 await import('/chute-detail-model.mjs?v=4.0.2');
 await Promise.all([
   import('/chute-detail-ui.mjs?v=4.0.2'),
