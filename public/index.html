@@ -4,15 +4,15 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <meta name="theme-color" content="#05271d">
-  <meta name="description" content="Plataforma deportiva de Chute Mundo con filtros avanzados, Ranking FIFA y estadísticas detalladas.">
-  <title>Chute Mundo v5.2 · Competición oficial</title>
-  <link rel="stylesheet" href="/chute-official.css?v=5.2.0">
+  <meta name="description" content="Plataforma deportiva de Chute Mundo con fixture compacto y temporadas automáticas de Primera y Segunda División.">
+  <title>Chute Mundo v5.4 · Competición oficial</title>
+  <link rel="stylesheet" href="/chute-official.css?v=5.4.0">
 </head>
 <body>
   <header class="topbar">
     <div class="brand">
       <span class="brand-logo" style="display:grid;place-items:center;border-radius:12px;background:#0e9978;font-weight:900" aria-hidden="true">CM</span>
-      <div><strong>Chute Mundo</strong><small>Competición, planteles y estadísticas · Firebase</small></div>
+      <div><strong>Chute Mundo</strong><small>Competición, divisiones, planteles y estadísticas · Firebase</small></div>
     </div>
     <div class="top-actions">
       <span id="syncStatus" class="sync-pill">Preparando historial…</span>
@@ -33,7 +33,7 @@
     <section id="inicio" class="page">
       <div class="hero">
         <div>
-          <p class="eyebrow">CHUTE MUNDO v5.2</p>
+          <p class="eyebrow">CHUTE MUNDO v5.4</p>
           <h1>Todos los torneos y estadísticas en una sola base.</h1>
           <p>El historial oficial se recupera desde la base original y se sincroniza con Firebase para verlo desde cualquier dispositivo.</p>
         </div>
@@ -69,7 +69,7 @@
         <article class="panel admin-only" hidden>
           <h2>Crear torneo</h2>
           <form id="tournamentForm">
-            <label>Nombre del torneo<input id="tournamentName" required maxlength="80" placeholder="Ej. 9no Torneo - Clausura"></label>
+            <label>Nombre del torneo<input id="tournamentName" required maxlength="80" placeholder="Ej. 1.ª Temporada de Divisiones"></label>
             <div class="form-grid">
               <label>Formato
                 <select id="tournamentType">
@@ -78,6 +78,7 @@
                   <option value="cup_groups">Copa con grupos</option>
                   <option value="direct_knockout">Eliminación directa</option>
                   <option value="division_final">División con final</option>
+                  <option value="division_season">Temporada por divisiones</option>
                 </select>
               </label>
               <label>Fase regular<select id="tournamentLegs"><option value="1">Solo ida</option><option value="2">Ida y vuelta</option></select></label>
@@ -164,6 +165,6 @@
 
   <div id="modal" class="modal" hidden><div class="modal-card"><button class="close-button" data-close-modal aria-label="Cerrar">×</button><div id="modalContent"></div></div></div>
   <div id="toast" class="toast" hidden></div>
-  <script type="module" src="/chute-official.mjs?v=5.2.0"></script>
+  <script type="module" src="/chute-official.mjs?v=5.4.0"></script>
 </body>
 </html>
