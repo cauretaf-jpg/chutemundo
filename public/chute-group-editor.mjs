@@ -186,15 +186,6 @@ function reorderPickerForCore() {
     });
 }
 
-function resetAfterCreation() {
-  assignments = { A: [], B: [] };
-  editorMessage = '';
-  window.setTimeout(() => {
-    syncAssignments();
-    renderEditor();
-  }, 0);
-}
-
 function submitCapture(event) {
   const form = event.target;
   if (!(form instanceof HTMLFormElement) || form.id !== 'tournamentForm') return;
@@ -214,7 +205,6 @@ function submitCapture(event) {
   reorderPickerForCore();
   editorMessage = 'Creando la copa con esta distribución…';
   renderEditor();
-  resetAfterCreation();
 }
 
 function afterElement(container, y) {
@@ -228,7 +218,8 @@ function afterElement(container, y) {
 
 document.addEventListener('change', (event) => {
   if (event.target.matches('#tournamentType')) {
-    if (event.target.value === 'cup_groups' && !assignments.A.length && !assignments.B.length) distributeAutomatically();
+    editorMessage = '';
+    if (event.target.value === 'cup_groups') syncAssignments();
     else renderEditor();
   }
   if (event.target.closest('#teamPicker') || event.target.matches('#selectAllTeams')) {
