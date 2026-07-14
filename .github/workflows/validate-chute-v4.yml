@@ -1,4 +1,4 @@
-name: Validate Chute Mundo v5
+name: Validate Chute Mundo v5.1
 
 on:
   push:
@@ -8,6 +8,7 @@ on:
       - fix/botones-sin-respuesta
       - feature/editor-grupos-copas
       - feature/v5-estetica-deportiva
+      - feature/v5-1-torneos-ordenados
   pull_request:
     branches:
       - main
@@ -42,6 +43,7 @@ jobs:
           node --check public/chute-group-editor.mjs
           node --check public/chute-data-hygiene.mjs
           node --check public/chute-premium-ui.mjs
+          node --check public/chute-tournament-hub.mjs
           node --check scripts/smoke-chute-v5.mjs
 
       - name: Validate required files and Firebase encoding
@@ -52,8 +54,10 @@ jobs:
           test -s public/chute-groups.css
           test -s public/chute-premium.css
           test -s public/chute-premium-overrides.css
+          test -s public/chute-tournament-hub.css
           test -s public/chute-data-hygiene.mjs
           test -s public/chute-premium-ui.mjs
+          test -s public/chute-tournament-hub.mjs
           test -s public/chute-mutation-guard.mjs
           grep -q "goals: Array.isArray(source.goals)" /tmp/chute-official-runtime.mjs
           grep -q "cards: Array.isArray(source.cards)" /tmp/chute-official-runtime.mjs
@@ -67,6 +71,9 @@ jobs:
           grep -q "sanitizeOfficialTournament" public/chute-data-hygiene.mjs
           grep -q "cm-premium-dashboard" public/chute-premium-ui.mjs
           grep -q "cm-mobile-nav" public/chute-premium.css
+          grep -q "cmTournamentHub" public/chute-tournament-hub.mjs
+          grep -q "cm-hub-table" public/chute-tournament-hub.css
+          grep -q '"feature/\*\*": false' vercel.json
 
       - name: Install browser test dependencies
         run: |
@@ -87,7 +94,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: chute-v5-diagnostics
+          name: chute-v5-1-diagnostics
           path: |
             /tmp/chute-smoke.log
             /tmp/chute-server.log
