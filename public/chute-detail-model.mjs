@@ -120,46 +120,62 @@ function allMatches(core, tournaments = null) {
 
 function playerStatistics(core, tournaments = null) {
   const map = new Map();
-  const ensure = (teamId, name) => {
+  const ensure = (teamId, name, role = 'player') => {
     const key = `${teamId}__${name}`;
-    if (!map.has(key)) map.set(key, { key, teamId, name, goals: 0, assists: 0, yellows: 0, reds: 0, appearances: 0 });
+    if (!map.has(key)) map.set(key, { key, teamId, name, role, goals: 0, assists: 0, yellows: 0, reds: 0, appearances: 0 });
+    if (role === 'coach') map.get(key).role = 'coach';
     return map.get(key);
   };
   const state = core.getState();
   for (const team of state.teams || []) {
     for (const player of team.players || []) ensure(team.id, playerName(player));
   }
-  for (const { tournament, match, home, away } of allMatches(core, tournaments)) {
-    ensureMatchEvents(match, home, away);
-    if (core.matchPlayed(match)) {
-      for (const teamId of [home, away]) {
-        const team = state.teams.find((item) => item.id === teamId);
-        for (const player of team?.players || []) ensure(teamId, playerName(player)).appearances += 1;
+  const selected = tournaments || state.tournaments || [];
+  for (const tournament of selected) {
+    const structuredGoals = new Map();
+    const structuredAssists = new Map();
+    const appearanceByPlayer = new Map();
+    const eventKey = (teamId, name) => `${teamId}__${name}`;
+    for (const match of tournament.matches || []) {
+      const home = core.resolveHome(tournament, match);
+      const away = core.resolveAway(tournament, match);
+      ensureMatchEvents(match, home, away);
+      for (const goal of match.goals || []) {
+        const teamId = goal.teamId || (goal.side === 'away' ? away : home);
+        if (goal.playerName) {
+          ensure(teamId, goal.playerName).goals += 1;
+          const key = eventKey(teamId, goal.playerName);
+          structuredGoals.set(key, (structuredGoals.get(key) || 0) + 1);
+        }
+        if (goal.assistName) {
+          ensure(teamId, goal.assistName).assists += 1;
+          const key = eventKey(teamId, goal.assistName);
+          structuredAssists.set(key, (structuredAssists.get(key) || 0) + 1);
+        }
       }
-    }
-    for (const goal of match.goals || []) {
-      if (goal.playerName) ensure(goal.teamId || (goal.side === 'away' ? away : home), goal.playerName).goals += 1;
-      if (goal.assistName) ensure(goal.teamId || (goal.side === 'away' ? away : home), goal.assistName).assists += 1;
-    }
-    for (const card of match.cards || []) {
-      const row = ensure(card.teamId || (card.side === 'away' ? away : home), card.playerName);
-      if (card.type === 'red') row.reds += 1; else row.yellows += 1;
+      for (const card of match.cards || []) {
+        const teamId = card.teamId || (card.side === 'away' ? away : home);
+        const row = ensure(teamId, card.playerName, card.role || 'player');
+        if (card.type === 'red') row.reds += 1; else row.yellows += 1;
+      }
     }
     for (const row of tournament.playerScorers || []) {
       const [name, teamId, appearances, value] = row;
+      const key = eventKey(teamId, name);
       const target = ensure(teamId, name);
-      if (!(match.goals || []).some((goal) => goal.playerName === name && goal.teamId === teamId)) {
-        target.goals = Math.max(target.goals, Number(value || 0));
-        target.appearances = Math.max(target.appearances, Number(appearances || 0));
-      }
+      target.goals += Math.max(0, Number(value || 0) - Number(structuredGoals.get(key) || 0));
+      appearanceByPlayer.set(key, Math.max(appearanceByPlayer.get(key) || 0, Number(appearances || 0)));
     }
     for (const row of tournament.playerAssists || []) {
       const [name, teamId, appearances, value] = row;
+      const key = eventKey(teamId, name);
       const target = ensure(teamId, name);
-      if (!(match.goals || []).some((goal) => goal.assistName === name && goal.teamId === teamId)) {
-        target.assists = Math.max(target.assists, Number(value || 0));
-        target.appearances = Math.max(target.appearances, Number(appearances || 0));
-      }
+      target.assists += Math.max(0, Number(value || 0) - Number(structuredAssists.get(key) || 0));
+      appearanceByPlayer.set(key, Math.max(appearanceByPlayer.get(key) || 0, Number(appearances || 0)));
+    }
+    for (const [key, appearances] of appearanceByPlayer) {
+      const target = map.get(key);
+      if (target) target.appearances += appearances;
     }
   }
   return [...map.values()].map((row) => ({ ...row, contributions: row.goals + row.assists })).sort((a, b) => b.contributions - a.contributions || b.goals - a.goals || a.name.localeCompare(b.name, 'es'));
