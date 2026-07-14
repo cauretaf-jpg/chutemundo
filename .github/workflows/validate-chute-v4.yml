@@ -1,4 +1,4 @@
-name: Validate Chute Mundo v4
+name: Validate Chute Mundo v5
 
 on:
   push:
@@ -7,6 +7,7 @@ on:
       - fix/firestore-json-state
       - fix/botones-sin-respuesta
       - feature/editor-grupos-copas
+      - feature/v5-estetica-deportiva
   pull_request:
     branches:
       - main
@@ -39,7 +40,8 @@ jobs:
           node --check public/chute-detail-events.mjs
           node --check public/chute-detail-diagnostics.mjs
           node --check public/chute-group-editor.mjs
-          node --check scripts/smoke-chute-v4.mjs
+          node --check public/chute-premium-ui.mjs
+          node --check scripts/smoke-chute-v5.mjs
 
       - name: Validate required files and Firebase encoding
         run: |
@@ -47,6 +49,8 @@ jobs:
           test -s public/chute-official.css
           test -s public/chute-detail.css
           test -s public/chute-groups.css
+          test -s public/chute-premium.css
+          test -s public/chute-premium-ui.mjs
           test -s public/chute-mutation-guard.mjs
           grep -q "goals: Array.isArray(source.goals)" /tmp/chute-official-runtime.mjs
           grep -q "cards: Array.isArray(source.cards)" /tmp/chute-official-runtime.mjs
@@ -57,7 +61,8 @@ jobs:
           grep -q "data-cm-add-goal" public/chute-detail-events.mjs
           grep -q "data-cm-add-card" public/chute-detail-events.mjs
           grep -q "reorderPickerForCore" public/chute-group-editor.mjs
-          grep -q "dragTo" scripts/smoke-chute-v4.mjs
+          grep -q "cm-premium-dashboard" public/chute-premium-ui.mjs
+          grep -q "cm-mobile-nav" public/chute-premium.css
 
       - name: Install browser test dependencies
         run: |
@@ -70,4 +75,4 @@ jobs:
           SERVER_PID=$!
           trap 'kill $SERVER_PID' EXIT
           sleep 3
-          node scripts/smoke-chute-v4.mjs
+          node scripts/smoke-chute-v5.mjs
