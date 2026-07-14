@@ -1,13 +1,13 @@
 {
   "name": "chutemundo",
-  "version": "4.0.1",
+  "version": "4.1.0",
   "private": true,
-  "description": "Torneos, partidos, planteles y estadísticas detalladas de Chute Mundo sincronizados con Firebase.",
+  "description": "Torneos, copas con grupos personalizables, partidos, planteles y estadísticas de Chute Mundo sincronizados con Firebase.",
   "scripts": {
     "dev": "npx serve . -l 5173",
     "build": "node -e \"console.log('Chute Mundo es una app estática: no requiere build.')\"",
     "preview": "npx serve . -l 4173",
-    "check:official": "cat public/chute-official-part-*.txt > .chute-runtime-check.mjs && node --check .chute-runtime-check.mjs && node --check public/chute-detail-model.mjs && node --check public/chute-detail-ui.mjs && node --check public/chute-detail-events.mjs && node --check public/chute-detail-diagnostics.mjs"
+    "check:official": "cat public/chute-official-part-*.txt > .chute-runtime-check.mjs && node --check .chute-runtime-check.mjs && node --check public/chute-detail-model.mjs && node --check public/chute-detail-ui.mjs && node --check public/chute-detail-events.mjs && node --check public/chute-detail-diagnostics.mjs && node --check public/chute-group-editor.mjs"
   },
   "devDependencies": {
     "serve": "^14.2.4"
