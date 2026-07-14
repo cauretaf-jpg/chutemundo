@@ -1,4 +1,4 @@
-const VERSION = "4.1.1";
+const VERSION = "5.0.0";
 const PARTS = Array.from({ length: 6 }, (_, index) =>
   `/chute-official-part-${String(index).padStart(2, "0")}.txt?v=${VERSION}`
 );
