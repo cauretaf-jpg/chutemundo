@@ -40,6 +40,7 @@ jobs:
           node --check public/chute-detail-events.mjs
           node --check public/chute-detail-diagnostics.mjs
           node --check public/chute-group-editor.mjs
+          node --check public/chute-data-hygiene.mjs
           node --check public/chute-premium-ui.mjs
           node --check scripts/smoke-chute-v5.mjs
 
@@ -51,6 +52,7 @@ jobs:
           test -s public/chute-groups.css
           test -s public/chute-premium.css
           test -s public/chute-premium-overrides.css
+          test -s public/chute-data-hygiene.mjs
           test -s public/chute-premium-ui.mjs
           test -s public/chute-mutation-guard.mjs
           grep -q "goals: Array.isArray(source.goals)" /tmp/chute-official-runtime.mjs
@@ -62,6 +64,7 @@ jobs:
           grep -q "data-cm-add-goal" public/chute-detail-events.mjs
           grep -q "data-cm-add-card" public/chute-detail-events.mjs
           grep -q "reorderPickerForCore" public/chute-group-editor.mjs
+          grep -q "sanitizeOfficialTournament" public/chute-data-hygiene.mjs
           grep -q "cm-premium-dashboard" public/chute-premium-ui.mjs
           grep -q "cm-mobile-nav" public/chute-premium.css
 
