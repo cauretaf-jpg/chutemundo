@@ -5,6 +5,7 @@ on:
     branches:
       - feature/v4-detalle-total
       - fix/firestore-json-state
+      - fix/botones-sin-respuesta
   pull_request:
     branches:
       - main
@@ -30,6 +31,7 @@ jobs:
           node --check public/chute-official-loader.mjs
           node --check public/chute-official.mjs
           node --check public/password-reset.mjs
+          node --check public/chute-mutation-guard.mjs
           node --check public/chute-detail.mjs
           node --check public/chute-detail-model.mjs
           node --check public/chute-detail-ui.mjs
@@ -42,6 +44,7 @@ jobs:
           test -s public/index.html
           test -s public/chute-official.css
           test -s public/chute-detail.css
+          test -s public/chute-mutation-guard.mjs
           grep -q "goals: Array.isArray(source.goals)" /tmp/chute-official-runtime.mjs
           grep -q "cards: Array.isArray(source.cards)" /tmp/chute-official-runtime.mjs
           grep -q "mergeStateHistory" /tmp/chute-official-runtime.mjs
@@ -50,6 +53,7 @@ jobs:
           grep -q "stateEncoding: 'json-v1'" /tmp/chute-official-runtime.mjs
           grep -q "data-cm-add-goal" public/chute-detail-events.mjs
           grep -q "data-cm-add-card" public/chute-detail-events.mjs
+          grep -q "sameButton" scripts/smoke-chute-v4.mjs
 
       - name: Install browser test dependencies
         run: |
