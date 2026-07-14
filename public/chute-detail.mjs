@@ -8,7 +8,8 @@ if (description) description.content = 'Plataforma deportiva de Chute Mundo: tor
 
 for (const [href, marker] of [
   ['/chute-detail.css?v=5.0.0', 'chute-detail.css'],
-  ['/chute-premium.css?v=5.0.0', 'chute-premium.css']
+  ['/chute-premium.css?v=5.0.0', 'chute-premium.css'],
+  ['/chute-premium-overrides.css?v=5.0.0', 'chute-premium-overrides.css']
 ]) {
   if (!document.querySelector(`link[href*="${marker}"]`)) {
     const link = document.createElement('link');
