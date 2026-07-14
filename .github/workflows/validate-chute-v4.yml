@@ -71,9 +71,24 @@ jobs:
           npx playwright install --with-deps chromium
 
       - name: Run browser smoke test
+        shell: bash
         run: |
+          set -o pipefail
           npx serve public -l 4173 --no-clipboard > /tmp/chute-server.log 2>&1 &
           SERVER_PID=$!
           trap 'kill $SERVER_PID' EXIT
           sleep 3
-          node scripts/smoke-chute-v5.mjs
+          node scripts/smoke-chute-v5.mjs 2>&1 | tee /tmp/chute-smoke.log
+
+      - name: Upload visual diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: chute-v5-diagnostics
+          path: |
+            /tmp/chute-smoke.log
+            /tmp/chute-server.log
+            /tmp/chute-v5-desktop.png
+            /tmp/chute-v5-mobile.png
+          if-no-files-found: ignore
+          retention-days: 3
