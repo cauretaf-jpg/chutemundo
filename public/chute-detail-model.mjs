@@ -92,6 +92,19 @@ function syncLegacyLogs(match) {
 function migrateState(core) {
   const state = core.getState();
   let changed = false;
+  const officialActive = state.tournaments?.find((tournament) => tournament.id === 't8');
+  if (officialActive && officialActive.status !== 'active') {
+    officialActive.status = 'active';
+    changed = true;
+  }
+  if (officialActive) {
+    for (const tournament of state.tournaments || []) {
+      if (tournament.id !== 't8' && tournament.status === 'active' && tournament.champion) {
+        tournament.status = 'historical';
+        changed = true;
+      }
+    }
+  }
   for (const team of state.teams || []) {
     const nextImage = team.imageUrl || logoUrl(team.id);
     if (team.imageUrl !== nextImage) { team.imageUrl = nextImage; changed = true; }
