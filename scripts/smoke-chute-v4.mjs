@@ -15,6 +15,8 @@ try {
 
   const summary = await page.evaluate(() => {
     const state = window.ChuteMundoCore.getState();
+    const serialized = JSON.stringify(state);
+    const restored = window.ChuteMundoCore.normalizeState(serialized);
     return {
       version: window.ChuteMundoCore.version,
       teams: state.teams.length,
@@ -22,16 +24,23 @@ try {
       players: state.teams.reduce((sum, team) => sum + (team.players?.length || 0), 0),
       playerNav: Boolean(document.querySelector('[data-page="jugadores"]')),
       disciplineNav: Boolean(document.querySelector('[data-page="disciplina"]')),
-      teamCards: document.querySelectorAll('.cm-team-card').length
+      teamCards: document.querySelectorAll('.cm-team-card').length,
+      serializedType: typeof serialized,
+      restoredTeams: restored.teams.length,
+      restoredTournaments: restored.tournaments.length,
+      serializedBytes: new Blob([serialized]).size
     };
   });
 
-  if (summary.version !== '4.0.0') throw new Error(`Versión incorrecta: ${summary.version}`);
+  if (summary.version !== '4.0.1') throw new Error(`Versión incorrecta: ${summary.version}`);
   if (summary.teams < 6) throw new Error(`Equipos insuficientes: ${summary.teams}`);
   if (summary.tournaments < 7) throw new Error(`Torneos insuficientes: ${summary.tournaments}`);
   if (summary.players < 80) throw new Error(`Jugadores insuficientes: ${summary.players}`);
   if (!summary.playerNav || !summary.disciplineNav) throw new Error('Faltan páginas detalladas.');
   if (summary.teamCards < 6) throw new Error('No se renderizaron las fichas de equipos.');
+  if (summary.serializedType !== 'string') throw new Error('El estado Firebase no se serializó como texto.');
+  if (summary.restoredTeams !== summary.teams || summary.restoredTournaments !== summary.tournaments) throw new Error('El estado JSON no se restauró correctamente.');
+  if (summary.serializedBytes >= 950_000) throw new Error(`El estado está demasiado cerca del límite de Firestore: ${summary.serializedBytes} bytes.`);
 
   await page.evaluate(() => window.ChuteMundoCore.navigate('jugadores'));
   await page.waitForSelector('.cm-player-card', { timeout: 10_000 });
@@ -53,7 +62,7 @@ try {
     if (!(await page.locator(selector).count())) throw new Error(`Falta control: ${selector}`);
   }
 
-  const critical = pageErrors.filter((message) => !/favicon|ERR_BLOCKED_BY_CLIENT/i.test(message));
+  const critical = pageErrors.filter((message) => !/favicon|ERR_BLOCKED_BY_CLIENT|QUIC_NETWORK_IDLE_TIMEOUT/i.test(message));
   if (critical.length) throw new Error(`Errores de página: ${critical.join(' | ')}`);
   console.log('Smoke OK', summary);
 } finally {
