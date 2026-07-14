@@ -1,4 +1,4 @@
-name: Validate Chute Mundo v5.2
+name: Validate Chute Mundo v5.3
 
 on:
   push:
@@ -10,6 +10,7 @@ on:
       - feature/v5-estetica-deportiva
       - feature/v5-1-torneos-ordenados
       - feature/v5-2-partidos-estadisticas
+      - feature/v5-3-tablas-tramos
   pull_request:
     branches:
       - main
@@ -47,6 +48,7 @@ jobs:
           node --check public/chute-tournament-hub.mjs
           node --check public/chute-matches-v52.mjs
           node --check public/chute-stats-v52.mjs
+          node --check public/chute-game-minute-stats.mjs
           node --check scripts/smoke-chute-v5.mjs
 
       - name: Validate required files and Firebase encoding
@@ -60,11 +62,13 @@ jobs:
           test -s public/chute-tournament-hub.css
           test -s public/chute-matches-v52.css
           test -s public/chute-stats-v52.css
+          test -s public/chute-v53-adjustments.css
           test -s public/chute-data-hygiene.mjs
           test -s public/chute-premium-ui.mjs
           test -s public/chute-tournament-hub.mjs
           test -s public/chute-matches-v52.mjs
           test -s public/chute-stats-v52.mjs
+          test -s public/chute-game-minute-stats.mjs
           test -s public/chute-mutation-guard.mjs
           grep -q "goals: Array.isArray(source.goals)" /tmp/chute-official-runtime.mjs
           grep -q "cards: Array.isArray(source.cards)" /tmp/chute-official-runtime.mjs
@@ -85,6 +89,10 @@ jobs:
           grep -q "Álvaro" public/chute-stats-v52.mjs
           grep -q "Carlos" public/chute-stats-v52.mjs
           grep -q "cm-v52-recent-row" public/chute-matches-v52.css
+          grep -q "data-cm-minute-segment" public/chute-game-minute-stats.mjs
+          grep -q "105–119" public/chute-game-minute-stats.mjs
+          grep -q "Penales" public/chute-game-minute-stats.mjs
+          grep -q "grid-template-columns:minmax(0,1fr)!important" public/chute-v53-adjustments.css
           grep -q '"feature/\*\*": false' vercel.json
 
       - name: Install browser test dependencies
@@ -106,7 +114,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: chute-v5-2-diagnostics
+          name: chute-v5-3-diagnostics
           path: |
             /tmp/chute-smoke.log
             /tmp/chute-server.log
