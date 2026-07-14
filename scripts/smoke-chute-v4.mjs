@@ -42,6 +42,27 @@ try {
   if (summary.restoredTeams !== summary.teams || summary.restoredTournaments !== summary.tournaments) throw new Error('El estado JSON no se restauró correctamente.');
   if (summary.serializedBytes >= 950_000) throw new Error(`El estado está demasiado cerca del límite de Firestore: ${summary.serializedBytes} bytes.`);
 
+  await page.evaluate(() => window.ChuteMundoCore.navigate('administracion'));
+  await page.waitForSelector('#cmDiagnosticsPanel');
+  const buttonStability = await page.evaluate(async () => {
+    const original = document.getElementById('cmRefreshDiagnostics');
+    const panel = document.getElementById('cmDiagnosticsPanel');
+    let mutationCount = 0;
+    const observer = new MutationObserver((mutations) => { mutationCount += mutations.length; });
+    observer.observe(panel, { childList: true, subtree: true, characterData: true });
+    await new Promise((resolve) => setTimeout(resolve, 700));
+    observer.disconnect();
+    return {
+      sameButton: original === document.getElementById('cmRefreshDiagnostics'),
+      mutationCount
+    };
+  });
+  if (!buttonStability.sameButton) throw new Error('El botón de diagnóstico fue reemplazado continuamente.');
+  if (buttonStability.mutationCount > 12) throw new Error(`El panel de diagnóstico continúa en un ciclo de renderizado: ${buttonStability.mutationCount} mutaciones.`);
+
+  await page.click('#cmRefreshDiagnostics');
+  await page.waitForFunction(() => document.getElementById('cmDiagnosticResult')?.textContent.includes('Diagnóstico actualizado'), null, { timeout: 5_000 });
+
   await page.evaluate(() => window.ChuteMundoCore.navigate('jugadores'));
   await page.waitForSelector('.cm-player-card', { timeout: 10_000 });
   if (await page.locator('.cm-player-card').count() < 80) throw new Error('No se renderizaron las fichas de jugadores.');
@@ -64,7 +85,7 @@ try {
 
   const critical = pageErrors.filter((message) => !/favicon|ERR_BLOCKED_BY_CLIENT|QUIC_NETWORK_IDLE_TIMEOUT/i.test(message));
   if (critical.length) throw new Error(`Errores de página: ${critical.join(' | ')}`);
-  console.log('Smoke OK', summary);
+  console.log('Smoke OK', { ...summary, buttonStability });
 } finally {
   await browser.close();
 }
