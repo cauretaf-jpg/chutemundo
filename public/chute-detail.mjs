@@ -27,4 +27,5 @@ await Promise.all([
   import('/chute-detail-diagnostics.mjs?v=5.0.0'),
   import('/chute-group-editor.mjs?v=5.0.0')
 ]);
+await import('/chute-data-hygiene.mjs?v=5.0.0');
 await import('/chute-premium-ui.mjs?v=5.0.0');
