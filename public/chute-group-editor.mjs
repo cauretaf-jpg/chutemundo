@@ -186,6 +186,15 @@ function reorderPickerForCore() {
     });
 }
 
+function clearWhenFormWasReset() {
+  window.setTimeout(() => {
+    if (document.getElementById('tournamentType')?.value === 'cup_groups') return;
+    assignments = { A: [], B: [] };
+    editorMessage = '';
+    renderEditor();
+  }, 0);
+}
+
 function submitCapture(event) {
   const form = event.target;
   if (!(form instanceof HTMLFormElement) || form.id !== 'tournamentForm') return;
@@ -205,6 +214,7 @@ function submitCapture(event) {
   reorderPickerForCore();
   editorMessage = 'Creando la copa con esta distribución…';
   renderEditor();
+  clearWhenFormWasReset();
 }
 
 function afterElement(container, y) {
