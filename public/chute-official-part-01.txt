@@ -24,11 +24,21 @@
 }
 
 async function loadLegacyState() {
-  const response = await fetch(`https://raw.githubusercontent.com/cauretaf-jpg/chutemundo/main/data.js?v=${VERSION}`, { cache: 'no-store' });
-  if (!response.ok) throw new Error(`No se pudo leer data.js (${response.status}).`);
-  const sourceText = await response.text();
+  const [historyResponse, tournament8Response] = await Promise.all([
+    fetch(`https://raw.githubusercontent.com/cauretaf-jpg/chutemundo/main/data.js?v=${VERSION}`, { cache: 'no-store' }),
+    fetch(`/tournament-8.json?v=4.1.1`, { cache: 'no-store' })
+  ]);
+  if (!historyResponse.ok) throw new Error(`No se pudo leer data.js (${historyResponse.status}).`);
+  if (!tournament8Response.ok) throw new Error(`No se pudo leer el 8vo torneo (${tournament8Response.status}).`);
+
+  const sourceText = await historyResponse.text();
   const baseData = new Function(`${sourceText}\nreturn DEFAULT_DATA;`)();
   const normalized = normalizeState(baseData);
+  const tournament8 = normalizeTournament(await tournament8Response.json());
+  const existingIndex = normalized.tournaments.findIndex((tournament) => tournament.id === tournament8.id);
+  if (existingIndex >= 0) normalized.tournaments[existingIndex] = tournament8;
+  else normalized.tournaments.push(tournament8);
+
   normalized.activity = [{
     id: uid('activity'),
     text: `Historial oficial recuperado: ${normalized.tournaments.length} torneos.`,

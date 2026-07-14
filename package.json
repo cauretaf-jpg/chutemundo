@@ -1,6 +1,6 @@
 {
   "name": "chutemundo",
-  "version": "4.1.0",
+  "version": "4.1.1",
   "private": true,
   "description": "Torneos, copas con grupos personalizables, partidos, planteles y estadísticas de Chute Mundo sincronizados con Firebase.",
   "scripts": {
