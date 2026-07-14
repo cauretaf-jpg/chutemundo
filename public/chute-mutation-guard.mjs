@@ -4,6 +4,7 @@ if (!window.__chuteMutationGuardInstalled) {
   const ignoredContainers = [
     '#cmDiagnosticsPanel',
     '#cmTournamentReadiness',
+    '#cmCupGroupEditor',
     '#cmDisciplineMetrics',
     '#cmDisciplineRules',
     '#cmDisciplineTable',
@@ -16,11 +17,13 @@ if (!window.__chuteMutationGuardInstalled) {
   ].join(',');
   const ignoredAddedNodes = [
     '.cm-picker-logo',
+    '.cm-group-team',
     '.cm-event-summary',
     '.cm-tournament-logos',
     '#cmCardsMetric',
     '#cmDiagnosticsPanel',
-    '#cmTournamentReadiness'
+    '#cmTournamentReadiness',
+    '#cmCupGroupEditor'
   ].join(',');
 
   function elementFor(node) {
