@@ -15,7 +15,8 @@ try {
     window.ChutePremiumUI &&
     window.ChuteTournamentHub &&
     window.ChuteMatchesV52 &&
-    window.ChuteStatsV52
+    window.ChuteStatsV52 &&
+    window.ChuteMinuteStatsV53
   ), null, { timeout: 60_000 });
   await desktop.waitForSelector('#cmPremiumDashboard .cm-sport-hero', { timeout: 20_000 });
   await desktop.waitForTimeout(900);
@@ -25,13 +26,34 @@ try {
     activeId: window.ChuteMundoCore.getState().tournaments.find((item) => item.status === 'active')?.id,
     recentRows: document.querySelectorAll('.cm-v52-recent-row').length,
     recentLogos: document.querySelectorAll('.cm-v52-recent-row img').length,
-    matchesCss: Array.from(document.styleSheets).some((sheet) => sheet.href?.includes('chute-matches-v52.css')),
-    statsCss: Array.from(document.styleSheets).some((sheet) => sheet.href?.includes('chute-stats-v52.css'))
+    adjustmentsCss: Array.from(document.styleSheets).some((sheet) => sheet.href?.includes('chute-v53-adjustments.css'))
   }));
-  if (!dashboard.title.includes('v5.2')) throw new Error(`Versión visual incorrecta: ${dashboard.title}`);
+  if (!dashboard.title.includes('v5.3')) throw new Error(`Versión visual incorrecta: ${dashboard.title}`);
   if (dashboard.activeId !== 't8') throw new Error(`Torneo activo incorrecto: ${dashboard.activeId}`);
   if (dashboard.recentRows !== 4 || dashboard.recentLogos !== 8) throw new Error(`Resultados recientes sin ambos escudos: ${JSON.stringify(dashboard)}`);
-  if (!dashboard.matchesCss || !dashboard.statsCss) throw new Error('No se cargaron los estilos v5.2.');
+  if (!dashboard.adjustmentsCss) throw new Error('No se cargaron los ajustes v5.3.');
+
+  await desktop.click('[data-cm-open-active]');
+  await desktop.waitForSelector('#cmTournamentHub');
+  await desktop.click('[data-cm-tournament-tab="table"]');
+  await desktop.waitForSelector('[data-cm-tournament-panel="table"].active');
+  const groupTables = await desktop.evaluate(() => {
+    const cards = Array.from(document.querySelectorAll('.cm-hub-table-card'));
+    const rects = cards.map((card) => card.getBoundingClientRect());
+    const scrolls = Array.from(document.querySelectorAll('.cm-hub-table-scroll')).map((item) => ({
+      overflowX: getComputedStyle(item).overflowX,
+      clientWidth: item.clientWidth,
+      scrollWidth: item.scrollWidth
+    }));
+    return {
+      cards: cards.length,
+      stacked: rects.length === 2 && rects[1].top >= rects[0].bottom - 1,
+      columns: getComputedStyle(document.querySelector('.cm-hub-tables')).gridTemplateColumns.split(' ').length,
+      scrolls
+    };
+  });
+  if (groupTables.cards !== 2 || !groupTables.stacked || groupTables.columns !== 1) throw new Error(`Las tablas no están apiladas: ${JSON.stringify(groupTables)}`);
+  if (groupTables.scrolls.some((item) => item.overflowX === 'auto' || item.scrollWidth > item.clientWidth + 2)) throw new Error(`Las clasificaciones mantienen desplazamiento: ${JSON.stringify(groupTables.scrolls)}`);
 
   await desktop.evaluate(() => window.ChuteMundoCore.navigate('partidos'));
   await desktop.waitForSelector('#cmAdvancedMatchFilters');
@@ -73,13 +95,16 @@ try {
 
   await desktop.click('[data-cm-stats-tab="controllers"]');
   await desktop.waitForSelector('.cm-v52-controller-card');
+  await desktop.waitForFunction(() => document.querySelectorAll('[data-cm-minute-segment]').length === 13);
   const controllers = await desktop.evaluate(() => ({
     cards: document.querySelectorAll('.cm-v52-controller-card').length,
     names: Array.from(document.querySelectorAll('.cm-v52-controller-card h2')).map((item) => item.textContent),
-    minuteBars: document.querySelectorAll('.cm-v52-minute-chart i b').length,
+    segments: Array.from(document.querySelectorAll('[data-cm-minute-segment]')).map((item) => item.dataset.cmMinuteSegment),
+    penalties: document.querySelector('[data-cm-minute-segment="penalties"] strong:last-child')?.textContent || null,
     records: document.querySelectorAll('.cm-v52-record-grid article').length
   }));
-  if (controllers.cards !== 2 || controllers.names.join('|') !== 'Álvaro|Carlos' || controllers.minuteBars !== 5 || controllers.records < 4) throw new Error(`Controladores o récords incorrectos: ${JSON.stringify(controllers)}`);
+  const expectedSegments = ['0','10','20','30','45','50','60','70','80','90','105','120','penalties'];
+  if (controllers.cards !== 2 || controllers.names.join('|') !== 'Álvaro|Carlos' || controllers.segments.join('|') !== expectedSegments.join('|') || controllers.penalties === null || controllers.records < 4) throw new Error(`Controladores o tramos incorrectos: ${JSON.stringify(controllers)}`);
 
   await desktop.screenshot({ path: '/tmp/chute-v5-desktop.png', fullPage: true });
 
@@ -88,7 +113,19 @@ try {
   mobile.on('pageerror', (error) => mobileErrors.push(error.message));
   mobile.on('console', (message) => { if (message.type() === 'error') mobileErrors.push(`console: ${message.text()}`); });
   await mobile.goto('http://127.0.0.1:4173', { waitUntil: 'domcontentloaded', timeout: 60_000 });
-  await mobile.waitForFunction(() => Boolean(window.ChuteMatchesV52 && window.ChuteStatsV52), null, { timeout: 60_000 });
+  await mobile.waitForFunction(() => Boolean(window.ChuteMatchesV52 && window.ChuteStatsV52 && window.ChuteMinuteStatsV53), null, { timeout: 60_000 });
+  await mobile.click('[data-cm-open-active]');
+  await mobile.waitForSelector('#cmTournamentHub');
+  await mobile.click('[data-cm-tournament-tab="table"]');
+  await mobile.waitForSelector('[data-cm-tournament-panel="table"].active');
+  const mobileTables = await mobile.evaluate(() => ({
+    viewport: document.documentElement.clientWidth,
+    scrollWidth: document.documentElement.scrollWidth,
+    internalOverflow: Array.from(document.querySelectorAll('.cm-hub-table-scroll')).some((item) => item.scrollWidth > item.clientWidth + 2),
+    cards: document.querySelectorAll('.cm-hub-table-card').length
+  }));
+  if (mobileTables.cards !== 2 || mobileTables.internalOverflow || mobileTables.scrollWidth > mobileTables.viewport + 3) throw new Error(`Tablas móvil incorrectas: ${JSON.stringify(mobileTables)}`);
+
   await mobile.evaluate(() => window.ChuteMundoCore.navigate('partidos'));
   await mobile.waitForSelector('#cmAdvancedMatchFilters');
   const mobileMatches = await mobile.evaluate(() => ({ viewport: document.documentElement.clientWidth, scrollWidth: document.documentElement.scrollWidth, filters: document.querySelectorAll('[data-cm-match-filter]').length }));
@@ -101,7 +138,7 @@ try {
 
   const critical = [...errors, ...mobileErrors].filter((message) => !/favicon|ERR_BLOCKED_BY_CLIENT|QUIC_NETWORK_IDLE_TIMEOUT|firestore.googleapis.com/i.test(message));
   if (critical.length) throw new Error(`Errores de página: ${critical.join(' | ')}`);
-  console.log('Chute Mundo v5.2 smoke OK', { dashboard, matchStart, statsStart, fifaState, controllers, mobileMatches, mobileStats });
+  console.log('Chute Mundo v5.3 smoke OK', { dashboard, groupTables, matchStart, statsStart, fifaState, controllers, mobileTables, mobileMatches, mobileStats });
 } finally {
   await browser.close();
 }
