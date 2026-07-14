@@ -1,6 +1,13 @@
 {
   "cleanUrls": true,
   "trailingSlash": false,
+  "git": {
+    "deploymentEnabled": {
+      "feature/**": false,
+      "fix/**": false,
+      "chore/**": false
+    }
+  },
   "rewrites": [
     {
       "source": "/",
