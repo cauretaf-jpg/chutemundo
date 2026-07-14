@@ -1,0 +1,2 @@
+Chute Mundo v4.1.0
+Editor visual de grupos para copas validado y listo para producción.
