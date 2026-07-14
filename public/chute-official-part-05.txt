@@ -72,6 +72,27 @@ function buildFixtures(tournament) {
   }
 }
 
+function mergeStateHistory(remoteState, historicalState) {
+  const merged = normalizeState(remoteState || historicalState || emptyState());
+  const historical = normalizeState(historicalState || emptyState());
+  historical.teams.forEach((team) => { if (!merged.teams.some((item) => item.id === team.id)) merged.teams.push(team); });
+  historical.participants.forEach((participant) => { if (!merged.participants.some((item) => item.id === participant.id)) merged.participants.push(participant); });
+  historical.classics.forEach((classic) => { if (!merged.classics.some((item) => item.id === classic.id)) merged.classics.push(classic); });
+  historical.tournaments.forEach((original) => {
+    const current = merged.tournaments.find((item) => item.id === original.id);
+    if (!current) { merged.tournaments.push(original); return; }
+    const matchIds = new Set(current.matches.map((match) => match.id));
+    original.matches.forEach((match) => { if (!matchIds.has(match.id)) current.matches.push(match); });
+    if (!current.manualStandings.length && original.manualStandings.length) current.manualStandings = original.manualStandings;
+    if (!current.champion && original.champion) current.champion = original.champion;
+    if (!current.runnerUp && original.runnerUp) current.runnerUp = original.runnerUp;
+    if (!current.third && original.third) current.third = original.third;
+    if (!current.playerScorers.length && original.playerScorers.length) current.playerScorers = original.playerScorers;
+    if (!current.playerAssists.length && original.playerAssists.length) current.playerAssists = original.playerAssists;
+  });
+  return normalizeState(merged);
+}
+
 function bindEvents() {
   document.addEventListener('click', (event) => {
     const pageButton = event.target.closest('[data-page]'); if (pageButton) navigate(pageButton.dataset.page);
@@ -89,26 +110,28 @@ function bindEvents() {
   $('#matchStatusFilter').addEventListener('change', renderMatches);
   $('#eraFilter').addEventListener('change', renderStats);
   $('#migrateHistory').addEventListener('click', () => migrateOfficialHistory());
-  $('#syncNow').addEventListener('click', async () => { try { await writeCloudState(); showToast('Sincronización completada.'); } catch (error) { console.error(error); showToast('No se pudo sincronizar.'); } });
+  $('#syncNow').addEventListener('click', async () => { try { await writeCloudState(); showToast('Sincronización completada.'); } catch (error) { console.error(error); showToast(`No se pudo sincronizar: ${error.code || error.message || 'error desconocido'}.`); } });
   $('#restoreOriginal').addEventListener('click', () => migrateOfficialHistory({ confirmReplace: true }));
   $('#exportButton').addEventListener('click', () => {
     const blob = new Blob([JSON.stringify(state, null, 2)], { type: 'application/json' }); const anchor = document.createElement('a'); anchor.href = URL.createObjectURL(blob); anchor.download = `chute-mundo-${new Date().toISOString().slice(0, 10)}.json`; anchor.click(); URL.revokeObjectURL(anchor.href);
   });
   $('#importFile').addEventListener('change', async (event) => {
     const file = event.target.files?.[0]; event.target.value = ''; if (!file || !canEdit()) return showToast('Inicia sesión antes de importar.');
-    try { const imported = normalizeState(JSON.parse(await file.text())); if (!imported.teams.length || !imported.tournaments.length) throw new Error('Respaldo vacío'); if (!window.confirm(`Se importarán ${imported.tournaments.length} torneos. ¿Continuar?`)) return; state = imported; addActivity('Se restauró un respaldo JSON.'); await writeCloudState(); render(); showToast('Respaldo restaurado.'); } catch (error) { console.error(error); showToast('El archivo no es un respaldo válido.'); }
+    try { const imported = normalizeState(JSON.parse(await file.text())); if (!imported.teams.length || !imported.tournaments.length) throw new Error('Respaldo vacío'); if (!window.confirm(`Se importarán ${imported.tournaments.length} torneos. ¿Continuar?`)) return; state = mergeStateHistory(imported, legacyState); addActivity('Se restauró un respaldo JSON.'); await writeCloudState(); render(); showToast('Respaldo restaurado.'); } catch (error) { console.error(error); showToast(`El archivo no es un respaldo válido: ${error.message || 'error desconocido'}.`); }
   });
-  $('#teamForm').addEventListener('submit', (event) => {
-    event.preventDefault(); if (!canEdit()) return showToast('La base todavía no está lista para editar.');
+  $('#teamForm').addEventListener('submit', async (event) => {
+    event.preventDefault(); if (!canEdit()) return showToast('Inicia sesión como administrador para editar.');
     const name = $('#teamName').value.trim(); if (!name) return; if (state.teams.some((team) => team.name.toLowerCase() === name.toLowerCase())) return showToast('Ese equipo ya existe.');
-    state.teams.push({ id: uid('team'), name, coach: $('#teamCoach').value.trim(), initials: ($('#teamInitials').value.trim() || teamInitials(name)).toUpperCase(), archived: false, players: [] }); event.target.reset(); addActivity(`Se agregó ${name}.`); queueSave(); render();
+    state.teams.push({ id: uid('team'), name, coach: $('#teamCoach').value.trim(), initials: ($('#teamInitials').value.trim() || teamInitials(name)).toUpperCase(), archived: false, players: [] }); event.target.reset(); addActivity(`Se agregó ${name}.`); persistLocal(); render();
+    try { await writeCloudState({ force: true }); showToast('Equipo creado y sincronizado.'); } catch (error) { console.error(error); showToast(`Equipo guardado localmente; Firebase respondió: ${error.code || error.message || 'error desconocido'}.`); }
   });
-  $('#tournamentForm').addEventListener('submit', (event) => {
-    event.preventDefault(); if (!canEdit()) return showToast('Espera a que el historial quede sincronizado con Firebase.');
+  $('#tournamentForm').addEventListener('submit', async (event) => {
+    event.preventDefault(); if (!canEdit()) return showToast('Inicia sesión como administrador para crear torneos.');
     const name = $('#tournamentName').value.trim(); const type = $('#tournamentType').value; const teamIds = $$('#teamPicker input:checked').map((input) => input.value); const minimum = ['league_playoff', 'cup_groups'].includes(type) ? 4 : 2;
     if (!name) return showToast('Escribe un nombre.'); if (state.tournaments.some((tournament) => tournament.name.toLowerCase() === name.toLowerCase())) return showToast('Ya existe un torneo con ese nombre.'); if (teamIds.length < minimum) return showToast(`Este formato requiere al menos ${minimum} equipos.`); if (type === 'direct_knockout' && teamIds.length > 8) return showToast('La eliminación directa admite hasta 8 equipos.');
     const tournament = normalizeTournament({ id: uid('tour'), name, type, status: $('#tournamentStatus').value, createdAt: new Date().toLocaleDateString('es-CL'), config: { legs: Number($('#tournamentLegs').value) }, teamIds, matches: [], groups: [], notes: [], playerScorers: [], playerAssists: [], participantLocal: state.participants[0]?.id || '', participantAway: state.participants[1]?.id || '' });
-    buildFixtures(tournament); state.tournaments.push(tournament); selectedTournamentId = tournament.id; addActivity(`Se creó ${name}.`); event.target.reset(); $('#tournamentType').value = 'league'; queueSave(); render(); navigate('torneos'); showToast('Torneo creado.');
+    buildFixtures(tournament); state.tournaments.push(tournament); selectedTournamentId = tournament.id; addActivity(`Se creó ${name}.`); event.target.reset(); $('#tournamentType').value = 'league'; persistLocal(); render(); navigate('torneos');
+    try { await writeCloudState({ force: true }); showToast(`Torneo “${name}” creado y sincronizado.`); } catch (error) { console.error(error); showToast(`El torneo quedó guardado localmente, pero Firebase respondió: ${error.code || error.message || 'error desconocido'}.`); }
   });
 }
 
@@ -127,22 +150,22 @@ async function initializeCloud() {
     const remote = snapshot.exists() && snapshot.data()?.state ? normalizeState(snapshot.data().state) : null;
     const legacyPlayed = legacyState ? allOfficialMatches(legacyState.tournaments).filter(matchPlayed).length : 0;
     const remotePlayed = remote ? allOfficialMatches(remote.tournaments).filter(matchPlayed).length : 0;
-    const remoteHasExpectedHistory = Boolean(
-      remote && legacyState &&
-      remote.tournaments.length >= legacyState.tournaments.length &&
-      remotePlayed >= legacyPlayed
-    );
-    if (remoteHasExpectedHistory) {
-      state = remote; cloudHasHistory = true; usingFallback = false; persistLocal(); setStatus(isAdmin() ? 'Sincronizado' : 'Consulta en tiempo real');
-    } else {
-      state = clone(legacyState || emptyState()); cloudHasHistory = false; usingFallback = true; persistLocal(); setStatus(isAdmin() ? 'Preparando Firebase…' : 'Historial recuperado');
-    }
+    const remoteHasExpectedHistory = Boolean(remote && legacyState && remote.tournaments.length >= legacyState.tournaments.length && remotePlayed >= legacyPlayed);
+    state = mergeStateHistory(remote, legacyState);
+    cloudHasHistory = remoteHasExpectedHistory;
+    usingFallback = !remoteHasExpectedHistory;
+    persistLocal();
+    setStatus(remote ? (isAdmin() ? 'Firebase conectado' : 'Consulta en tiempo real') : 'Historial recuperado');
     selectedTournamentId = selectedTournamentId || state.tournaments.find((tournament) => tournament.status === 'active')?.id || state.tournaments.at(-1)?.id || null;
     render();
     await tryAutomaticMigration();
   }, (error) => {
-    console.error(error); cloudLoaded = true; cloudHasHistory = false; usingFallback = true; state = clone(legacyState || emptyState()); setStatus('Firebase no disponible'); render();
+    console.error(error); cloudLoaded = true; cloudHasHistory = false; usingFallback = true; state = mergeStateHistory(loadLocalStateSafe(), legacyState); setStatus(`Firebase no disponible: ${error.code || 'error'}`); render();
   });
+}
+
+function loadLocalStateSafe() {
+  try { return normalizeState(JSON.parse(localStorage.getItem(LOCAL_STORAGE_KEY) || 'null')); } catch { return emptyState(); }
 }
 
 async function start() {
@@ -150,18 +173,44 @@ async function start() {
   try { await initializeFirebaseServices(); } catch (error) { console.error(error); setStatus('Firebase no disponible'); }
   try {
     legacyState = await loadLegacyState();
-    state = clone(legacyState);
+    state = mergeStateHistory(loadLocalStateSafe(), legacyState);
     selectedTournamentId = state.tournaments.find((tournament) => tournament.status === 'active')?.id || state.tournaments.at(-1)?.id || null;
     persistLocal();
     render();
   } catch (error) {
     console.error(error);
-    try { state = normalizeState(JSON.parse(localStorage.getItem(LOCAL_STORAGE_KEY) || 'null')); } catch { state = emptyState(); }
+    state = loadLocalStateSafe();
     showToast('No se pudo cargar el historial original.');
     render();
   }
   if (auth && sharedStateRef) await initializeCloud();
+  window.ChuteMundoCore = {
+    version: VERSION,
+    getState: () => state,
+    setState: (nextState) => { state = normalizeState(nextState); persistLocal(); render(); },
+    persistLocal,
+    saveCloud: () => writeCloudState({ force: true }),
+    queueSave,
+    render,
+    navigate,
+    showToast,
+    isAdmin,
+    canEdit,
+    teamName,
+    teamById,
+    tournamentById,
+    resolveHome,
+    resolveAway,
+    matchPlayed,
+    normalizeState,
+    uid,
+    openModal,
+    closeModal,
+    get authUser() { return authUser; },
+    get cloudLoaded() { return cloudLoaded; },
+    get cloudHasHistory() { return cloudHasHistory; }
+  };
+  document.dispatchEvent(new CustomEvent('chute:ready', { detail: window.ChuteMundoCore }));
 }
-
 
 start();
