@@ -1,0 +1,43 @@
+name: Validate Chute Mundo v5.8
+
+on:
+  push:
+    branches:
+      - feature/v5-8-analisis-optimizacion
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Validate syntax and audit
+        run: |
+          npm run check:official
+          node scripts/audit-chute-v58.mjs
+      - name: Validate required files
+        run: |
+          test -s public/chute-runtime-v58.mjs
+          test -s public/chute-v58-analysis.mjs
+          test -s public/chute-v58.css
+          grep -q "Evolución del Ranking FIFA Chute" public/chute-v58-analysis.mjs
+          grep -q "COMPARADOR DE EQUIPOS" public/chute-v58-analysis.mjs
+          grep -q "ENFRENTAMIENTOS DIRECTOS" public/chute-v58-analysis.mjs
+          grep -q "RENDIMIENTO BAJO PRESIÓN" public/chute-v58-analysis.mjs
+          grep -q "Rendimiento por escenario" public/chute-v58-analysis.mjs
+          grep -q "function loadStatistics" public/chute-detail.mjs
+          test ! -e public/chute-v56-card-metadata.mjs
+      - name: Install browser
+        run: |
+          npm install --no-save serve@14.2.4 playwright@1.52.0
+          npx playwright install --with-deps chromium
+      - name: Run browser smoke
+        run: |
+          npx serve public -l 4173 --no-clipboard > /tmp/chute-server.log 2>&1 &
+          sleep 3
+          node scripts/smoke-chute-v58.mjs
