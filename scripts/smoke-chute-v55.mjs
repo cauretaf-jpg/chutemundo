@@ -28,7 +28,13 @@ try {
     return { id: season.id, firstMatch: season.matches[0].id };
   });
 
-  await page.click(`[data-open-tournament="${base.id}"]`);
+  await page.waitForFunction((id) => [...document.querySelectorAll(`[data-open-tournament="${id}"]`)].some((button) => button.offsetParent !== null), base.id);
+  const opened = await page.evaluate((id) => {
+    const button = [...document.querySelectorAll(`[data-open-tournament="${id}"]`)].find((item) => item.offsetParent !== null);
+    button?.click();
+    return Boolean(button);
+  }, base.id);
+  if (!opened) throw new Error('No se encontró un botón visible para abrir el torneo de prueba.');
   await page.waitForSelector('#cmTournamentHub');
   await page.click('[data-cm-tournament-tab="fixture"]');
   await page.waitForSelector('[data-cm-fixture-division]');
