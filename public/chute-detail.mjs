@@ -43,4 +43,5 @@ await Promise.all([
 await import('/chute-game-minute-stats.mjs?v=5.5.0');
 await import('/chute-v54.mjs?v=5.5.0');
 await import('/chute-v54-form-guard.mjs?v=5.5.0');
+await import('/chute-v55-event-guard.mjs?v=5.5.0');
 await import('/chute-v55.mjs?v=5.5.0');
