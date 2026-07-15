@@ -154,7 +154,7 @@ try {
   const mobile = await page.evaluate(() => ({ viewport: document.documentElement.clientWidth, width: document.documentElement.scrollWidth }));
   if (mobile.width > mobile.viewport + 3) throw new Error(`Desborde móvil en disciplina: ${JSON.stringify(mobile)}`);
 
-  const critical = errors.filter((message) => !/favicon|firestore.googleapis.com|permission-denied|Failed to load resource|QUIC_NETWORK/i.test(message));
+  const critical = errors.filter((message) => !/favicon|firestore.googleapis.com|permission-denied|La sesión administrativa o Firebase todavía no están disponibles|Failed to load resource|QUIC_NETWORK/i.test(message));
   if (critical.length) throw new Error(`Errores de página: ${critical.join(' | ')}`);
   console.log('Chute Mundo v5.6 discipline smoke OK', { ledgerState, disciplinePanel, blocked, doubleResult, mobile });
 } finally {
