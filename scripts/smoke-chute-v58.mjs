@@ -14,7 +14,7 @@ try {
 
   await page.click('.nav [data-page="estadisticas"]');
   await page.waitForFunction(() => window.ChuteAnalysisV58 && window.ChuteControllersV57);
-  await page.evaluate(() => window.ChuteAnalysisV58.setMode('analysis'));
+  await page.click('#estadisticas:not([hidden]) [data-cm-v58-mode="analysis"]');
   await page.waitForFunction(() => document.getElementById('cmV58AnalysisRoot')?.hidden === false);
 
   const desktop = await page.evaluate(() => {
@@ -30,7 +30,7 @@ try {
       venuePanel: Boolean(document.querySelector('.cm-v58-venues')),
       minutes: document.querySelectorAll('.cm-v58-minute-bars > div').length,
       runtime: window.ChuteRuntimeV58.stats(),
-      visibility: { pageHidden: statsPage?.hidden, pageDisplay: statsPage ? getComputedStyle(statsPage).display : '', rootDisplay: root ? getComputedStyle(root).display : '', switchDisplay: switcher ? getComputedStyle(switcher).display : '', pageRect: statsPage ? [statsPage.offsetWidth, statsPage.offsetHeight] : [], rootRect: root ? [root.offsetWidth, root.offsetHeight] : [] }
+      visibility: { pageHidden: statsPage?.hidden, pageDisplay: statsPage ? getComputedStyle(statsPage).display : '', rootDisplay: root ? getComputedStyle(root).display : '', switchDisplay: switcher ? getComputedStyle(switcher).display : '', rootRect: root ? [root.offsetWidth, root.offsetHeight] : [] }
     };
   });
   if (desktop.visibility.pageDisplay === 'none' || desktop.visibility.rootDisplay === 'none' || desktop.visibility.rootRect[0] === 0) throw new Error(`Visibilidad incorrecta: ${JSON.stringify(desktop.visibility)}`);
@@ -38,13 +38,8 @@ try {
 
   const team = await page.evaluate(() => window.ChuteMundoCore.getState().teams[0]?.id);
   await page.selectOption('[data-cm-v58-filter="team"]', team);
-  await page.waitForTimeout(900);
-  const teamFilter = await page.evaluate(() => ({
-    internal: window.ChuteAnalysisV58.filters.team,
-    selected: document.querySelector('[data-cm-v58-filter="team"]')?.value,
-    title: document.querySelector('.cm-v58-minute-chart header p')?.textContent || '',
-    options: [...(document.querySelector('[data-cm-v58-filter="team"]')?.options || [])].map((option) => option.value)
-  }));
+  await page.waitForFunction(() => document.querySelector('.cm-v58-minute-chart header p:last-child')?.textContent.includes('Anotados y recibidos'));
+  const teamFilter = await page.evaluate(() => ({ internal: window.ChuteAnalysisV58.filters.team, selected: document.querySelector('[data-cm-v58-filter="team"]')?.value, title: document.querySelector('.cm-v58-minute-chart header p:last-child')?.textContent || '' }));
   if (teamFilter.internal !== team || teamFilter.selected !== team || !teamFilter.title.includes('Anotados y recibidos')) throw new Error(`Filtro de equipo desincronizado: ${JSON.stringify({ team, teamFilter })}`);
   if (await page.locator('.cm-v58-minute-bars > div').count() !== 13) throw new Error('El filtro por equipo alteró los tramos oficiales.');
 
