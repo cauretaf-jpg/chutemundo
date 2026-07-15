@@ -15,18 +15,32 @@ try {
   await page.click('.nav [data-page="estadisticas"]');
   await page.waitForFunction(() => window.ChuteAnalysisV58 && window.ChuteControllersV57);
   await page.evaluate(() => window.ChuteAnalysisV58.setMode('analysis'));
-  await page.waitForSelector('#cmV58AnalysisRoot:not([hidden])');
+  await page.waitForFunction(() => document.getElementById('cmV58AnalysisRoot')?.hidden === false);
 
-  const desktop = await page.evaluate(() => ({
-    filters: document.querySelectorAll('[data-cm-v58-filter]').length,
-    ranking: document.querySelectorAll('.cm-v58-ranking-svg .team-line').length,
-    compare: document.querySelectorAll('.cm-v58-compare-metric').length,
-    matrix: document.querySelectorAll('.cm-v58-matrix tbody tr').length,
-    decisive: document.querySelectorAll('.cm-v58-decisive .cm-v58-kpis article').length,
-    venuePanel: Boolean(document.querySelector('.cm-v58-venues')),
-    minutes: document.querySelectorAll('.cm-v58-minute-bars > div').length,
-    runtime: window.ChuteRuntimeV58.stats()
-  }));
+  const desktop = await page.evaluate(() => {
+    const statsPage = document.getElementById('estadisticas');
+    const root = document.getElementById('cmV58AnalysisRoot');
+    const switcher = document.getElementById('cmV58ModeSwitch');
+    return {
+      filters: document.querySelectorAll('[data-cm-v58-filter]').length,
+      ranking: document.querySelectorAll('.cm-v58-ranking-svg .team-line').length,
+      compare: document.querySelectorAll('.cm-v58-compare-metric').length,
+      matrix: document.querySelectorAll('.cm-v58-matrix tbody tr').length,
+      decisive: document.querySelectorAll('.cm-v58-decisive .cm-v58-kpis article').length,
+      venuePanel: Boolean(document.querySelector('.cm-v58-venues')),
+      minutes: document.querySelectorAll('.cm-v58-minute-bars > div').length,
+      runtime: window.ChuteRuntimeV58.stats(),
+      visibility: {
+        pageHidden: statsPage?.hidden,
+        pageDisplay: statsPage ? getComputedStyle(statsPage).display : '',
+        rootDisplay: root ? getComputedStyle(root).display : '',
+        switchDisplay: switcher ? getComputedStyle(switcher).display : '',
+        pageRect: statsPage ? [statsPage.offsetWidth, statsPage.offsetHeight] : [],
+        rootRect: root ? [root.offsetWidth, root.offsetHeight] : []
+      }
+    };
+  });
+  if (desktop.visibility.pageDisplay === 'none' || desktop.visibility.rootDisplay === 'none' || desktop.visibility.rootRect[0] === 0) throw new Error(`Visibilidad incorrecta: ${JSON.stringify(desktop.visibility)}`);
   if (desktop.filters !== 6 || desktop.ranking < 2 || desktop.compare < 12 || desktop.matrix < 4 || desktop.decisive !== 6 || !desktop.venuePanel || desktop.minutes !== 13 || desktop.runtime.managedIntervals < 3) throw new Error(`Análisis incompleto: ${JSON.stringify(desktop)}`);
 
   const team = await page.evaluate(() => window.ChuteMundoCore.getState().teams[0]?.id);
