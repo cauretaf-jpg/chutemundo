@@ -8,7 +8,7 @@ page.on('console', (message) => { if (message.type() === 'error') errors.push(me
 
 try {
   await page.goto('http://127.0.0.1:4173', { waitUntil: 'domcontentloaded', timeout: 60_000 });
-  await page.waitForFunction(() => Boolean(window.ChuteMundoCore && window.ChuteTournamentHub && window.ChuteStatsV52 && window.ChuteDivisionsV54 && window.ChuteV54FormGuard), null, { timeout: 60_000 });
+  await page.waitForFunction(() => Boolean(window.ChuteMundoCore && window.ChuteTournamentHub && window.ChuteStatsV52 && window.ChuteDivisionsV54 && window.ChuteV54FormGuard && window.ChuteMatchToolsV55), null, { timeout: 60_000 });
   await page.waitForSelector('#cmPremiumDashboard');
 
   const base = await page.evaluate(() => ({
@@ -87,7 +87,7 @@ try {
 
   const mobile = await browser.newPage({ viewport: { width: 390, height: 844 }, isMobile: true });
   await mobile.goto('http://127.0.0.1:4173', { waitUntil: 'domcontentloaded', timeout: 60_000 });
-  await mobile.waitForFunction(() => Boolean(window.ChuteDivisionsV54));
+  await mobile.waitForFunction(() => Boolean(window.ChuteDivisionsV54 && window.ChuteMatchToolsV55));
   await mobile.click('[data-cm-open-active]');
   await mobile.click('[data-cm-tournament-tab="fixture"]');
   await mobile.waitForFunction(() => document.querySelectorAll('.cm-v54-match-toggle').length === 10);
