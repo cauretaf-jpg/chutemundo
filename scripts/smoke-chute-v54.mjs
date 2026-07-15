@@ -17,7 +17,7 @@ try {
     css: Array.from(document.styleSheets).some((sheet) => sheet.href?.includes('chute-v54.css')),
     fifa: window.ChuteDivisionsV54.fifaOrder()
   }));
-  if (!base.title.includes('v5.4') || base.active !== 't8' || !base.css || base.fifa.length !== 6) throw new Error(`Carga v5.4 incorrecta: ${JSON.stringify(base)}`);
+  if (!/v5\.[45]/.test(base.title) || base.active !== 't8' || !base.css || base.fifa.length !== 6) throw new Error(`Carga de compatibilidad v5.4 incorrecta: ${JSON.stringify(base)}`);
 
   await page.click('[data-cm-open-active]');
   await page.waitForSelector('#cmTournamentHub');
@@ -98,7 +98,7 @@ try {
 
   const critical = errors.filter((message) => !/favicon|firestore.googleapis.com|Failed to load resource|QUIC_NETWORK/i.test(message));
   if (critical.length) throw new Error(`Errores de página: ${critical.join(' | ')}`);
-  console.log('Chute Mundo v5.4 smoke OK', { base, compact, accordion, form, engine, mobileState });
+  console.log('Chute Mundo compatibilidad v5.4 OK', { base, compact, accordion, form, engine, mobileState });
 } finally {
   await browser.close();
 }
