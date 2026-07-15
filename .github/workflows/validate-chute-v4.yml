@@ -46,6 +46,7 @@ jobs:
           node --check public/chute-v54-form-guard.mjs
           node --check public/chute-v55-event-guard.mjs
           node --check public/chute-v55.mjs
+          node --check public/chute-v56-card-metadata.mjs
           node --check public/chute-v56-discipline.mjs
           node --check scripts/smoke-chute-v56.mjs
 
@@ -56,6 +57,7 @@ jobs:
           test -s public/chute-v54.css
           test -s public/chute-v55.mjs
           test -s public/chute-v55.css
+          test -s public/chute-v56-card-metadata.mjs
           test -s public/chute-v56-discipline.mjs
           test -s public/chute-v56.css
           grep -q "division_season" public/chute-v54.mjs
@@ -64,6 +66,7 @@ jobs:
           grep -q "data-cm-fixture-division" public/chute-v55.mjs
           grep -q "registrationStartedAt" public/chute-v55.mjs
           grep -q "lastVenue" public/chute-v55.mjs
+          grep -q "double_yellow" public/chute-v56-card-metadata.mjs
           grep -q "yellowLimit: 2" public/chute-v56-discipline.mjs
           grep -q "double_yellow" public/chute-v56-discipline.mjs
           grep -q "carryBetweenSeasons" public/chute-v56-discipline.mjs
