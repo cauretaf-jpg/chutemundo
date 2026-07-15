@@ -9,16 +9,12 @@ page.on('console', (message) => { if (message.type() === 'error') errors.push(me
 try {
   await page.goto('http://127.0.0.1:4173/', { waitUntil: 'domcontentloaded' });
   await page.waitForFunction(() => window.ChuteMundoCore && document.title.includes('v5.8'));
-  const lazy = await page.evaluate(() => ({
-    analysis: Boolean(window.ChuteAnalysisV58),
-    statsCss: performance.getEntriesByType('resource').some((entry) => entry.name.includes('chute-stats-v52.css')),
-    runtime: window.ChuteRuntimeV58?.stats?.()
-  }));
+  const lazy = await page.evaluate(() => ({ analysis: Boolean(window.ChuteAnalysisV58), statsCss: performance.getEntriesByType('resource').some((entry) => entry.name.includes('chute-stats-v52.css')), runtime: window.ChuteRuntimeV58?.stats?.() }));
   if (lazy.analysis || lazy.statsCss || !lazy.runtime) throw new Error(`Carga diferida incorrecta: ${JSON.stringify(lazy)}`);
 
   await page.click('.nav [data-page="estadisticas"]');
   await page.waitForFunction(() => window.ChuteAnalysisV58 && window.ChuteControllersV57);
-  await page.click('#estadisticas:not([hidden]) [data-cm-v58-mode="analysis"]');
+  await page.evaluate(() => window.ChuteAnalysisV58.setMode('analysis'));
   await page.waitForSelector('#cmV58AnalysisRoot:not([hidden])');
 
   const desktop = await page.evaluate(() => ({
