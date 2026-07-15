@@ -9,6 +9,7 @@ page.on('console', (message) => { if (message.type() === 'error') errors.push(me
 try {
   await page.goto('http://127.0.0.1:4173', { waitUntil: 'domcontentloaded', timeout: 60_000 });
   await page.waitForFunction(() => Boolean(window.ChuteMundoCore && window.ChuteDivisionsV54 && window.ChuteDisciplineV56 && window.ChuteDetailEvents), null, { timeout: 60_000 });
+  await page.waitForFunction(() => window.ChuteMundoCore.cloudLoaded, null, { timeout: 60_000 });
 
   const setup = await page.evaluate(() => {
     const core = window.ChuteMundoCore;
