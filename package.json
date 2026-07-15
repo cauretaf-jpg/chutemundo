@@ -1,13 +1,13 @@
 {
   "name": "chutemundo",
-  "version": "5.7.0",
+  "version": "5.8.0",
   "private": true,
-  "description": "Plataforma deportiva de Chute Mundo con estadísticas filtrables de controladores, divisiones, disciplina y sedes.",
+  "description": "Plataforma deportiva de Chute Mundo con análisis histórico, divisiones, disciplina, sedes y estadísticas optimizadas.",
   "scripts": {
     "dev": "npx serve . -l 5173",
     "build": "node -e \"console.log('Chute Mundo es una app estática: no requiere build.')\"",
     "preview": "npx serve . -l 4173",
-    "check:official": "cat public/chute-official-part-*.txt > .chute-runtime-check.mjs && node --check .chute-runtime-check.mjs && node --check public/chute-detail-model.mjs && node --check public/chute-detail-ui.mjs && node --check public/chute-detail-events.mjs && node --check public/chute-detail-diagnostics.mjs && node --check public/chute-group-editor.mjs && node --check public/chute-premium-ui.mjs && node --check public/chute-tournament-hub.mjs && node --check public/chute-matches-v52.mjs && node --check public/chute-stats-v52.mjs && node --check public/chute-v57-controllers.mjs && node --check public/chute-game-minute-stats.mjs && node --check public/chute-v54.mjs && node --check public/chute-v54-form-guard.mjs && node --check public/chute-v55.mjs && node --check public/chute-v56-card-metadata.mjs && node --check public/chute-v56-discipline.mjs"
+    "check:official": "node scripts/check-chute-v58.mjs"
   },
   "devDependencies": {
     "serve": "^14.2.4"
