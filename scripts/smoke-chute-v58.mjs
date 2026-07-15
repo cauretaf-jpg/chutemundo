@@ -44,9 +44,11 @@ try {
     });
     core.setState(current);
     core.render();
+    core.navigate('estadisticas');
     window.ChuteRuntimeV58.invalidate('smoke-data');
   });
 
+  await page.waitForSelector('[data-cm-v58-mode="analysis"]', { state: 'visible' });
   await page.click('[data-cm-v58-mode="analysis"]');
   await page.waitForSelector('#cmV58AnalysisRoot:not([hidden])');
   await page.selectOption('[data-cm-v58-filter="era"]', 'division');
