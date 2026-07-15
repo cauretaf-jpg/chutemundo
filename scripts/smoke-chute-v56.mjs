@@ -80,6 +80,7 @@ try {
 
   await page.waitForTimeout(900);
   const ledgerState = await page.evaluate((data) => {
+    const getTournament = (id) => window.ChuteMundoCore.getState().tournaments.find((item) => item.id === id);
     const ledger = window.ChuteDisciplineV56.buildLedger();
     const suspendedA = window.ChuteDisciplineV56.suspendedPlayers(ledger, data.season1, data.suspendedMatchA, data.teamA);
     const suspendedC = window.ChuteDisciplineV56.suspendedPlayers(ledger, data.season2, data.carryMatchC, data.teamC);
@@ -88,7 +89,7 @@ try {
       c: [...suspendedC.values()].map((player) => player.name),
       sanctions: ledger.sanctions.map((item) => item.reason),
       title: document.title,
-      rules: window.ChuteMundoCore.tournamentById(data.season1).config.discipline
+      rules: getTournament(data.season1)?.config?.discipline
     };
   }, setup);
   if (!ledgerState.a.includes(setup.playerA)) throw new Error(`No se aplicó suspensión por acumulación: ${JSON.stringify(ledgerState)}`);
@@ -111,7 +112,7 @@ try {
   await page.waitForSelector('.cm-match-editor[data-cm-v56-enhanced="true"]');
   const blocked = await page.evaluate((data) => {
     const editor = document.querySelector('.cm-match-editor');
-    const tournament = window.ChuteMundoCore.tournamentById(data.season1);
+    const tournament = window.ChuteMundoCore.getState().tournaments.find((item) => item.id === data.season1);
     const match = tournament.matches.find((item) => item.id === data.suspendedMatchA);
     const side = match.home === data.teamA ? 'home' : 'away';
     const option = [...document.getElementById(`cmScorer-${side}`).options].find((item) => item.value === data.playerA);
@@ -120,7 +121,7 @@ try {
   if (!blocked.disabled || !blocked.notice) throw new Error(`El jugador suspendido sigue habilitado: ${JSON.stringify(blocked)}`);
 
   await page.evaluate((data) => {
-    const tournament = window.ChuteMundoCore.tournamentById(data.season2);
+    const tournament = window.ChuteMundoCore.getState().tournaments.find((item) => item.id === data.season2);
     const match = tournament.matches.find((item) => item.id === data.doubleMatch);
     const teamId = [match.home, match.away].includes(data.doubleTeam) ? data.doubleTeam : match.home;
     const team = window.ChuteMundoCore.teamById(teamId);
@@ -137,11 +138,13 @@ try {
   await page.selectOption(`#cmCardMinute-${doubleData.side}`, '20');
   await page.click(`[data-cm-add-card="${doubleData.side}"]`);
   await page.waitForFunction(({ tournamentId, matchId, name }) => {
-    const match = window.ChuteMundoCore.tournamentById(tournamentId).matches.find((item) => item.id === matchId);
-    return match.cards.some((card) => card.playerName === name && card.reason === 'double_yellow');
+    const tournament = window.ChuteMundoCore.getState().tournaments.find((item) => item.id === tournamentId);
+    const match = tournament?.matches.find((item) => item.id === matchId);
+    return Boolean(match?.cards.some((card) => card.playerName === name && card.reason === 'double_yellow'));
   }, doubleData, { timeout: 20_000 });
   const doubleResult = await page.evaluate(({ tournamentId, matchId, name }) => {
-    const match = window.ChuteMundoCore.tournamentById(tournamentId).matches.find((item) => item.id === matchId);
+    const tournament = window.ChuteMundoCore.getState().tournaments.find((item) => item.id === tournamentId);
+    const match = tournament.matches.find((item) => item.id === matchId);
     return match.cards.filter((card) => card.playerName === name).map((card) => ({ type: card.type, reason: card.reason || '' }));
   }, doubleData);
   if (!doubleResult.some((card) => card.type === 'red' && card.reason === 'double_yellow')) throw new Error(`La segunda amarilla no se convirtió en roja: ${JSON.stringify(doubleResult)}`);
