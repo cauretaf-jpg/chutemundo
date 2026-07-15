@@ -4,9 +4,7 @@ on:
   push:
     branches:
       - feature/v5-6-disciplina-divisiones
-  pull_request:
-    branches:
-      - main
+  workflow_dispatch:
 
 jobs:
   validate:
