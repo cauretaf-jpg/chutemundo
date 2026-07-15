@@ -25,28 +25,37 @@ function parseGoalLog(text, side, teamId) {
 function parseCardLog(text, side, teamId) {
   if (!text?.trim()) return [];
   return text.split('\n').map((line) => line.trim()).filter(Boolean).map((line) => {
-    const red = /roja|🟥/i.test(line);
+    const doubleYellow = /doble amarilla/i.test(line);
+    const red = doubleYellow || /roja|🟥/i.test(line);
     const minute = line.match(/(\d+)\s*['’]?/)?.[1] || '';
     const name = line
       .replace(/[🟥🟨]/g, '')
       .replace(/\d+\s*['’]?/, '')
-      .replace(/\((Roja|Amarilla)\)/i, '')
+      .replace(/\((Doble amarilla|Roja|Amarilla)\)/i, '')
       .trim() || 'Sin identificar';
-    return { id: uid('card'), side, teamId, playerName: name, role: 'player', type: red ? 'red' : 'yellow', minute, legacy: true };
+    return {
+      id: uid('card'), side, teamId, playerName: name, role: 'player', type: red ? 'red' : 'yellow', minute, legacy: true,
+      reason: doubleYellow ? 'double_yellow' : '', secondYellow: doubleYellow
+    };
   });
 }
 
 function normalizeCard(card, match) {
   const side = card.side || (card.teamId === match.away ? 'away' : 'home');
+  const doubleYellow = card.reason === 'double_yellow' || card.secondYellow === true || card.type === 'second_yellow_red';
   return {
+    ...card,
     id: card.id || uid('card'),
     side,
     teamId: card.teamId || (side === 'away' ? match.away : match.home),
     playerName: card.playerName || card.name || 'Sin identificar',
     role: card.role || 'player',
-    type: card.type === 'R' || card.type === 'red' ? 'red' : 'yellow',
+    type: doubleYellow || card.type === 'R' || card.type === 'red' ? 'red' : 'yellow',
     minute: String(card.minute || ''),
-    note: card.note || ''
+    note: card.note || '',
+    reason: card.reason || '',
+    secondYellow: Boolean(doubleYellow),
+    createdAt: card.createdAt || null
   };
 }
 
@@ -82,7 +91,11 @@ function ensureMatchEvents(match, homeId, awayId) {
 
 function syncLegacyLogs(match) {
   const goalLine = (goal) => `${goal.playerName} | ${goal.assistName || 'Sin asistencia'} | ${goal.minute ? `${goal.minute}'` : '-'}`;
-  const cardLine = (card) => `${card.type === 'red' ? '🟥' : '🟨'} ${card.minute ? `${card.minute}' ` : ''}${card.playerName} (${card.type === 'red' ? 'Roja' : 'Amarilla'})`;
+  const cardLine = (card) => {
+    const doubleYellow = card.reason === 'double_yellow' || card.secondYellow === true;
+    const label = doubleYellow ? 'Doble amarilla' : card.type === 'red' ? 'Roja' : 'Amarilla';
+    return `${card.type === 'red' ? '🟥' : '🟨'} ${card.minute ? `${card.minute}' ` : ''}${card.playerName} (${label})`;
+  };
   match.homeGoalLog = (match.goals || []).filter((goal) => goal.side === 'home').map(goalLine).join('\n');
   match.awayGoalLog = (match.goals || []).filter((goal) => goal.side === 'away').map(goalLine).join('\n');
   match.homeCardLog = (match.cards || []).filter((card) => card.side === 'home').map(cardLine).join('\n');
