@@ -13,7 +13,7 @@ function refreshAnalysis() {
 function refreshAfterInteraction(event) {
   syncAnalysisVisibility();
   if (!event?.target?.closest?.('[data-cm-v58-filter],[data-cm-v58-compare],[data-cm-v58-reset],[data-cm-v58-mode]')) return;
-  for (const delay of [0, 120, 300]) window.setTimeout(refreshAnalysis, delay);
+  window.setTimeout(refreshAnalysis, 0);
 }
 
 const root = document.getElementById('cmV58AnalysisRoot');
