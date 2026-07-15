@@ -28,6 +28,7 @@ for (const [href, marker] of [
 
 await import('/chute-mutation-guard.mjs?v=5.6.0');
 await import('/chute-detail-model.mjs?v=5.6.0');
+await import('/chute-v56-card-metadata.mjs?v=5.6.0');
 await Promise.all([
   import('/chute-detail-ui.mjs?v=5.6.0'),
   import('/chute-detail-events.mjs?v=5.6.0'),
