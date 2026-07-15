@@ -57,9 +57,11 @@ function loadStatistics() {
   ]).then(async () => {
     await import('/chute-v57-controllers.mjs?v=5.8.0');
     await import('/chute-v58-analysis.mjs?v=5.8.0');
+    await import('/chute-v58-visibility.mjs?v=5.8.0');
     const statsPage = document.getElementById('estadisticas');
     if (statsPage?.hidden) window.ChuteMundoCore?.navigate?.('estadisticas');
     window.ChuteAnalysisV58?.refresh?.();
+    window.ChuteVisibilityV58?.sync?.();
     window.ChuteRuntimeV58?.invalidate('statistics-loaded');
     return true;
   }).catch((error) => {
