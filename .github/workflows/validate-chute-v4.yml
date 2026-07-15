@@ -1,4 +1,4 @@
-name: Validate Chute Mundo v5.4
+name: Validate Chute Mundo v5.5
 
 on:
   push:
@@ -12,6 +12,7 @@ on:
       - feature/v5-2-partidos-estadisticas
       - feature/v5-3-tablas-tramos
       - feature/v5-4-divisiones-fixture
+      - feature/v5-5-sedes-minutos
   pull_request:
     branches:
       - main
@@ -52,7 +53,9 @@ jobs:
           node --check public/chute-game-minute-stats.mjs
           node --check public/chute-v54.mjs
           node --check public/chute-v54-form-guard.mjs
+          node --check public/chute-v55.mjs
           node --check scripts/smoke-chute-v54.mjs
+          node --check scripts/smoke-chute-v55.mjs
 
       - name: Validate required files and Firebase encoding
         run: |
@@ -67,6 +70,7 @@ jobs:
           test -s public/chute-stats-v52.css
           test -s public/chute-v53-adjustments.css
           test -s public/chute-v54.css
+          test -s public/chute-v55.css
           test -s public/chute-data-hygiene.mjs
           test -s public/chute-premium-ui.mjs
           test -s public/chute-tournament-hub.mjs
@@ -75,6 +79,7 @@ jobs:
           test -s public/chute-game-minute-stats.mjs
           test -s public/chute-v54.mjs
           test -s public/chute-v54-form-guard.mjs
+          test -s public/chute-v55.mjs
           test -s public/chute-mutation-guard.mjs
           grep -q "goals: Array.isArray(source.goals)" /tmp/chute-official-runtime.mjs
           grep -q "cards: Array.isArray(source.cards)" /tmp/chute-official-runtime.mjs
@@ -103,6 +108,10 @@ jobs:
           grep -q "Ganador del Play-Off" public/chute-v54.mjs
           grep -q "nextComposition" public/chute-v54.mjs
           grep -q "cm-v54-match-toggle" public/chute-v54.css
+          grep -q "OFFICIAL_MINUTES" public/chute-v55.mjs
+          grep -q "data-cm-fixture-division" public/chute-v55.mjs
+          grep -q "lastVenue" public/chute-v55.mjs
+          grep -q "cm-v55-venue-admin" public/chute-v55.css
           grep -q '"feature/\*\*": false' vercel.json
 
       - name: Install browser test dependencies
@@ -110,7 +119,7 @@ jobs:
           npm install --no-save serve@14.2.4 playwright@1.52.0
           npx playwright install --with-deps chromium
 
-      - name: Run browser smoke test
+      - name: Run browser smoke tests
         shell: bash
         run: |
           set -o pipefail
@@ -118,15 +127,17 @@ jobs:
           SERVER_PID=$!
           trap 'kill $SERVER_PID' EXIT
           sleep 3
-          node scripts/smoke-chute-v54.mjs 2>&1 | tee /tmp/chute-smoke.log
+          node scripts/smoke-chute-v54.mjs 2>&1 | tee /tmp/chute-smoke-v54.log
+          node scripts/smoke-chute-v55.mjs 2>&1 | tee /tmp/chute-smoke-v55.log
 
       - name: Upload visual diagnostics
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: chute-v5-4-diagnostics
+          name: chute-v5-5-diagnostics
           path: |
-            /tmp/chute-smoke.log
+            /tmp/chute-smoke-v54.log
+            /tmp/chute-smoke-v55.log
             /tmp/chute-server.log
             /tmp/chute-v5-desktop.png
             /tmp/chute-v5-mobile.png
