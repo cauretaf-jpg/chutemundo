@@ -8,7 +8,7 @@ page.on('console', (message) => { if (message.type() === 'error') errors.push(me
 
 try {
   await page.goto('http://127.0.0.1:4173', { waitUntil: 'domcontentloaded', timeout: 60_000 });
-  await page.waitForFunction(() => Boolean(window.ChuteMundoCore && window.ChuteTournamentHub && window.ChuteStatsV52 && window.ChuteDivisionsV54 && window.ChuteV54FormGuard), null, { timeout: 60_000 });
+  await page.waitForFunction(() => Boolean(window.ChuteMundoCore && window.ChuteTournamentHub && window.ChuteStatsV52 && window.ChuteDivisionsV54 && window.ChuteV54FormGuard && window.ChuteMatchToolsV55), null, { timeout: 60_000 });
   await page.waitForSelector('#cmPremiumDashboard');
 
   const base = await page.evaluate(() => ({
@@ -17,7 +17,7 @@ try {
     css: Array.from(document.styleSheets).some((sheet) => sheet.href?.includes('chute-v54.css')),
     fifa: window.ChuteDivisionsV54.fifaOrder()
   }));
-  if (!base.title.includes('v5.4') || base.active !== 't8' || !base.css || base.fifa.length !== 6) throw new Error(`Carga v5.4 incorrecta: ${JSON.stringify(base)}`);
+  if (!/v5\.[45]/.test(base.title) || base.active !== 't8' || !base.css || base.fifa.length !== 6) throw new Error(`Carga de compatibilidad v5.4 incorrecta: ${JSON.stringify(base)}`);
 
   await page.click('[data-cm-open-active]');
   await page.waitForSelector('#cmTournamentHub');
@@ -87,7 +87,7 @@ try {
 
   const mobile = await browser.newPage({ viewport: { width: 390, height: 844 }, isMobile: true });
   await mobile.goto('http://127.0.0.1:4173', { waitUntil: 'domcontentloaded', timeout: 60_000 });
-  await mobile.waitForFunction(() => Boolean(window.ChuteDivisionsV54));
+  await mobile.waitForFunction(() => Boolean(window.ChuteDivisionsV54 && window.ChuteMatchToolsV55));
   await mobile.click('[data-cm-open-active]');
   await mobile.click('[data-cm-tournament-tab="fixture"]');
   await mobile.waitForFunction(() => document.querySelectorAll('.cm-v54-match-toggle').length === 10);
@@ -98,7 +98,7 @@ try {
 
   const critical = errors.filter((message) => !/favicon|firestore.googleapis.com|Failed to load resource|QUIC_NETWORK/i.test(message));
   if (critical.length) throw new Error(`Errores de página: ${critical.join(' | ')}`);
-  console.log('Chute Mundo v5.4 smoke OK', { base, compact, accordion, form, engine, mobileState });
+  console.log('Chute Mundo compatibilidad v5.4 OK', { base, compact, accordion, form, engine, mobileState });
 } finally {
   await browser.close();
 }
