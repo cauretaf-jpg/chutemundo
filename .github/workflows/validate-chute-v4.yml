@@ -1,9 +1,9 @@
-name: Validate Chute Mundo v5.5
+name: Validate Chute Mundo v5.6
 
 on:
   push:
     branches:
-      - feature/v5-5-sedes-minutos
+      - feature/v5-6-disciplina-divisiones
   pull_request:
     branches:
       - main
@@ -44,8 +44,11 @@ jobs:
           node --check public/chute-game-minute-stats.mjs
           node --check public/chute-v54.mjs
           node --check public/chute-v54-form-guard.mjs
+          node --check public/chute-v55-event-guard.mjs
           node --check public/chute-v55.mjs
-          node --check scripts/smoke-chute-v55.mjs
+          node --check public/chute-v56-card-metadata.mjs
+          node --check public/chute-v56-discipline.mjs
+          node --check scripts/smoke-chute-v56.mjs
 
       - name: Validate required features
         run: |
@@ -54,14 +57,22 @@ jobs:
           test -s public/chute-v54.css
           test -s public/chute-v55.mjs
           test -s public/chute-v55.css
+          test -s public/chute-v56-card-metadata.mjs
+          test -s public/chute-v56-discipline.mjs
+          test -s public/chute-v56.css
           grep -q "division_season" public/chute-v54.mjs
           grep -q "nextComposition" public/chute-v54.mjs
-          grep -q "cm-v54-match-toggle" public/chute-v54.css
           grep -q "OFFICIAL_MINUTES" public/chute-v55.mjs
           grep -q "data-cm-fixture-division" public/chute-v55.mjs
           grep -q "registrationStartedAt" public/chute-v55.mjs
           grep -q "lastVenue" public/chute-v55.mjs
-          grep -q "cm-v55-venue-admin" public/chute-v55.css
+          grep -q "double_yellow" public/chute-v56-card-metadata.mjs
+          grep -q "yellowLimit: 2" public/chute-v56-discipline.mjs
+          grep -q "double_yellow" public/chute-v56-discipline.mjs
+          grep -q "carryBetweenSeasons" public/chute-v56-discipline.mjs
+          grep -q "data-cm-v56-discipline-tab" public/chute-v56-discipline.mjs
+          grep -q "SUSPENDIDO" public/chute-v56-discipline.mjs
+          grep -q "cm-v56-suspension-notice" public/chute-v56.css
           grep -q '"feature/\*\*": false' vercel.json
 
       - name: Install browser test dependencies
@@ -77,15 +88,15 @@ jobs:
           SERVER_PID=$!
           trap 'kill $SERVER_PID' EXIT
           sleep 3
-          node scripts/smoke-chute-v55.mjs 2>&1 | tee /tmp/chute-smoke-v55.log
+          node scripts/smoke-chute-v56.mjs 2>&1 | tee /tmp/chute-smoke-v56.log
 
       - name: Upload diagnostics
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: chute-v5-5-diagnostics
+          name: chute-v5-6-diagnostics
           path: |
-            /tmp/chute-smoke-v55.log
+            /tmp/chute-smoke-v56.log
             /tmp/chute-server.log
           if-no-files-found: ignore
           retention-days: 3
