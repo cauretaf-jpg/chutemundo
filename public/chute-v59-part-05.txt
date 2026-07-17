@@ -1,0 +1,26 @@
+  core.openModal(`<div class="cm-v59-profile-modal"><header class="cm-v59-team-hero">${logo(teamId, 'cm-v59-team-logo')}<div><p class="eyebrow">PERFIL DEL CLUB</p><h2>${esc(data.team.name)}</h2><span>DT: ${esc(data.team.coach || 'Sin registrar')} · ${data.roster.length} jugadores</span><div class="cm-v59-form">${form}</div></div></header><div class="cm-v59-profile-metrics">${metric(data.pj, 'Partidos')}${metric(data.pg, 'Victorias')}${metric(data.pe, 'Empates')}${metric(data.pp, 'Derrotas')}${metric(`${data.gf}-${data.gc}`, 'Goles')}${metric(data.dg > 0 ? `+${data.dg}` : data.dg, 'Diferencia')}${metric(data.titles, 'Títulos')}${metric(data.leader?.name || '—', 'Líder G+A')}</div><div class="cm-v59-profile-columns"><section><p class="eyebrow">RIVALIDADES</p><h3>Rendimiento por rival</h3><div class="cm-v59-table-wrap"><table><thead><tr><th>Rival</th><th>PJ</th><th>G</th><th>E</th><th>P</th><th>GF-GC</th></tr></thead><tbody>${h2h}</tbody></table></div>${data.biggest ? `<p class="cm-v59-highlight"><b>Mayor victoria:</b> ${data.biggest.gf}-${data.biggest.gc} vs. ${esc(core.teamName(data.biggest.opponentId))} · ${esc(data.biggest.tournament)}</p>` : ''}</section><section><p class="eyebrow">PLANTEL</p><h3>Jugadores del club</h3><div class="cm-v59-roster-list">${rosterRows}</div></section></div></div>`);
+}
+
+function allPlayers() {
+  return teams().flatMap((team) => roster(team.id).map((item) => ({ teamId: team.id, team, name: playerName(item), position: playerPosition(item) || 'Jugador' })));
+}
+
+function playerCard(item, statsMap) {
+  const stats = statsMap.get(`${item.teamId}__${item.name}`) || { goals: 0, assists: 0, yellows: 0, reds: 0 };
+  return `<button type="button" class="cm-v59-player-card" data-cm-v59-player="${esc(playerKey(item.teamId, item.name))}">${photo(item.teamId, item.name, 'cm-v59-player-card-photo')}<span><b>${esc(item.name)}</b><small>${esc(item.position)} · ${esc(item.team.name)}</small><em>${stats.goals} G · ${stats.assists} A · ${stats.yellows + stats.reds} tarjetas</em></span></button>`;
+}
+
+function teamCard(team) {
+  const data = teamProfileData(team.id);
+  return `<button type="button" class="cm-v59-team-card" data-cm-v59-team="${esc(team.id)}">${logo(team.id, 'cm-v59-team-card-logo')}<span><b>${esc(team.name)}</b><small>${esc(team.coach || 'Sin DT')} · ${data.roster.length} jugadores</small><em>${data.pj} PJ · ${data.titles} títulos · DG ${data.dg > 0 ? '+' : ''}${data.dg}</em></span></button>`;
+}
+
+function profilesMarkup() {
+  const query = norm(profileState.query);
+  const statsMap = new Map(model.playerStatistics(core).map((row) => [`${row.teamId}__${row.name}`, row]));
+  const players = allPlayers().filter((item) => !query || norm(`${item.name} ${item.position} ${item.team.name}`).includes(query));
+  const teamRows = teams().filter((team) => !query || norm(`${team.name} ${team.coach || ''}`).includes(query));
+  const visiblePlayers = profileState.expanded || query ? players : players.slice(0, 18);
+  const content = profileState.mode === 'players'
+    ? `<div class="cm-v59-profile-grid players">${visiblePlayers.map((item) => playerCard(item, statsMap)).join('') || '<p class="empty">No se encontraron jugadores.</p>'}</div>${!profileState.expanded && !query && players.length > visiblePlayers.length ? `<button type="button" class="cm-v59-show-all" data-cm-v59-show-all>Mostrar los ${players.length} jugadores</button>` : ''}`
+    : `<div class="cm-v59-profile-grid teams">${teamRows.map(teamCard).join('') || '<p class="empty">No se encontraron equipos.</p>'}</div>`;
