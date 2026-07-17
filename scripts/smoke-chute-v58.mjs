@@ -8,7 +8,7 @@ page.on('console', (message) => { if (message.type() === 'error') errors.push(me
 
 try {
   await page.goto('http://127.0.0.1:4173/', { waitUntil: 'domcontentloaded' });
-  await page.waitForFunction(() => window.ChuteMundoCore && document.title.includes('v5.8'));
+  await page.waitForFunction(() => window.ChuteMundoCore && /v5\.(8|9)/.test(document.title));
   const lazy = await page.evaluate(() => ({ analysis: Boolean(window.ChuteAnalysisV58), statsCss: performance.getEntriesByType('resource').some((entry) => entry.name.includes('chute-stats-v52.css')), runtime: window.ChuteRuntimeV58?.stats?.() }));
   if (lazy.analysis || lazy.statsCss || !lazy.runtime) throw new Error(`Carga diferida incorrecta: ${JSON.stringify(lazy)}`);
 
