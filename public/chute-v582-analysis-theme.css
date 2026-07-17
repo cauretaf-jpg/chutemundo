@@ -1,0 +1,273 @@
+#cmV58ModeSwitch {
+  border: 1px solid #d7e2dc !important;
+  background: rgba(255, 255, 255, .97) !important;
+  box-shadow: 0 8px 24px rgba(7, 42, 31, .08) !important;
+}
+
+#cmV58ModeSwitch button {
+  color: #53635d !important;
+}
+
+#cmV58ModeSwitch button:hover {
+  background: #edf4f0 !important;
+  color: #0a674d !important;
+}
+
+#cmV58ModeSwitch button.active {
+  background: linear-gradient(135deg, #0b7655, #11916a) !important;
+  color: #fff !important;
+  box-shadow: 0 7px 18px rgba(11, 118, 85, .2) !important;
+}
+
+#cmV58ModeSwitch span {
+  background: #fff0bd !important;
+  color: #6c4b00 !important;
+}
+
+#cmV58AnalysisRoot {
+  --cm-v582-ink: #102019;
+  --cm-v582-muted: #64736d;
+  --cm-v582-border: #dbe5e0;
+  --cm-v582-soft: #f6f9f7;
+  --cm-v582-soft-strong: #edf3f0;
+  --cm-v582-primary: #0b7655;
+  --cm-v582-primary-dark: #07523e;
+  --cm-v582-gold: #9b6807;
+  --cm-v582-danger: #b23d45;
+  color: var(--cm-v582-ink) !important;
+  color-scheme: light;
+}
+
+#cmV58AnalysisRoot .cm-v58-filters,
+#cmV58AnalysisRoot .cm-v58-panel,
+#cmV58AnalysisRoot .cm-v58-kpis article {
+  border-color: var(--cm-v582-border) !important;
+  background: #fff !important;
+  color: var(--cm-v582-ink) !important;
+  box-shadow: 0 8px 24px rgba(7, 42, 31, .07) !important;
+}
+
+#cmV58AnalysisRoot .cm-v58-filters h2,
+#cmV58AnalysisRoot .cm-v58-panel h2,
+#cmV58AnalysisRoot .cm-v58-panel h3,
+#cmV58AnalysisRoot .cm-v58-panel strong,
+#cmV58AnalysisRoot .cm-v58-panel b,
+#cmV58AnalysisRoot .cm-v58-kpis b {
+  color: var(--cm-v582-ink) !important;
+}
+
+#cmV58AnalysisRoot .eyebrow {
+  color: #0c805d !important;
+}
+
+#cmV58AnalysisRoot .cm-v58-filters p,
+#cmV58AnalysisRoot .cm-v58-panel header p,
+#cmV58AnalysisRoot .cm-v58-kpis small,
+#cmV58AnalysisRoot .cm-v58-panel > header > span {
+  color: var(--cm-v582-muted) !important;
+}
+
+#cmV58AnalysisRoot .cm-v58-filters label,
+#cmV58AnalysisRoot .cm-v58-compare-selects label {
+  color: #40534b !important;
+}
+
+#cmV58AnalysisRoot .cm-v58-filters select,
+#cmV58AnalysisRoot .cm-v58-compare-selects select {
+  border-color: #cfdcd5 !important;
+  background: #fff !important;
+  color: var(--cm-v582-ink) !important;
+  box-shadow: inset 0 1px 2px rgba(7, 42, 31, .03);
+}
+
+#cmV58AnalysisRoot .cm-v58-filters select:focus,
+#cmV58AnalysisRoot .cm-v58-compare-selects select:focus {
+  border-color: #2a9c77 !important;
+  box-shadow: 0 0 0 4px rgba(20, 145, 105, .1) !important;
+}
+
+#cmV58AnalysisRoot .cm-v58-filters button {
+  border-color: #cfdcd5 !important;
+  background: #edf4f0 !important;
+  color: #0a674d !important;
+}
+
+#cmV58AnalysisRoot .cm-v58-filters button:hover {
+  background: #dff0e8 !important;
+}
+
+#cmV58AnalysisRoot .cm-v58-kpis span {
+  color: #62736b !important;
+}
+
+#cmV58AnalysisRoot .cm-v58-ranking-svg .grid line {
+  stroke: rgba(16, 32, 25, .13) !important;
+}
+
+#cmV58AnalysisRoot .cm-v58-ranking-svg text {
+  fill: #596a63 !important;
+}
+
+#cmV58AnalysisRoot .cm-v58-ranking-svg .team-line {
+  filter: drop-shadow(0 2px 3px rgba(7, 42, 31, .12)) !important;
+}
+
+#cmV58AnalysisRoot .cm-v58-ranking-svg .line-0,
+#cmV58AnalysisRoot .cm-v58-chart-legend .line-0 i { stroke: #087f5b !important; background: #087f5b !important; }
+#cmV58AnalysisRoot .cm-v58-ranking-svg .line-1,
+#cmV58AnalysisRoot .cm-v58-chart-legend .line-1 i { stroke: #a96f08 !important; background: #a96f08 !important; }
+#cmV58AnalysisRoot .cm-v58-ranking-svg .line-2,
+#cmV58AnalysisRoot .cm-v58-chart-legend .line-2 i { stroke: #2867a6 !important; background: #2867a6 !important; }
+#cmV58AnalysisRoot .cm-v58-ranking-svg .line-3,
+#cmV58AnalysisRoot .cm-v58-chart-legend .line-3 i { stroke: #b43f49 !important; background: #b43f49 !important; }
+#cmV58AnalysisRoot .cm-v58-ranking-svg .line-4,
+#cmV58AnalysisRoot .cm-v58-chart-legend .line-4 i { stroke: #7549a8 !important; background: #7549a8 !important; }
+#cmV58AnalysisRoot .cm-v58-ranking-svg .line-5,
+#cmV58AnalysisRoot .cm-v58-chart-legend .line-5 i { stroke: #bd5a1e !important; background: #bd5a1e !important; }
+#cmV58AnalysisRoot .cm-v58-ranking-svg .line-6,
+#cmV58AnalysisRoot .cm-v58-chart-legend .line-6 i { stroke: #0d7d7d !important; background: #0d7d7d !important; }
+#cmV58AnalysisRoot .cm-v58-ranking-svg .line-7,
+#cmV58AnalysisRoot .cm-v58-chart-legend .line-7 i { stroke: #647d20 !important; background: #647d20 !important; }
+
+#cmV58AnalysisRoot .cm-v58-chart-legend span {
+  border: 1px solid #e0e8e4;
+  background: var(--cm-v582-soft) !important;
+  color: #34463e !important;
+}
+
+#cmV58AnalysisRoot .cm-v58-compare-selects > span {
+  background: var(--cm-v582-primary) !important;
+  color: #fff !important;
+}
+
+#cmV58AnalysisRoot .cm-v58-compare-head article,
+#cmV58AnalysisRoot .cm-v58-decisive-grid > article {
+  border: 1px solid #e0e8e4;
+  background: var(--cm-v582-soft) !important;
+  color: var(--cm-v582-ink) !important;
+}
+
+#cmV58AnalysisRoot .cm-v58-compare-metrics {
+  border-color: var(--cm-v582-border) !important;
+  background: #fff;
+}
+
+#cmV58AnalysisRoot .cm-v58-compare-metric {
+  border-bottom-color: #e4ebe7 !important;
+}
+
+#cmV58AnalysisRoot .cm-v58-compare-metric span {
+  color: #596a63 !important;
+}
+
+#cmV58AnalysisRoot .cm-v58-compare-metric b {
+  background: #f8faf9 !important;
+  color: var(--cm-v582-ink) !important;
+}
+
+#cmV58AnalysisRoot .cm-v58-compare-metric b.leader {
+  background: #e2f4eb !important;
+  color: #086348 !important;
+}
+
+#cmV58AnalysisRoot .cm-v58-h2h-summary {
+  border: 1px solid #cfe6da;
+  background: #eaf7f1 !important;
+}
+
+#cmV58AnalysisRoot .cm-v58-h2h-summary span {
+  color: #38564a !important;
+}
+
+#cmV58AnalysisRoot .cm-v58-h2h-summary b {
+  color: var(--cm-v582-gold) !important;
+}
+
+#cmV58AnalysisRoot .cm-v58-matrix th,
+#cmV58AnalysisRoot .cm-v58-matrix td,
+#cmV58AnalysisRoot .cm-v58-venues th,
+#cmV58AnalysisRoot .cm-v58-venues td {
+  border-bottom-color: #e3ebe7 !important;
+  color: #34463e !important;
+}
+
+#cmV58AnalysisRoot .cm-v58-matrix thead th,
+#cmV58AnalysisRoot .cm-v58-venues thead th {
+  background: var(--cm-v582-soft-strong) !important;
+  color: #41564d !important;
+}
+
+#cmV58AnalysisRoot .cm-v58-matrix tbody tr:nth-child(even),
+#cmV58AnalysisRoot .cm-v58-venues tbody tr:nth-child(even) {
+  background: #fafcfb;
+}
+
+#cmV58AnalysisRoot .cm-v58-matrix td small {
+  color: #73827c !important;
+}
+
+#cmV58AnalysisRoot .cm-v58-matrix td.same {
+  background: #f0f4f2 !important;
+  color: #7b8983 !important;
+}
+
+#cmV58AnalysisRoot .cm-v58-player-row,
+#cmV58AnalysisRoot .cm-v58-club-pressure {
+  border-bottom-color: #e1e9e5 !important;
+}
+
+#cmV58AnalysisRoot .cm-v58-player-photo {
+  background: #e7efeb !important;
+}
+
+#cmV58AnalysisRoot .cm-v58-player-row span,
+#cmV58AnalysisRoot .cm-v58-player-row small,
+#cmV58AnalysisRoot .cm-v58-club-pressure span,
+#cmV58AnalysisRoot .cm-v58-club-pressure small {
+  color: #697a72 !important;
+}
+
+#cmV58AnalysisRoot .cm-v58-player-row em {
+  color: var(--cm-v582-gold) !important;
+}
+
+#cmV58AnalysisRoot .cm-v58-minute-legend {
+  color: #596a63 !important;
+}
+
+#cmV58AnalysisRoot .cm-v58-minute-bars > div > span {
+  color: #40534b !important;
+}
+
+#cmV58AnalysisRoot .cm-v58-minute-bars i {
+  background: #e4ece8 !important;
+}
+
+#cmV58AnalysisRoot .cm-v58-minute-bars i.scored b {
+  background: linear-gradient(90deg, #087052, #2fbd8c) !important;
+}
+
+#cmV58AnalysisRoot .cm-v58-minute-bars i.conceded b {
+  background: linear-gradient(90deg, #a43d45, #df6a73) !important;
+}
+
+#cmV58AnalysisRoot .cm-v58-empty {
+  border-color: #cbd9d2 !important;
+  background: #fafcfb;
+  color: #66776f !important;
+}
+
+#cmV58AnalysisRoot .empty {
+  color: #66776f !important;
+}
+
+@media (max-width: 700px) {
+  #cmV58ModeSwitch {
+    box-shadow: 0 7px 20px rgba(7, 42, 31, .09) !important;
+  }
+
+  #cmV58AnalysisRoot .cm-v58-panel,
+  #cmV58AnalysisRoot .cm-v58-filters {
+    border-radius: 18px;
+  }
+}
