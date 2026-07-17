@@ -15,6 +15,9 @@ requireCheck(detail.indexOf('chute-runtime-v58.mjs') < detail.indexOf('chute-mut
 requireCheck(!detail.includes('chute-v56-card-metadata.mjs'), 'El parche redundante de metadatos sigue importándose.');
 requireCheck(detail.includes('function loadStatistics()'), 'No existe carga diferida del centro estadístico.');
 requireCheck(detail.includes('chute-v58-analysis.mjs'), 'No se carga el análisis histórico v5.8.');
+requireCheck(detail.includes('[data-cm-mobile-page="estadisticas"]'), 'La navegación móvil no activa la carga estadística.');
+requireCheck(detail.includes('cm-v581-bracket-tabs'), 'No existe la navegación móvil por etapas de la llave.');
+requireCheck(detail.includes('MutationObserver(() => {\n    if (!statisticsPage.hidden)'), 'No existe respaldo automático al mostrar Estadísticas.');
 
 async function walk(directory) {
   const result = [];
@@ -51,5 +54,5 @@ if (failures.length) {
   failures.forEach((failure) => console.error(`- ${failure}`));
   process.exit(1);
 }
-console.log('Auditoría v5.8 OK');
+console.log('Auditoría v5.8.1 OK');
 notes.forEach((note) => console.log(`- ${note}`));
