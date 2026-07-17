@@ -1,0 +1,68 @@
+    const hp = homePensValue === '' || homePensValue === undefined ? null : Number(homePensValue);
+    const ap = awayPensValue === '' || awayPensValue === undefined ? null : Number(awayPensValue);
+    if (hp === null || ap === null || hp === ap) return core.showToast('El empate de eliminación debe definirse por penales.');
+  }
+  await persistLive(pair, (nextCtx) => {
+    nextCtx.match.homeGoals = local;
+    nextCtx.match.awayGoals = visit;
+    nextCtx.match.liveStatus = 'final';
+    nextCtx.match.completedAt = Date.now();
+    syncPodium(nextCtx);
+  }, 'Partido finalizado.', { reopen: false });
+  core.closeModal();
+}
+
+async function saveLiveData(pair) {
+  await persistLive(pair, ({ match }) => { match.liveStatus ||= 'active'; }, 'Datos del partido guardados.');
+}
+
+function allMatchRows() {
+  return tournaments().flatMap((tournament) => (tournament.matches || []).filter((match) => match.stage !== 'bye').map((match) => {
+    const home = match.home || core.resolveHome(tournament, match);
+    const away = match.away || core.resolveAway(tournament, match);
+    ensureMatchEvents(match, home, away);
+    return { tournament, match, home, away };
+  })).filter((row) => row.home && row.away);
+}
+
+function playerTournamentStats(teamId, name, tournament) {
+  const structured = { goals: 0, assists: 0, yellows: 0, reds: 0 };
+  for (const match of tournament.matches || []) {
+    const home = match.home || core.resolveHome(tournament, match);
+    const away = match.away || core.resolveAway(tournament, match);
+    ensureMatchEvents(match, home, away);
+    for (const goal of match.goals || []) {
+      if ((goal.teamId || (goal.side === 'away' ? away : home)) !== teamId) continue;
+      if (goal.playerName === name) structured.goals += 1;
+      if (goal.assistName === name) structured.assists += 1;
+    }
+    for (const card of match.cards || []) {
+      if ((card.teamId || (card.side === 'away' ? away : home)) !== teamId || card.playerName !== name) continue;
+      if (card.type === 'red') structured.reds += 1; else structured.yellows += 1;
+    }
+  }
+  const manualGoals = (tournament.playerScorers || []).find((row) => row[0] === name && row[1] === teamId)?.[3] || 0;
+  const manualAssists = (tournament.playerAssists || []).find((row) => row[0] === name && row[1] === teamId)?.[3] || 0;
+  return { ...structured, goals: Math.max(structured.goals, Number(manualGoals)), assists: Math.max(structured.assists, Number(manualAssists)) };
+}
+
+function winningGoalIds(row) {
+  const winner = winnerId(row.tournament, row.match);
+  if (!winner) return new Set();
+  const winnerSide = winner === row.home ? 'home' : 'away';
+  const loserGoals = winnerSide === 'home' ? Number(row.match.awayGoals) : Number(row.match.homeGoals);
+  const ordered = (row.match.goals || []).filter((goal) => goal.side === winnerSide).sort((a, b) => eventMinuteOrder(a.minute) - eventMinuteOrder(b.minute) || Number(a.createdAt || 0) - Number(b.createdAt || 0));
+  return new Set(ordered[loserGoals]?.id ? [ordered[loserGoals].id] : []);
+}
+
+function playerProfileData(teamId, name) {
+  const base = model.playerStatistics(core).find((row) => row.teamId === teamId && row.name === name) || { goals: 0, assists: 0, yellows: 0, reds: 0, appearances: 0, contributions: 0 };
+  const team = core.teamById(teamId);
+  const rosterEntry = roster(teamId).find((item) => playerName(item) === name);
+  let lateGoals = 0; let winningGoals = 0; let finalGoals = 0; let playoffGoals = 0;
+  const recent = [];
+  for (const row of allMatchRows()) {
+    const winningIds = winningGoalIds(row);
+    for (const goal of row.match.goals || []) {
+      const goalTeam = goal.teamId || (goal.side === 'away' ? row.away : row.home);
+      if (goalTeam !== teamId || goal.playerName !== name) continue;
