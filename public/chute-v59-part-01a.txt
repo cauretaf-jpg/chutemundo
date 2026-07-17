@@ -1,0 +1,32 @@
+    <div class="cm-v59-live-heading"><div><p class="eyebrow">CENTRO DE PARTIDO</p><h2>${esc(ctx.tournament.name)}</h2><p>${esc(ctx.match.round || '')} · ${esc(ctx.match.label || '')}</p></div><span>${ctx.match.liveStatus === 'final' || played(ctx.match) ? 'Partido registrado' : 'Modo en vivo'}</span></div>
+    <div class="cm-v59-scoreboard">
+      <div>${logo(ctx.home, 'cm-v59-score-logo')}<strong>${esc(core.teamName(ctx.home))}</strong><div class="cm-v59-score-control"><button type="button" data-cm-v59-score="home:-1">−</button><b>${Number(homeScore)}</b><button type="button" data-cm-v59-score="home:1">+</button></div></div>
+      <em>VS</em>
+      <div>${logo(ctx.away, 'cm-v59-score-logo')}<strong>${esc(core.teamName(ctx.away))}</strong><div class="cm-v59-score-control"><button type="button" data-cm-v59-score="away:-1">−</button><b>${Number(awayScore)}</b><button type="button" data-cm-v59-score="away:1">+</button></div></div>
+    </div>
+    <div class="cm-v59-live-meta">
+      <label>Minuto oficial<select id="cmV59Minute">${OFFICIAL_MINUTES.map((minute) => `<option value="${minute}">${minuteLabel(minute)}</option>`).join('')}</select></label>
+      <label>Fecha<input id="cmV59Date" type="date" value="${esc(ctx.match.date || currentDate())}"></label>
+      <label>Hora<input id="cmV59Time" type="time" value="${esc(ctx.match.time || currentTime())}"></label>
+      <label>Sede<input id="cmV59Venue" value="${esc(ctx.match.venue || '')}" placeholder="Cancha o sede"></label>
+      ${knockout ? `<label>Penales local<input id="cmV59HomePens" type="number" min="0" value="${ctx.match.homePens ?? ''}"></label><label>Penales visita<input id="cmV59AwayPens" type="number" min="0" value="${ctx.match.awayPens ?? ''}"></label>` : ''}
+    </div>
+    <div class="cm-v59-live-sides">${liveSide(ctx, 'home')}${liveSide(ctx, 'away')}</div>
+    <section class="cm-v59-live-timeline"><header><div><p class="eyebrow">CRONOLOGÍA</p><h3>Eventos del partido</h3></div><span>${(ctx.match.goals?.length || 0) + (ctx.match.cards?.length || 0)} eventos</span></header>${liveTimeline(ctx)}</section>
+    <div class="cm-v59-live-actions">
+      <button type="button" class="secondary" data-cm-v59-save-live>Guardar datos</button>
+      <button type="button" class="secondary" data-cm-v59-undo ${undoable ? '' : 'disabled'}>Corregir último evento</button>
+      <button type="button" class="cm-v59-finish" data-cm-v59-finish>Finalizar partido</button>
+    </div>
+  </div>`);
+}
+
+function readLiveFields(targetMatch) {
+  const date = document.getElementById('cmV59Date');
+  const time = document.getElementById('cmV59Time');
+  const venue = document.getElementById('cmV59Venue');
+  if (date) targetMatch.date = date.value;
+  if (time) targetMatch.time = time.value;
+  if (venue) targetMatch.venue = venue.value.trim();
+  const homePens = document.getElementById('cmV59HomePens');
+  const awayPens = document.getElementById('cmV59AwayPens');
