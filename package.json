@@ -1,11 +1,11 @@
 {
   "name": "chutemundo",
-  "version": "5.9.0",
+  "version": "5.10.0",
   "private": true,
-  "description": "Plataforma deportiva de Chute Mundo con centro de partido, perfiles históricos, análisis, divisiones y disciplina.",
+  "description": "Plataforma deportiva de Chute Mundo con centro de jornada, modo partido, perfiles historicos, papelera y trazabilidad administrativa.",
   "scripts": {
     "dev": "npx serve . -l 5173",
-    "build": "node -e \"console.log('Chute Mundo es una app estática: no requiere build.')\"",
+    "build": "node -e \"console.log('Chute Mundo es una app estatica: no requiere build.')\"",
     "preview": "npx serve . -l 4173",
     "check:official": "node scripts/check-chute-v58.mjs"
   },
