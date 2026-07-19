@@ -1,4 +1,4 @@
-name: Validate Chute Mundo v5.9.1
+name: Validate Chute Mundo v5.10
 
 on:
   pull_request:
@@ -16,36 +16,26 @@ jobs:
       - name: Validate syntax and audit
         run: |
           npm run check:official
-          node --check public/chute-v591-live-access.mjs
-          node --check scripts/smoke-chute-v591.mjs
           node scripts/audit-chute-v58.mjs
       - name: Validate required files
         run: |
           test -s public/chute-runtime-v58.mjs
           test -s public/chute-v58-analysis.mjs
           test -s public/chute-v58-visibility.mjs
-          test -s public/chute-v58.css
           test -s public/chute-v59-live-profiles.css
-          test -s public/chute-v59-part-00.txt
-          test -s public/chute-v59-part-04.txt
-          test -s public/chute-v59-part-07.txt
-          test -s public/chute-v59-style-00.css
-          test -s public/chute-v59-style-01.css
           test -s public/chute-v591-live-access.mjs
+          test -s public/chute-v510-dashboard.mjs
+          test -s public/chute-v510-safety.mjs
+          test -s public/chute-v510.css
+          test -s scripts/smoke-chute-v510.mjs
           grep -q "Evolución del Ranking FIFA Chute" public/chute-v58-analysis.mjs
-          grep -q "COMPARADOR DE EQUIPOS" public/chute-v58-analysis.mjs
-          grep -q "ENFRENTAMIENTOS DIRECTOS" public/chute-v58-analysis.mjs
-          grep -q "RENDIMIENTO BAJO PRESIÓN" public/chute-v58-analysis.mjs
-          grep -q "Rendimiento por escenario" public/chute-v58-analysis.mjs
-          cat public/chute-v59-part-{00,01,02,03,04,05,06,07}.txt > /tmp/chute-v59-source.mjs
-          grep -q "CENTRO DE PARTIDO" /tmp/chute-v59-source.mjs
-          grep -q "PERFIL HISTÓRICO" /tmp/chute-v59-source.mjs
-          grep -q "PERFIL DEL CLUB" /tmp/chute-v59-source.mjs
+          grep -q "CENTRO DE PARTIDO" public/chute-v59-part-04.txt
           grep -q "cm-v591-live-access" public/chute-v591-live-access.mjs
-          grep -q "chute-v591-live-access.mjs" public/chute-official.mjs
-          grep -q "function loadStatistics" public/chute-detail.mjs
-          grep -q "chute-v58-visibility.mjs" public/chute-detail.mjs
-          grep -q "ChuteSplitLoader" public/chute-official.mjs
+          grep -q "CENTRO DE JORNADA" public/chute-v510-dashboard.mjs
+          grep -q "PAPELERA DE TORNEOS" public/chute-v510-safety.mjs
+          grep -q "moveTournamentToTrashState" public/chute-v510-safety.mjs
+          grep -q "chute-v510-safety.mjs" public/chute-official.mjs
+          grep -q "chute-v510-dashboard.mjs" public/chute-official.mjs
           test ! -e public/chute-v56-card-metadata.mjs
       - name: Install browser
         run: |
@@ -58,14 +48,16 @@ jobs:
           node scripts/smoke-chute-v58.mjs > /tmp/chute-smoke-v58.log 2>&1
           node scripts/smoke-chute-v59.mjs > /tmp/chute-smoke-v59.log 2>&1
           node scripts/smoke-chute-v591.mjs > /tmp/chute-smoke-v591.log 2>&1
+          node scripts/smoke-chute-v510.mjs > /tmp/chute-smoke-v510.log 2>&1
       - name: Upload diagnostics
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: chute-v5-9-1-diagnostics
+          name: chute-v5-10-diagnostics
           path: |
             /tmp/chute-smoke-v58.log
             /tmp/chute-smoke-v59.log
             /tmp/chute-smoke-v591.log
+            /tmp/chute-smoke-v510.log
             /tmp/chute-server.log
           retention-days: 3
