@@ -42,6 +42,9 @@ function ensurePanel() {
     page.querySelector('.page-title')?.insertAdjacentElement('afterend', panel);
   }
   const active = core.canEdit();
+  const signature = active ? 'admin' : 'locked';
+  if (panel.dataset.cmV591Signature === signature) return;
+  panel.dataset.cmV591Signature = signature;
   panel.innerHTML = `<div><p class="eyebrow">CENTRO DE PARTIDO</p><h2>Modo partido</h2><p>${active ? 'Sesión administradora activa. Abre cualquier encuentro para registrar marcador y eventos.' : 'El acceso está visible en cada encuentro. Inicia sesión para registrar el partido.'}</p><span class="cm-v591-live-status">${active ? 'Listo para registrar' : 'Requiere acceso administrador'}</span></div>${active ? '' : '<button type="button" data-cm-v591-login>Ingresar como administrador</button>'}`;
 }
 
@@ -62,11 +65,15 @@ function ensureMatchButtons() {
       button.className = 'mini-button cm-v591-live-access';
       target.appendChild(button);
     }
-    button.dataset.cmV591Live = pair;
-    button.disabled = !(home && away);
-    button.classList.toggle('is-locked', !core.canEdit());
-    button.textContent = home && away ? (core.canEdit() ? 'Modo partido' : 'Modo partido 🔒') : 'Partido por definir';
-    button.title = home && away ? (core.canEdit() ? 'Abrir centro de partido' : 'Inicia sesión para registrar el partido') : 'Este encuentro depende de resultados anteriores';
+    const active = core.canEdit();
+    const disabled = !(home && away);
+    const text = home && away ? (active ? 'Modo partido' : 'Modo partido 🔒') : 'Partido por definir';
+    const title = home && away ? (active ? 'Abrir centro de partido' : 'Inicia sesión para registrar el partido') : 'Este encuentro depende de resultados anteriores';
+    if (button.dataset.cmV591Live !== pair) button.dataset.cmV591Live = pair;
+    if (button.disabled !== disabled) button.disabled = disabled;
+    button.classList.toggle('is-locked', !active);
+    if (button.textContent !== text) button.textContent = text;
+    if (button.title !== title) button.title = title;
   });
 }
 
