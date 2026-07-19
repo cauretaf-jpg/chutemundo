@@ -4,3 +4,4 @@ await import('/chute-detail.mjs?v=5.8.1');
 await import('/chute-v582-analysis-theme.mjs?v=5.8.2');
 await import('/chute-v583-tournament-admin.mjs?v=5.8.3');
 await window.ChuteSplitLoader({ prefix: 'chute-v59-part', count: 8, version: '5.9.0', label: 'el centro v5.9' });
+await import('/chute-v591-live-access.mjs?v=5.9.1');
