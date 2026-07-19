@@ -1,0 +1,95 @@
+  if ((next.tournaments || []).some((item) => item.id === tournament.id)) throw new Error('Ya existe un torneo con el mismo identificador.');
+  if ((next.tournaments || []).some((item) => item.name.toLocaleLowerCase('es') === tournament.name.toLocaleLowerCase('es'))) throw new Error('Ya existe un torneo con el mismo nombre.');
+  trash.splice(index, 1);
+  const targetIndex = Math.min(Math.max(0, Number(entry.originalIndex || 0)), next.tournaments.length);
+  next.tournaments.splice(targetIndex, 0, tournament);
+  addActivity(next, `Se restauró el torneo ${tournament.name} desde la papelera.`, 'tournament_restore', { actor: metadata.actor, device: metadata.device, tournamentId: tournament.id });
+  return next;
+}
+
+function permanentlyDeleteState(sourceState, trashId, metadata = {}) {
+  const next = clone(sourceState);
+  const trash = ensureTrash(next);
+  const index = trash.findIndex((item) => item.id === trashId);
+  if (index < 0) throw new Error('El elemento ya no está en la papelera.');
+  const entry = trash[index];
+  if (Date.now() < Number(entry.expiresAt || 0) && metadata.force !== true) throw new Error('La eliminación definitiva queda disponible al finalizar los 30 días de recuperación.');
+  trash.splice(index, 1);
+  addActivity(next, `Se eliminó definitivamente el torneo ${entry.tournament?.name || 'sin nombre'}.`, 'tournament_delete_permanent', { actor: metadata.actor, device: metadata.device, tournamentId: entry.tournament?.id || '' });
+  return next;
+}
+
+function inferChange(before, after) {
+  const beforeTournaments = before.tournaments || [];
+  const afterTournaments = after.tournaments || [];
+  if (afterTournaments.length < beforeTournaments.length) return 'Retiro de torneo';
+  if (afterTournaments.length > beforeTournaments.length) return 'Creación o restauración de torneo';
+  const beforeTrash = before.trash?.tournaments?.length || 0;
+  const afterTrash = after.trash?.tournaments?.length || 0;
+  if (afterTrash !== beforeTrash) return afterTrash > beforeTrash ? 'Envío a papelera' : 'Cambio en papelera';
+  const beforeMatches = beforeTournaments.flatMap((tournament) => (tournament.matches || []).map((match) => [tournament.id, match.id, match.homeGoals, match.awayGoals, match.goals?.length || 0, match.cards?.length || 0]));
+  const afterMatches = afterTournaments.flatMap((tournament) => (tournament.matches || []).map((match) => [tournament.id, match.id, match.homeGoals, match.awayGoals, match.goals?.length || 0, match.cards?.length || 0]));
+  if (JSON.stringify(beforeMatches) !== JSON.stringify(afterMatches)) return 'Actualización de partido';
+  return 'Cambio administrativo';
+}
+
+function saveUndoSnapshot(before, after) {
+  try {
+    const beforeSig = JSON.stringify(before);
+    const afterSig = JSON.stringify(after);
+    if (beforeSig === afterSig) return;
+    if (lastTransition && lastTransition.afterSig === beforeSig && lastTransition.beforeSig === afterSig && Date.now() - lastTransition.at < 20000) {
+      lastTransition = null;
+      return;
+    }
+    localStorage.setItem(UNDO_KEY, JSON.stringify({ state: before, description: inferChange(before, after), at: Date.now() }));
+    lastTransition = { beforeSig, afterSig, at: Date.now() };
+  } catch (error) {
+    console.warn('No se pudo guardar el punto de deshacer.', error);
+  }
+}
+
+core.setState = (nextState) => {
+  if (!restoring) saveUndoSnapshot(clone(core.getState()), clone(nextState));
+  return originalSetState(nextState);
+};
+
+function undoSnapshot() {
+  try {
+    const parsed = JSON.parse(localStorage.getItem(UNDO_KEY) || 'null');
+    return parsed?.state ? parsed : null;
+  } catch {
+    return null;
+  }
+}
+
+async function commit(previous, next, successText) {
+  if (saving) return false;
+  saving = true;
+  core.setState(next);
+  try {
+    await core.saveCloud();
+    core.showToast(successText);
+    scheduleRender();
+    return true;
+  } catch (error) {
+    console.error(error);
+    restoring = true;
+    originalSetState(previous);
+    restoring = false;
+    core.showToast(`Firebase rechazó el cambio: ${error.code || error.message || 'error desconocido'}.`);
+    return false;
+  } finally {
+    saving = false;
+  }
+}
+
+function relativeDays(entry) {
+  const remaining = Math.ceil((Number(entry.expiresAt || 0) - Date.now()) / 86400000);
+  return Math.max(0, remaining);
+}
+
+function dateTime(value) {
+  if (!value) return 'Sin fecha';
+  return new Intl.DateTimeFormat('es-CL', { dateStyle: 'short', timeStyle: 'short' }).format(new Date(value));
+}
