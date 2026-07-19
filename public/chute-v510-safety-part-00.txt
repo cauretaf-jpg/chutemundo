@@ -1,0 +1,94 @@
+function waitForCore() {
+  if (window.ChuteMundoCore) return Promise.resolve(window.ChuteMundoCore);
+  return new Promise((resolve) => document.addEventListener('chute:ready', (event) => resolve(event.detail), { once: true }));
+}
+
+const core = await waitForCore();
+const model = window.ChuteDetailModel;
+if (!model) throw new Error('El modelo detallado no está disponible para el centro de seguridad.');
+
+const { esc } = model;
+const VERSION = '5.10.0';
+const RETENTION_DAYS = 30;
+const UNDO_KEY = 'chute_mundo_v510_last_undo';
+const originalSetState = core.setState.bind(core);
+let restoring = false;
+let saving = false;
+let refreshQueued = false;
+let lastSignature = '';
+let lastTransition = null;
+
+const clone = (value) => typeof structuredClone === 'function' ? structuredClone(value) : JSON.parse(JSON.stringify(value));
+const isProtected = (tournament) => Boolean(tournament?.protected === true || /^t\d+$/i.test(String(tournament?.id || '')));
+const actor = () => core.authUser?.email || 'Administrador';
+const device = () => /Android|iPhone|iPad|Mobile/i.test(navigator.userAgent) ? 'Móvil' : 'Escritorio';
+
+function installStyles() {
+  if (document.getElementById('cmV510Styles')) return;
+  const link = document.createElement('link');
+  link.id = 'cmV510Styles';
+  link.rel = 'stylesheet';
+  link.href = `/chute-v510.css?v=${VERSION}`;
+  document.head.appendChild(link);
+}
+
+function ensureTrash(targetState) {
+  targetState.trash = targetState.trash && typeof targetState.trash === 'object' ? targetState.trash : {};
+  targetState.trash.tournaments = Array.isArray(targetState.trash.tournaments) ? targetState.trash.tournaments : [];
+  return targetState.trash.tournaments;
+}
+
+function addActivity(targetState, text, type = 'administration', metadata = {}) {
+  targetState.activity = Array.isArray(targetState.activity) ? targetState.activity : [];
+  targetState.activity.unshift({
+    id: core.uid('activity'),
+    text,
+    type,
+    actor: metadata.actor || actor(),
+    device: metadata.device || device(),
+    at: metadata.at || Date.now(),
+    ...metadata
+  });
+  targetState.activity = targetState.activity.slice(0, 100);
+}
+
+function deletionGuard(sourceState, tournament) {
+  if (!tournament) return { allowed: false, reason: 'El torneo ya no existe.' };
+  if (isProtected(tournament)) return { allowed: false, reason: 'Los torneos del historial oficial están protegidos.' };
+  if (tournament.type === 'division_season') {
+    const number = Number(tournament.config?.seasonNumber || 0);
+    const later = (sourceState.tournaments || []).find((item) => item.type === 'division_season' && Number(item.config?.seasonNumber || 0) > number);
+    if (later) return { allowed: false, reason: `No se puede retirar porque “${later.name}” es una temporada posterior.` };
+  }
+  return { allowed: true, reason: '' };
+}
+
+function moveTournamentToTrashState(sourceState, tournamentId, metadata = {}) {
+  const next = clone(sourceState);
+  const index = (next.tournaments || []).findIndex((item) => item.id === tournamentId);
+  const tournament = index >= 0 ? next.tournaments[index] : null;
+  const guard = deletionGuard(next, tournament);
+  if (!guard.allowed) throw new Error(guard.reason);
+  const now = Number(metadata.now || Date.now());
+  next.tournaments.splice(index, 1);
+  const trash = ensureTrash(next);
+  trash.unshift({
+    id: core.uid('trash'),
+    tournament,
+    originalIndex: index,
+    deletedAt: now,
+    expiresAt: now + RETENTION_DAYS * 24 * 60 * 60 * 1000,
+    deletedBy: metadata.actor || actor(),
+    device: metadata.device || device()
+  });
+  addActivity(next, `Se envió el torneo ${tournament.name} a la papelera.`, 'tournament_trash', { actor: metadata.actor, device: metadata.device, tournamentId, at: now });
+  return next;
+}
+
+function restoreTournamentState(sourceState, trashId, metadata = {}) {
+  const next = clone(sourceState);
+  const trash = ensureTrash(next);
+  const index = trash.findIndex((item) => item.id === trashId);
+  if (index < 0) throw new Error('El torneo ya no está en la papelera.');
+  const entry = trash[index];
+  const tournament = entry.tournament;
