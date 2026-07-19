@@ -1,0 +1,90 @@
+function activityMarkup() {
+  const items = (core.getState().activity || []).slice(0, 30);
+  if (!items.length) return '<p class="cm-v510-muted">No hay actividad registrada.</p>';
+  return `<div class="cm-v510-activity-list">${items.map((item) => `<article><span class="cm-v510-activity-dot"></span><div><strong>${esc(item.text || 'Cambio registrado')}</strong><small>${esc(item.actor || 'Sistema')} · ${esc(item.device || 'Dispositivo no registrado')} · ${esc(dateTime(item.at))}</small></div></article>`).join('')}</div>`;
+}
+
+function trashMarkup() {
+  const entries = core.getState().trash?.tournaments || [];
+  if (!entries.length) return '<div class="cm-v510-empty"><strong>Papelera vacía</strong><span>Los torneos retirados permanecerán aquí durante 30 días.</span></div>';
+  return `<div class="cm-v510-trash-list">${entries.map((entry) => {
+    const days = relativeDays(entry);
+    const tournament = entry.tournament || {};
+    return `<article data-trash-id="${esc(entry.id)}"><div><strong>${esc(tournament.name || 'Torneo sin nombre')}</strong><small>Eliminado por ${esc(entry.deletedBy || 'Administrador')} · ${esc(dateTime(entry.deletedAt))}</small><span>${days ? `${days} día${days === 1 ? '' : 's'} para eliminación definitiva` : 'Periodo de recuperación finalizado'}</span></div><div class="cm-v510-trash-actions"><button type="button" data-cm-v510-restore="${esc(entry.id)}" ${core.canEdit() ? '' : 'disabled'}>Restaurar</button><button type="button" class="danger" data-cm-v510-permanent="${esc(entry.id)}" ${core.canEdit() && days === 0 ? '' : 'disabled'}>Eliminar definitivamente</button></div></article>`;
+  }).join('')}</div>`;
+}
+
+function safetyMarkup() {
+  const undo = undoSnapshot();
+  return `<section id="cmV510SafetyCenter" class="cm-v510-safety">
+    <header><div><p class="eyebrow">SEGURIDAD Y TRAZABILIDAD</p><h2>Centro administrativo</h2><p>Recupera torneos retirados y revisa las modificaciones realizadas en la base compartida.</p></div><button type="button" data-cm-v510-undo ${core.canEdit() && undo ? '' : 'disabled'}>${undo ? `Deshacer: ${esc(undo.description)}` : 'Sin cambios para deshacer'}</button></header>
+    <div class="cm-v510-safety-grid"><article><div class="cm-v510-section-head"><div><span class="cm-v510-card-label">PAPELERA</span><h3>Torneos recuperables</h3></div><b>${core.getState().trash?.tournaments?.length || 0}</b></div>${trashMarkup()}</article><article><div class="cm-v510-section-head"><div><span class="cm-v510-card-label">ACTIVIDAD</span><h3>Historial administrativo</h3></div><b>${(core.getState().activity || []).length}</b></div>${activityMarkup()}</article></div>
+  </section>`;
+}
+
+function render() {
+  refreshQueued = false;
+  const page = document.getElementById('administracion');
+  if (!page) return;
+  const signature = JSON.stringify({
+    admin: core.canEdit(),
+    trash: (core.getState().trash?.tournaments || []).map((entry) => [entry.id, entry.deletedAt, entry.expiresAt, entry.tournament?.name]),
+    activity: (core.getState().activity || []).slice(0, 30).map((item) => [item.id, item.text, item.at, item.actor]),
+    undo: undoSnapshot()?.at || 0
+  });
+  let root = document.getElementById('cmV510SafetyCenter');
+  if (root && signature === lastSignature) return;
+  lastSignature = signature;
+  const markup = safetyMarkup();
+  if (root) root.outerHTML = markup;
+  else page.querySelector('.page-title')?.insertAdjacentHTML('afterend', markup);
+}
+
+function scheduleRender() {
+  if (refreshQueued) return;
+  refreshQueued = true;
+  requestAnimationFrame(render);
+}
+
+function decorateDeleteButtons() {
+  document.querySelectorAll('[data-cm-delete-tournament]').forEach((button) => {
+    if (button.textContent !== 'Mover a papelera') button.textContent = 'Mover a papelera';
+    if (button.title !== 'El torneo podrá recuperarse durante 30 días') button.title = 'El torneo podrá recuperarse durante 30 días';
+  });
+}
+
+function openTrash(tournamentId) {
+  if (!core.canEdit()) return document.getElementById('authButton')?.click();
+  const tournament = core.tournamentById(tournamentId);
+  const guard = deletionGuard(core.getState(), tournament);
+  if (!guard.allowed) return core.showToast(guard.reason);
+  const matches = (tournament.matches || []).filter((match) => match.stage !== 'bye');
+  const completed = matches.filter((match) => core.matchPlayed(match));
+  core.openModal(`<div class="cm-v510-confirm danger" data-cm-v510-trash-tournament="${esc(tournamentId)}"><p class="eyebrow">PAPELERA DE TORNEOS</p><h2>${esc(tournament.name)}</h2><p>Se retirará de tablas, estadísticas y calendarios, pero podrá recuperarse durante 30 días con sus ${completed.length} partidos registrados.</p><label>Escribe el nombre exacto para confirmar<input id="cmV510TrashConfirmation" autocomplete="off" placeholder="${esc(tournament.name)}"></label><div><button type="button" class="secondary" data-close-modal>Cancelar</button><button type="button" class="danger-button" data-cm-v510-confirm-trash="${esc(tournamentId)}">Mover a papelera</button></div></div>`);
+}
+
+async function moveToTrash(tournamentId) {
+  const tournament = core.tournamentById(tournamentId);
+  if (!tournament || !core.canEdit()) return core.showToast('No se puede retirar este torneo ahora.');
+  if ((document.getElementById('cmV510TrashConfirmation')?.value.trim() || '') !== tournament.name) return core.showToast('El nombre escrito no coincide exactamente.');
+  const previous = clone(core.getState());
+  try {
+    const next = moveTournamentToTrashState(previous, tournamentId);
+    core.closeModal();
+    const saved = await commit(previous, next, `Torneo “${tournament.name}” enviado a la papelera.`);
+    if (saved) core.navigate('torneos');
+  } catch (error) { core.showToast(error.message); }
+}
+
+function openRestore(trashId) {
+  const entry = core.getState().trash?.tournaments?.find((item) => item.id === trashId);
+  if (!entry) return core.showToast('El torneo ya no está en la papelera.');
+  core.openModal(`<div class="cm-v510-confirm"><p class="eyebrow">RESTAURAR</p><h2>${esc(entry.tournament?.name || 'Torneo')}</h2><p>Volverá a torneos con todos sus partidos, resultados y estadísticas.</p><div><button type="button" class="secondary" data-close-modal>Cancelar</button><button type="button" class="primary" data-cm-v510-confirm-restore="${esc(trashId)}">Restaurar torneo</button></div></div>`);
+}
+
+function openPermanent(trashId) {
+  const entry = core.getState().trash?.tournaments?.find((item) => item.id === trashId);
+  if (!entry) return core.showToast('El elemento ya no está en la papelera.');
+  if (relativeDays(entry) > 0) return core.showToast('El periodo de recuperación todavía está activo.');
+  core.openModal(`<div class="cm-v510-confirm danger"><p class="eyebrow">ELIMINACIÓN DEFINITIVA</p><h2>${esc(entry.tournament?.name || 'Torneo')}</h2><p>Esta operación no se puede revertir. Escribe <b>ELIMINAR</b> para confirmar.</p><label>Confirmación<input id="cmV510PermanentText" autocomplete="off"></label><div><button type="button" class="secondary" data-close-modal>Cancelar</button><button type="button" class="danger-button" data-cm-v510-confirm-permanent="${esc(trashId)}">Eliminar definitivamente</button></div></div>`);
+}

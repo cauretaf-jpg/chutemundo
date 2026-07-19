@@ -2,6 +2,8 @@ await import('/chute-official-loader.mjs?v=5.9.0');
 await import('/password-reset.mjs?v=3.0.3');
 await import('/chute-detail.mjs?v=5.8.1');
 await import('/chute-v582-analysis-theme.mjs?v=5.8.2');
+await import('/chute-v510-safety.mjs?v=5.10.0');
 await import('/chute-v583-tournament-admin.mjs?v=5.8.3');
 await window.ChuteSplitLoader({ prefix: 'chute-v59-part', count: 8, version: '5.9.0', label: 'el centro v5.9' });
 await import('/chute-v591-live-access.mjs?v=5.9.1');
+await import('/chute-v510-dashboard.mjs?v=5.10.0');
