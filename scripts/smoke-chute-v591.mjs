@@ -9,8 +9,8 @@ page.on('console', (message) => { if (message.type() === 'error') errors.push(me
 try {
   await page.goto('http://127.0.0.1:4173/', { waitUntil: 'domcontentloaded' });
   await page.waitForFunction(() => window.ChuteMundoCore && window.ChuteV59);
-  await page.click('.nav [data-page="partidos"]');
-  await page.waitForFunction(() => document.getElementById('cmV591LivePanel') && document.querySelector('#matchesList .cm-v591-live-access'));
+  await page.evaluate(() => window.ChuteMundoCore.navigate('partidos'));
+  await page.waitForFunction(() => !document.getElementById('partidos').hidden && document.getElementById('cmV591LivePanel') && document.querySelector('#matchesList .cm-v591-live-access'));
   const result = await page.evaluate(() => {
     const button = document.querySelector('#matchesList .cm-v591-live-access');
     return {
