@@ -29,7 +29,8 @@ jobs:
           test -s public/chute-v510.css
           test -s scripts/smoke-chute-v510.mjs
           grep -q "Evolución del Ranking FIFA Chute" public/chute-v58-analysis.mjs
-          grep -q "CENTRO DE PARTIDO" public/chute-v59-part-04.txt
+          cat public/chute-v59-part-{00,01,02,03,04,05,06,07}.txt > /tmp/chute-v59-source.mjs
+          grep -q "CENTRO DE PARTIDO" /tmp/chute-v59-source.mjs
           grep -q "cm-v591-live-access" public/chute-v591-live-access.mjs
           grep -q "CENTRO DE JORNADA" public/chute-v510-dashboard.mjs
           grep -q "PAPELERA DE TORNEOS" public/chute-v510-safety.mjs
