@@ -26,6 +26,10 @@ jobs:
           test -s public/chute-v591-live-access.mjs
           test -s public/chute-v510-dashboard.mjs
           test -s public/chute-v510-safety.mjs
+          test -s public/chute-v510-safety-part-00.txt
+          test -s public/chute-v510-safety-part-01.txt
+          test -s public/chute-v510-safety-part-02.txt
+          test -s public/chute-v510-safety-part-03.txt
           test -s public/chute-v510.css
           test -s scripts/smoke-chute-v510.mjs
           grep -q "Evolución del Ranking FIFA Chute" public/chute-v58-analysis.mjs
@@ -33,8 +37,10 @@ jobs:
           grep -q "CENTRO DE PARTIDO" /tmp/chute-v59-source.mjs
           grep -q "cm-v591-live-access" public/chute-v591-live-access.mjs
           grep -q "CENTRO DE JORNADA" public/chute-v510-dashboard.mjs
-          grep -q "PAPELERA DE TORNEOS" public/chute-v510-safety.mjs
-          grep -q "moveTournamentToTrashState" public/chute-v510-safety.mjs
+          cat public/chute-v510-safety-part-{00,01,02,03}.txt > /tmp/chute-v510-safety-source.mjs
+          grep -q "PAPELERA DE TORNEOS" /tmp/chute-v510-safety-source.mjs
+          grep -q "moveTournamentToTrashState" /tmp/chute-v510-safety-source.mjs
+          grep -q "chute-v510-safety-part" public/chute-v510-safety.mjs
           grep -q "chute-v510-safety.mjs" public/chute-official.mjs
           grep -q "chute-v510-dashboard.mjs" public/chute-official.mjs
           test ! -e public/chute-v56-card-metadata.mjs
