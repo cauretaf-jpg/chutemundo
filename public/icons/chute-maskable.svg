@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">
+  <rect width="512" height="512" fill="#075f49"/>
+  <circle cx="256" cy="236" r="132" fill="#f8fcfa"/>
+  <path d="M256 124l46 34-17 56h-58l-17-56 46-34zm-99 86l54-40 37 44-29 55h-56l-6-59zm198 0l-54-40-37 44 29 55h56l6-59zM195 322l19-55h84l19 55-61 43-61-43z" fill="#0b7655"/>
+  <text x="256" y="432" text-anchor="middle" font-family="Arial,sans-serif" font-size="54" font-weight="900" fill="#fff">CM</text>
+</svg>
