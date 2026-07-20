@@ -1,0 +1,25 @@
+{
+  "name": "Chute Mundo",
+  "short_name": "Chute Mundo",
+  "description": "Torneos, partidos, planteles, estadísticas y archivo histórico de Chute Mundo.",
+  "id": "/",
+  "start_url": "/?source=pwa",
+  "scope": "/",
+  "display": "standalone",
+  "display_override": ["window-controls-overlay", "standalone", "minimal-ui"],
+  "orientation": "portrait-primary",
+  "background_color": "#f4f8f6",
+  "theme_color": "#075f49",
+  "lang": "es-CL",
+  "categories": ["sports", "productivity", "entertainment"],
+  "icons": [
+    { "src": "/icons/chute-192.svg", "sizes": "192x192", "type": "image/svg+xml", "purpose": "any" },
+    { "src": "/icons/chute-512.svg", "sizes": "512x512", "type": "image/svg+xml", "purpose": "any" },
+    { "src": "/icons/chute-maskable.svg", "sizes": "512x512", "type": "image/svg+xml", "purpose": "maskable" }
+  ],
+  "shortcuts": [
+    { "name": "Partidos", "short_name": "Partidos", "url": "/?page=partidos", "icons": [{ "src": "/icons/chute-192.svg", "sizes": "192x192", "type": "image/svg+xml" }] },
+    { "name": "Torneos", "short_name": "Torneos", "url": "/?page=torneos", "icons": [{ "src": "/icons/chute-192.svg", "sizes": "192x192", "type": "image/svg+xml" }] },
+    { "name": "Estadísticas", "short_name": "Estadísticas", "url": "/?page=estadisticas", "icons": [{ "src": "/icons/chute-192.svg", "sizes": "192x192", "type": "image/svg+xml" }] }
+  ]
+}
