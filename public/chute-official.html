@@ -4,9 +4,9 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <meta name="theme-color" content="#05271d">
-  <meta name="description" content="Plataforma deportiva de Chute Mundo con alineaciones legibles y cambios integrados en la cronología oficial del partido.">
-  <title>Chute Mundo v5.15 · Partido uniforme</title>
-  <link rel="stylesheet" href="/chute-official.css?v=5.15.0">
+  <meta name="description" content="Plataforma deportiva de Chute Mundo con minutos por evento, sedes administrables, estadísticas de participación y tandas de penales de Play-Off.">
+  <title>Chute Mundo v5.16 · Eventos y estadísticas</title>
+  <link rel="stylesheet" href="/chute-official.css?v=5.16.0">
 </head>
 <body>
   <header class="topbar">
@@ -33,7 +33,7 @@
     <section id="inicio" class="page">
       <div class="hero">
         <div>
-          <p class="eyebrow">CHUTE MUNDO v5.15</p>
+          <p class="eyebrow">CHUTE MUNDO v5.16</p>
           <h1>Todos los torneos y estadísticas en una sola base.</h1>
           <p>El historial oficial se recupera desde la base original y se sincroniza con Firebase para verlo desde cualquier dispositivo.</p>
         </div>
@@ -99,7 +99,7 @@
     </section>
 
     <section id="partidos" class="page" hidden>
-      <div class="page-title"><p class="eyebrow">CALENDARIO</p><h1>Partidos</h1><p>Abre cada encuentro desde un único lugar para ver o registrar marcador, goles, asistencias, tarjetas, alineaciones y cambios.</p></div>
+      <div class="page-title"><p class="eyebrow">CALENDARIO</p><h1>Partidos</h1><p>Registra goles, asistencias, amonestaciones y cambios con su minuto, además de tandas de penales y sedes.</p></div>
       <article class="panel">
         <div class="form-grid filters"><label>Torneo<select id="matchTournamentFilter"></select></label><label>Estado<select id="matchStatusFilter"><option value="all">Todos</option><option value="played">Jugados</option><option value="pending">Pendientes</option></select></label></div>
         <div id="matchesList" class="match-list"></div>
@@ -123,7 +123,7 @@
     </section>
 
     <section id="estadisticas" class="page" hidden>
-      <div class="page-title"><p class="eyebrow">RENDIMIENTO</p><h1>Estadísticas completas</h1><p>Indicadores construidos desde los resultados y eventos oficiales de cada partido.</p></div>
+      <div class="page-title"><p class="eyebrow">RENDIMIENTO</p><h1>Estadísticas completas</h1><p>Indicadores construidos desde resultados, alineaciones, cambios y eventos oficiales.</p></div>
       <article class="panel filter-panel"><label>Periodo<select id="eraFilter"><option value="all">Toda la historia</option><option value="classic">Era clásica</option><option value="division">Era divisiones</option></select></label></article>
       <div id="statsOverview" class="metrics stats-metrics"></div>
 
@@ -165,6 +165,6 @@
 
   <div id="modal" class="modal" hidden><div class="modal-card"><button class="close-button" data-close-modal aria-label="Cerrar">×</button><div id="modalContent"></div></div></div>
   <div id="toast" class="toast" hidden></div>
-  <script type="module" src="/chute-official.mjs?v=5.15.0"></script>
+  <script type="module" src="/chute-official.mjs?v=5.16.0"></script>
 </body>
 </html>
