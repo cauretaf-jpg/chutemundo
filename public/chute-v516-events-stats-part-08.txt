@@ -11,6 +11,12 @@ function decorateMatchCenter() {
   decorateForms(live, context);
   decorateShootout(live, context);
   renderTimeline(live, context);
+  const undo = live.querySelector('[data-cm-v59-undo], [data-cm-v516-undo]');
+  if (undo) {
+    undo.removeAttribute('data-cm-v59-undo');
+    undo.dataset.cmV516Undo = '';
+    undo.title = 'Corregir el último gol, amonestación, cambio o penal de tanda';
+  }
   decoratePlayerProfile();
   decorateStatsPage();
 }
