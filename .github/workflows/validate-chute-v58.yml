@@ -15,6 +15,7 @@ jobs:
           node-version: 22
       - name: Validate syntax and audit
         run: |
+          set -o pipefail
           npm run check:official
           node --check public/chute-v511-assets.mjs
           node --check public/chute-v511-core.mjs
@@ -35,7 +36,7 @@ jobs:
           node --check scripts/smoke-chute-v514.mjs
           node --check scripts/smoke-chute-v515.mjs
           node --check scripts/smoke-chute-v516.mjs
-          node scripts/check-chute-v516.mjs
+          node scripts/check-chute-v516.mjs 2>&1 | tee /tmp/chute-v516-syntax.log
           node scripts/audit-chute-v58.mjs
       - name: Validate required files
         run: |
@@ -98,6 +99,7 @@ jobs:
         with:
           name: chute-v5-16-0-diagnostics
           path: |
+            /tmp/chute-v516-syntax.log
             /tmp/chute-smoke-v58.log
             /tmp/chute-smoke-v59.log
             /tmp/chute-smoke-v591.log
