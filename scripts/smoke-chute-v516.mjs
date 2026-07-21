@@ -111,8 +111,11 @@ try {
   const profile = await page.evaluate(() => ({ text: document.querySelector('.cm-v59-profile-modal')?.textContent || '', metrics: document.querySelectorAll('.cm-v59-profile-metrics article').length }));
   if (profile.text.includes('Titularidades') || !profile.text.includes('Partidos jugados') || profile.metrics < 7) throw new Error(`Perfil estadístico inválido: ${JSON.stringify(profile)}`);
 
+  await page.locator('[data-close-modal]').click();
+  await page.waitForFunction(() => document.getElementById('modal')?.hidden === true);
   await page.evaluate(() => window.ChuteMundoCore.navigate('estadisticas'));
-  await page.waitForSelector('#cmV516Stats');
+  await page.waitForFunction(() => document.getElementById('estadisticas')?.hidden === false);
+  await page.waitForSelector('#cmV516Stats', { state: 'visible' });
   const statsPage = await page.evaluate(() => ({ text: document.getElementById('cmV516Stats')?.textContent || '', width: document.documentElement.scrollWidth, viewport: document.documentElement.clientWidth }));
   if (!statsPage.text.includes('Minutos y cambios') || !statsPage.text.includes('Rendimiento registrado') || !statsPage.text.includes('Penales de tanda') || statsPage.width > statsPage.viewport + 3) throw new Error(`Panel estadístico inválido: ${JSON.stringify(statsPage)}`);
 
