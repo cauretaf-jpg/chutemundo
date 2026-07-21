@@ -19,6 +19,7 @@ jobs:
           node --check public/chute-v511-assets.mjs
           node --check public/chute-v511-core.mjs
           node --check public/chute-v511-tournaments.mjs
+          node --check public/chute-v511-match-share.mjs
           node --check public/chute-v512-integrity.mjs
           node --check public/sw.js
           node --check scripts/smoke-chute-v512.mjs
@@ -32,12 +33,15 @@ jobs:
           test -s public/chute-v511.css
           test -s public/chute-v511-core.mjs
           test -s public/chute-v511-tournaments.mjs
+          test -s public/chute-v511-match-share.mjs
           test -s public/chute-v512-integrity.mjs
           test -s scripts/smoke-chute-v512.mjs
           grep -q "chute-v511-core.mjs" public/chute-official.mjs
+          grep -q "chute-v511-match-share.mjs" public/chute-official.mjs
           grep -q "chute-v512-integrity.mjs" public/chute-official.mjs
           grep -q "Generar fixture aleatorio" public/chute-v511-tournaments.mjs
           grep -q "PROGRAMACIÓN OFICIAL" public/chute-v511-tournaments.mjs
+          grep -q "Compartir resultado" public/chute-v511-match-share.mjs
           grep -q "Control de calidad" public/chute-v512-integrity.mjs
           grep -q "Premios" public/chute-v512-integrity.mjs
           grep -q '"display":"standalone"' public/manifest.webmanifest
