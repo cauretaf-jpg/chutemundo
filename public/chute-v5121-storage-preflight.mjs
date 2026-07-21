@@ -1,0 +1,3 @@
+const KEY='chute_mundo_backups_v512',MAX_SAVED=3;
+function compactBackups(limit=MAX_SAVED){try{const parsed=JSON.parse(localStorage.getItem(KEY)||'[]'),list=Array.isArray(parsed)?parsed:[];while(list.length>limit)list.pop();localStorage.setItem(KEY,JSON.stringify(list));return true;}catch(error){try{localStorage.removeItem(KEY);return true;}catch{console.warn('No se pudo liberar espacio para los respaldos.',error);return false;}}}
+compactBackups();window.ChuteV5121StoragePreflight={version:'5.12.1',key:KEY,compactBackups};
