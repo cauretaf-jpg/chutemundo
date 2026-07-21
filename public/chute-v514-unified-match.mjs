@@ -146,12 +146,14 @@ async function registerSubstitution(pair, side) {
 function makeDetailedReadOnly() {
   if (core.canEdit()) return;
   const editor = document.querySelector('.cm-match-editor');
-  if (!editor || editor.classList.contains('cm-v514-readonly')) return;
+  if (!editor) return;
   editor.classList.add('cm-v514-readonly');
   editor.querySelectorAll('input, select, textarea, button[type="submit"]').forEach((element) => { element.disabled = true; });
   editor.querySelectorAll('.cm-event-entry, .cm-icon-button, button[type="submit"]').forEach((element) => { element.hidden = true; });
-  const heading = editor.querySelector('.cm-match-editor-title');
-  heading?.insertAdjacentHTML('afterend', '<div class="cm-v514-readonly-notice"><strong>Vista del partido</strong><span>Modo lectura. Inicia sesión como administrador para registrar marcador, goles, asistencias, tarjetas y cambios.</span><button type="button" data-cm-v514-login>Ingresar</button></div>');
+  if (!editor.querySelector('.cm-v514-readonly-notice')) {
+    const heading = editor.querySelector('.cm-match-editor-title');
+    heading?.insertAdjacentHTML('afterend', '<div class="cm-v514-readonly-notice"><strong>Vista del partido</strong><span>Modo lectura. Inicia sesión como administrador para registrar marcador, goles, asistencias, tarjetas y cambios.</span><button type="button" data-cm-v514-login>Ingresar</button></div>');
+  }
 }
 
 function openUnifiedMatch(tournamentId, matchId) {
