@@ -10,3 +10,4 @@ await import('/chute-v591-live-access.mjs?v=5.9.1');
 await import('/chute-v510-dashboard.mjs?v=5.10.0');
 await import('/chute-v511-core.mjs?v=5.11.0');
 await import('/chute-v511-tournaments.mjs?v=5.11.0');
+await import('/chute-v512-integrity.mjs?v=5.12.0');
