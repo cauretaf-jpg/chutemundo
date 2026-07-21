@@ -1,7 +1,7 @@
 const core = window.ChuteMundoCore;
 if (!core) throw new Error('Chute Mundo no está listo para corregir los Play-Off.');
 
-const VERSION = '5.16.2';
+const VERSION = '5.16.3';
 const clone = (value) => typeof structuredClone === 'function' ? structuredClone(value) : JSON.parse(JSON.stringify(value));
 const normalize = (value = '') => String(value).normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
 
@@ -52,50 +52,78 @@ function repairState(source) {
   return { state: next, changed };
 }
 
+let uiRefreshToken = 0;
+function restoreEnhancedTournamentUi() {
+  const token = ++uiRefreshToken;
+  const refresh = () => {
+    if (token !== uiRefreshToken) return;
+    window.ChuteTournamentHub?.refresh?.();
+    window.ChuteV511Tournaments?.refresh?.();
+    window.ChuteMobileV581?.refresh?.();
+    window.ChuteV514UnifiedMatch?.decorateEntryButtons?.();
+  };
+  window.requestAnimationFrame(() => {
+    refresh();
+    window.requestAnimationFrame(refresh);
+  });
+  window.setTimeout(refresh, 120);
+  window.setTimeout(refresh, 400);
+}
+
 const originalSetState = core.setState.bind(core);
-core.setState = (nextState) => originalSetState(repairState(nextState).state);
+core.setState = (nextState) => {
+  const repaired = repairState(nextState);
+  originalSetState(repaired.state);
+  restoreEnhancedTournamentUi();
+  return repaired.state;
+};
 
 let applying = false;
-let scheduled = false;
 let lastSavedSignature = '';
 
 async function applyRepair() {
-  scheduled = false;
   if (applying) return false;
   const repaired = repairState(core.getState());
-  if (!repaired.changed) return false;
+  if (!repaired.changed) {
+    restoreEnhancedTournamentUi();
+    return false;
+  }
   applying = true;
   try {
     originalSetState(repaired.state);
+    restoreEnhancedTournamentUi();
     const signature = JSON.stringify((repaired.state.tournaments || []).filter((tournament) => tournament.type === 'league_playoff').map((tournament) => [tournament.id, (tournament.matches || []).filter((match) => playoffTemplate(match)).map((match) => [match.id, match.homeRef, match.awayRef, match.home, match.away])]));
     if (core.isAdmin() && core.canEdit() && core.cloudLoaded && signature !== lastSavedSignature) {
-      lastSavedSignature = signature;
       await core.saveCloud();
+      lastSavedSignature = signature;
     }
     return true;
   } catch (error) {
     console.error('No se pudo reparar la llave de Play-Off.', error);
+    restoreEnhancedTournamentUi();
     return false;
   } finally {
     applying = false;
   }
 }
 
-function scheduleRepair() {
-  if (scheduled || applying) return;
-  scheduled = true;
-  window.requestAnimationFrame(() => { applyRepair(); });
-}
+let cloudChecks = 0;
+const cloudRepairTimer = window.setInterval(() => {
+  cloudChecks += 1;
+  void applyRepair();
+  if (core.cloudLoaded || cloudChecks >= 16) window.clearInterval(cloudRepairTimer);
+}, 500);
 
-new MutationObserver(scheduleRepair).observe(document.body, { childList: true, subtree: true });
-document.addEventListener('chute:ready', scheduleRepair);
-window.addEventListener('focus', scheduleRepair, { passive: true });
+window.addEventListener('focus', () => { void applyRepair(); }, { passive: true });
+document.addEventListener('visibilitychange', () => {
+  if (!document.hidden) void applyRepair();
+});
 
 const heroVersion = document.querySelector('.hero .eyebrow');
-if (heroVersion) heroVersion.textContent = 'CHUTE MUNDO v5.16.2';
-document.title = 'Chute Mundo v5.16.2 · Play-Off corregidos';
+if (heroVersion) heroVersion.textContent = 'CHUTE MUNDO v5.16.3';
+document.title = 'Chute Mundo v5.16.3 · Play-Off y centro restaurados';
 
-scheduleRepair();
+void applyRepair();
 
 window.ChuteV5162PlayoffSeeding = {
   version: VERSION,
@@ -103,5 +131,6 @@ window.ChuteV5162PlayoffSeeding = {
   repairTournament,
   playoffTemplate,
   hasRecordedActivity,
+  restoreEnhancedTournamentUi,
   applyRepair
 };
