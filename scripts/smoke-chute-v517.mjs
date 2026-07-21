@@ -55,6 +55,7 @@ try {
   await page.locator(`[data-open-tournament="${setup.tournamentId}"]:visible`).first().click();
   await page.waitForSelector(`#cmTournamentHub[data-tournament-id="${setup.tournamentId}"]`);
   await page.waitForSelector('[data-cm-v517-awards-tab]');
+  await page.waitForSelector('[data-cm-v517-awards-panel]', { state: 'attached' });
 
   const initialAwards = await page.evaluate(() => {
     const panel = document.querySelector('[data-cm-v517-awards-panel]');
