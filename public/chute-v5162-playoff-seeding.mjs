@@ -52,9 +52,11 @@ function repairState(source) {
   return { state: next, changed };
 }
 
-function hubContext() {
+function uiContext() {
   const hub = document.getElementById('cmTournamentHub');
+  const page = [...document.querySelectorAll('.page')].find((item) => !item.hidden);
   return {
+    page: page?.id || '',
     tournamentId: hub?.dataset.tournamentId || '',
     activeTab: hub?.querySelector('[data-cm-tournament-tab].active')?.dataset.cmTournamentTab || ''
   };
@@ -66,9 +68,11 @@ function restoreEnhancedTournamentUi(fallbackContext = {}) {
   let fallback = { ...fallbackContext };
   const refresh = () => {
     if (token !== uiRefreshToken) return;
-    const current = hubContext();
+    const current = uiContext();
     window.ChuteTournamentHub?.refresh?.();
-    const rebuilt = hubContext();
+    const rebuilt = uiContext();
+    const targetPage = current.page || fallback.page;
+    if (targetPage && document.getElementById(targetPage)?.hidden) core.navigate(targetPage);
     const activeTab = current.tournamentId === rebuilt.tournamentId && current.activeTab
       ? current.activeTab
       : fallback.tournamentId === rebuilt.tournamentId
@@ -90,7 +94,7 @@ function restoreEnhancedTournamentUi(fallbackContext = {}) {
 
 const originalSetState = core.setState.bind(core);
 core.setState = (nextState) => {
-  const previousUi = hubContext();
+  const previousUi = uiContext();
   const repaired = repairState(nextState);
   originalSetState(repaired.state);
   restoreEnhancedTournamentUi(previousUi);
@@ -105,7 +109,7 @@ async function applyRepair() {
   const repaired = repairState(core.getState());
   if (!repaired.changed) return false;
   applying = true;
-  const previousUi = hubContext();
+  const previousUi = uiContext();
   try {
     originalSetState(repaired.state);
     restoreEnhancedTournamentUi(previousUi);
