@@ -5,9 +5,9 @@ function waitForCore() {
 
 const core = await waitForCore();
 const model = window.ChuteDetailModel;
-if (!model) throw new Error('El modelo detallado no está disponible para Chute Mundo v5.16.');
+if (!model) throw new Error('El modelo detallado no está disponible para Chute Mundo v5.16.1.');
 
-const VERSION = '5.16.0';
+const VERSION = '5.16.1';
 const SCHEMA = 'match-events-stats-v516';
 const OFFICIAL_MINUTES = ['0', '10', '20', '30', '45', '50', '60', '70', '80', '90', '105', '120'];
 const DEFAULT_VENUES = ["Wladi's House", "Carlo's House"];
@@ -106,6 +106,7 @@ async function persist(pair, mutate, successText) {
   try {
     readMetadata(context.match);
     mutate(context, next);
+    context.match.participationTracked = true;
     syncPenaltyScore(context.match);
     model.syncLegacyLogs?.(context.match);
     context.match.updatedAt = Date.now();

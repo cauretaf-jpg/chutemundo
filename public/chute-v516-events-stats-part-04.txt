@@ -42,4 +42,5 @@ function playerStats(teamId, name, source = core.getState(), filterTournamentId 
       result.penaltyAttempts += 1;
       if (penalty.result === 'scored') result.penaltiesScored += 1; else result.penaltiesMissed += 1;
     }
+    if (!row.match.participationTracked) continue;
     const lineup = row.match.lineups?.[side];

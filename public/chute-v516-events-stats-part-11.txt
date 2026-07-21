@@ -1,7 +1,7 @@
-if ('serviceWorker' in navigator) navigator.serviceWorker.register(`/sw.js?v=${VERSION}`).catch((error) => console.warn('No se pudo actualizar la PWA v5.16.', error));
-document.title = 'Chute Mundo v5.16 · Eventos y estadísticas';
+if ('serviceWorker' in navigator) navigator.serviceWorker.register(`/sw.js?v=${VERSION}`).catch((error) => console.warn('No se pudo actualizar la PWA v5.16.1.', error));
+document.title = 'Chute Mundo v5.16.1 · Eventos y estadísticas';
 const heroVersion = document.querySelector('.hero .eyebrow');
-if (heroVersion) heroVersion.textContent = 'CHUTE MUNDO v5.16';
+if (heroVersion) heroVersion.textContent = 'CHUTE MUNDO v5.16.1';
 scheduleRefresh();
 
 window.ChuteV516EventsStats = {
