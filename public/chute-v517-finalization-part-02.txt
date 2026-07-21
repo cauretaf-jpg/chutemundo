@@ -1,0 +1,78 @@
+        knockoutGoals: 0,
+        finalGoals: 0,
+        finalAssists: 0,
+        shootoutWins: 0,
+        teamWins: 0,
+        eventAppearances: new Set(),
+        finalAppearance: false,
+        finalWinner: false,
+        finalPenaltyScored: 0,
+        priorRecord: hasPriorRecord(source, tournament, teamId, name)
+      };
+      row.goals = Math.max(row.goals, legacyValue(tournament.playerScorers, teamId, name, 'goals'));
+      row.assists = Math.max(row.assists, legacyValue(tournament.playerAssists, teamId, name, 'assists'));
+
+      for (const match of matches) {
+        const info = resultInfo(tournament, match);
+        if (!info || ![info.home, info.away].includes(teamId)) continue;
+        const side = info.home === teamId ? 'home' : 'away';
+        const isFinal = normalize(match.round) === 'final' || normalize(match.label) === 'final';
+        const isKnockout = match.stage === 'knockout';
+        const appeared = appearedInMatch(match, side, name);
+        if (appeared) row.eventAppearances.add(match.id);
+        if (appeared && info.winner === teamId) row.teamWins += 1;
+        if (isFinal && appeared) {
+          row.finalAppearance = true;
+          row.finalWinner = info.winner === teamId;
+        }
+
+        const teamGoals = (match.goals || [])
+          .filter((event) => eventTeamId(event, info) === teamId)
+          .sort((a, b) => minuteNumber(a.minute) - minuteNumber(b.minute) || Number(a.createdAt || 0) - Number(b.createdAt || 0));
+        const opponentGoals = info.home === teamId ? info.awayGoals : info.homeGoals;
+        const winnerOrdinal = info.winner === teamId && !info.decidedByPenalties ? opponentGoals + 1 : -1;
+        teamGoals.forEach((event, index) => {
+          if (event.playerName === name) {
+            if (isKnockout) row.knockoutGoals += 1;
+            if (isFinal) row.finalGoals += 1;
+            if (index + 1 === winnerOrdinal) row.decisiveGoals += 1;
+          }
+          if (isFinal && event.assistName === name) row.finalAssists += 1;
+        });
+        for (const penalty of match.penaltyShootout || []) {
+          if (penalty.teamId === teamId && penalty.playerName === name && penalty.result === 'scored' && isFinal) row.finalPenaltyScored += 1;
+        }
+        if (row.goalkeeper && info.decidedByPenalties && info.winner === teamId) row.shootoutWins += 1;
+      }
+
+      row.appearancesForAwards = Math.max(row.appearances, row.eventAppearances.size);
+      row.contributions = row.goals + row.assists;
+      row.mvpScore = row.goals * 5 + row.assists * 3 + row.decisiveGoals * 2 + row.knockoutGoals * 1.5 + row.finalGoals * 2
+        + row.penaltiesScored * 0.5 + row.teamWins * 0.4 + row.appearancesForAwards * 0.25 + Math.min(Number(row.minutes || 0) / 360, 2)
+        - row.yellows * 0.5 - row.reds * 2;
+
+      const fallback = teamFallback.get(teamId) || { appearances: 0, goalsConceded: 0, cleanSheets: 0, wins: 0, draws: 0, losses: 0, shootoutWins: 0 };
+      row.keeperEstimated = row.goalkeeper && !row.appearances && fallback.appearances > 0;
+      row.keeperAppearances = row.appearances || fallback.appearances;
+      row.keeperGoalsConceded = row.appearances ? row.goalsConceded : fallback.goalsConceded;
+      row.keeperCleanSheets = row.appearances ? row.cleanSheets : fallback.cleanSheets;
+      row.keeperWins = row.appearances ? row.wins : fallback.wins;
+      row.keeperDraws = row.appearances ? row.draws : fallback.draws;
+      row.keeperLosses = row.appearances ? row.losses : fallback.losses;
+      row.keeperShootoutWins = row.shootoutWins || fallback.shootoutWins;
+      row.keeperAverage = row.keeperAppearances ? row.keeperGoalsConceded / row.keeperAppearances : 99;
+      row.keeperScore = row.keeperCleanSheets * 5 + row.keeperWins * 2 + row.keeperShootoutWins * 2 + row.keeperAppearances * 0.35 - row.keeperAverage * 2;
+      row.finalScore = row.finalGoals * 6 + row.finalAssists * 3.5 + row.finalPenaltyScored + (row.finalWinner && row.finalAppearance ? 2 : 0)
+        + (row.goalkeeper && row.finalAppearance && row.finalWinner ? 1.5 : 0) - row.reds * 2;
+      rows.push(row);
+    }
+  }
+  return rows;
+}
+
+function pick(rows, compare) {
+  return [...rows].sort(compare)[0] || null;
+}
+
+function awardEntry(key, title, row, reason, status = '') {
+  if (!row) return { key, title, playerName: '', teamId: '', teamName: '', reason: status || 'Aún sin datos suficientes.', status: 'pending' };

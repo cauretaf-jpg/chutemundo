@@ -1,0 +1,78 @@
+  return { key, title, playerName: row.name, teamId: row.teamId, teamName: row.team?.name || core.teamName(row.teamId), reason, status: 'ready' };
+}
+
+function computeAwards(tournament, source = core.getState()) {
+  const rows = buildPlayerRows(tournament, source);
+  const completed = (tournament.matches || []).filter((match) => match.stage !== 'bye').every(played);
+  const official = tournament.status === 'historical' && completed;
+  const scorer = pick(rows.filter((row) => row.goals > 0), (a, b) => b.goals - a.goals || (a.minutes && b.minutes ? (a.minutes / a.goals) - (b.minutes / b.goals) : 0) || b.assists - a.assists || b.decisiveGoals - a.decisiveGoals || a.name.localeCompare(b.name, 'es'));
+  const assister = pick(rows.filter((row) => row.assists > 0), (a, b) => b.assists - a.assists || (a.minutes && b.minutes ? (a.minutes / a.assists) - (b.minutes / b.assists) : 0) || b.goals - a.goals || a.name.localeCompare(b.name, 'es'));
+  const mvp = pick(rows.filter((row) => row.appearancesForAwards || row.goals || row.assists || row.penaltyAttempts), (a, b) => b.mvpScore - a.mvpScore || b.contributions - a.contributions || b.goals - a.goals || a.name.localeCompare(b.name, 'es'));
+  const goalkeeper = pick(rows.filter((row) => row.goalkeeper && row.keeperAppearances), (a, b) => b.keeperScore - a.keeperScore || b.keeperCleanSheets - a.keeperCleanSheets || a.keeperAverage - b.keeperAverage || a.name.localeCompare(b.name, 'es'));
+  const revelation = pick(rows.filter((row) => !row.priorRecord && (row.appearancesForAwards >= 2 || row.contributions || row.penaltyAttempts)), (a, b) => b.mvpScore - a.mvpScore || b.contributions - a.contributions || b.appearancesForAwards - a.appearancesForAwards || a.name.localeCompare(b.name, 'es'));
+  const finalMatch = (tournament.matches || []).find((match) => match.stage === 'knockout' && (normalize(match.round) === 'final' || normalize(match.label) === 'final'));
+  const finalPlayed = Boolean(finalMatch && played(finalMatch));
+  const finalMvp = finalPlayed ? pick(rows.filter((row) => row.finalAppearance || row.finalGoals || row.finalAssists || row.finalPenaltyScored), (a, b) => b.finalScore - a.finalScore || b.finalGoals - a.finalGoals || b.finalAssists - a.finalAssists || a.name.localeCompare(b.name, 'es')) : null;
+
+  const awards = {
+    scorer: awardEntry('scorer', 'Goleador', scorer, scorer ? `${scorer.goals} goles · ${scorer.assists} asistencias · ${scorer.decisiveGoals} goles decisivos${scorer.minutes ? ` · ${scorer.minutes} minutos` : ''}` : ''),
+    assist: awardEntry('assist', 'Máximo asistidor', assister, assister ? `${assister.assists} asistencias · ${assister.goals} goles · ${assister.contributions} participaciones de gol${assister.minutes ? ` · ${assister.minutes} minutos` : ''}` : ''),
+    mvp: awardEntry('mvp', 'Mejor jugador', mvp, mvp ? `${mvp.mvpScore.toFixed(1)} puntos de rendimiento · ${mvp.goals} G · ${mvp.assists} A · ${mvp.decisiveGoals} decisivos · ${mvp.appearancesForAwards} PJ${mvp.minutes ? ` · ${mvp.minutes} min.` : ''}` : ''),
+    goalkeeper: awardEntry('goalkeeper', 'Mejor arquero', goalkeeper, goalkeeper ? `${goalkeeper.keeperCleanSheets} vallas invictas · ${goalkeeper.keeperGoalsConceded} goles recibidos · promedio ${goalkeeper.keeperAverage.toFixed(2)} · ${goalkeeper.keeperWins}-${goalkeeper.keeperDraws}-${goalkeeper.keeperLosses}${goalkeeper.keeperShootoutWins ? ` · ${goalkeeper.keeperShootoutWins} tanda${goalkeeper.keeperShootoutWins === 1 ? '' : 's'} ganada${goalkeeper.keeperShootoutWins === 1 ? '' : 's'}` : ''}${goalkeeper.keeperEstimated ? ' · estimación defensiva del equipo' : ''}` : ''),
+    revelation: awardEntry('revelation', 'Revelación', revelation, revelation ? `Primer registro relevante en la historia · ${revelation.appearancesForAwards} PJ · ${revelation.goals} G · ${revelation.assists} A · ${revelation.penaltiesScored} penales anotados` : '', 'Se calculará cuando un jugador nuevo alcance participación suficiente.'),
+    finalMvp: awardEntry('finalMvp', 'Jugador de la final', finalMvp, finalMvp ? `${finalMvp.finalScore.toFixed(1)} puntos en la final · ${finalMvp.finalGoals} G · ${finalMvp.finalAssists} A${finalMvp.finalPenaltyScored ? ` · ${finalMvp.finalPenaltyScored} penal de tanda` : ''}${finalMvp.finalWinner ? ' · campeón' : ''}` : '', finalPlayed ? 'La final no tiene suficientes eventos individuales.' : 'Disponible después de disputar la final.')
+  };
+
+  return { version: VERSION, official, completed, statusLabel: official ? 'OFICIALES' : 'PROVISIONALES', calculatedAt: Date.now(), awards, rows };
+}
+
+function legacyAwards(calculation) {
+  return Object.fromEntries(Object.entries(calculation.awards).map(([key, award]) => [key, award.playerName || '']));
+}
+
+function awardsSignature(calculation) {
+  return JSON.stringify(Object.values(calculation.awards).map((award) => [award.key, award.playerName, award.teamId, award.reason]));
+}
+
+function awardCard(award, highlighted = false) {
+  const empty = !award.playerName;
+  return `<article class="cm-v517-award-card ${highlighted ? 'is-featured' : ''} ${empty ? 'is-empty' : ''}">
+    <header><span>${esc(award.title)}</span><em>${empty ? 'PENDIENTE' : 'CALCULADO'}</em></header>
+    <div class="cm-v517-award-main">${empty ? '<div class="cm-v517-award-placeholder">?</div>' : model.photo(award.teamId, award.playerName, 'cm-v517-award-face')}<div><h3>${esc(award.playerName || 'Aún sin datos suficientes')}</h3><p>${esc(award.teamName || 'La información se completará con los partidos registrados.')}</p></div></div>
+    <footer>${esc(award.reason)}</footer>
+  </article>`;
+}
+
+function renderAwardsPanel() {
+  const hub = document.getElementById('cmTournamentHub');
+  const tournament = tournamentFromHub();
+  if (!hub || !tournament) return;
+  const tabs = hub.querySelector('.cm-hub-tabs');
+  const panels = hub.querySelector('.cm-hub-panels');
+  if (!tabs || !panels) return;
+  let button = tabs.querySelector('[data-v512-awards-tab]');
+  if (!button) {
+    button = document.createElement('button');
+    button.type = 'button';
+    button.dataset.v512AwardsTab = '';
+    button.textContent = 'Premios';
+    tabs.appendChild(button);
+  }
+  button.dataset.cmV517AwardsTab = '';
+  let panel = panels.querySelector('[data-v512-awards-panel]');
+  if (!panel) {
+    panel = document.createElement('section');
+    panel.className = 'cm-hub-panel';
+    panel.dataset.v512AwardsPanel = '';
+    panels.appendChild(panel);
+  }
+  panel.dataset.cmV517AwardsPanel = '';
+  const calculation = computeAwards(tournament);
+  const signature = JSON.stringify([tournament.id, tournament.status, awardsSignature(calculation), core.canEdit()]);
+  if (panel.dataset.cmV517Signature !== signature) {
+    panel.dataset.cmV517Signature = signature;
+    panel.dataset.sig = JSON.stringify([tournament.id, tournament.awards, core.canEdit()]);
+    const quality = qualityIssues(tournament, calculation);
+    panel.innerHTML = `<section class="cm-v517-awards">
+      <header class="cm-v517-awards-head"><div><p class="eyebrow">RECONOCIMIENTOS ${calculation.statusLabel}</p><h2>Premios del torneo</h2><p>Se calculan desde goles, asistencias, participación, rendimiento decisivo, disciplina, porteros y tandas de Play-Off.</p></div><span>${calculation.official ? 'Cerrados al finalizar' : 'Se actualizan con cada partido'}</span></header>
+      <div class="cm-v517-awards-grid">${awardCard(calculation.awards.mvp, true)}${awardCard(calculation.awards.scorer)}${awardCard(calculation.awards.assist)}${awardCard(calculation.awards.goalkeeper)}${awardCard(calculation.awards.revelation)}${awardCard(calculation.awards.finalMvp)}</div>

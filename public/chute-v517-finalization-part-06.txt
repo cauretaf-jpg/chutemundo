@@ -1,0 +1,78 @@
+    target.awardsCalculatedAt = Date.now();
+    target.awardsEngineVersion = VERSION;
+    core.setState(updated);
+    core.persistLocal?.();
+    await core.saveCloud();
+    core.closeModal?.();
+    const modal = document.getElementById('modal');
+    if (modal) modal.hidden = true;
+    core.render?.();
+    window.ChuteTournamentHub?.refresh?.();
+    core.showToast(`Torneo “${target.name}” finalizado con premios oficiales.`);
+    scheduleRefresh();
+  } catch (error) {
+    console.error(error);
+    core.setState(previous);
+    core.showToast(`No se pudo finalizar: ${error.message || error.code || 'error desconocido'}.`);
+  } finally {
+    savingAwards = false;
+  }
+}
+
+function decorateTournamentTools() {
+  const hub = document.getElementById('cmTournamentHub');
+  const tournament = tournamentFromHub();
+  const tools = hub?.querySelector('[data-v511-tools]');
+  if (!hub || !tournament || !tools) return;
+  const calculation = computeAwards(tournament);
+  const issues = qualityIssues(tournament, calculation);
+  let quality = tools.querySelector('[data-cm-v517-quality]');
+  if (!quality) {
+    quality = document.createElement('button');
+    quality.type = 'button';
+    quality.dataset.cmV517Quality = '';
+    tools.appendChild(quality);
+  }
+  const critical = issues.filter((item) => item.level === 'critical').length;
+  const warnings = issues.filter((item) => item.level === 'warning').length;
+  quality.textContent = `✓ Revisar torneo · ${critical} bloqueos · ${warnings} avisos`;
+  quality.classList.toggle('danger', critical > 0);
+  const finish = tools.querySelector('[data-v511-finish], [data-cm-v517-finish]');
+  if (finish) {
+    finish.removeAttribute('data-v511-finish');
+    finish.dataset.cmV517Finish = '';
+    finish.textContent = tournament.status === 'active' ? '■ Revisar y finalizar' : '■ Torneo finalizado';
+    finish.disabled = !core.canEdit() || tournament.status !== 'active';
+  }
+}
+
+async function scheduleOfficialAwards(tournamentId, calculation) {
+  if (!core.canEdit() || savingAwards) return;
+  const tournament = core.getState().tournaments?.find((item) => item.id === tournamentId);
+  if (!tournament || tournament.status !== 'historical') return;
+  const nextSignature = awardsSignature(calculation);
+  const storedSignature = JSON.stringify(Object.values(tournament.awardDetails || {}).map((award) => [award.key, award.playerName, award.teamId, award.reason]));
+  if (tournament.awardsEngineVersion === VERSION && storedSignature === nextSignature) return;
+  savingAwards = true;
+  const previous = clone(core.getState());
+  const next = clone(previous);
+  const target = next.tournaments.find((item) => item.id === tournamentId);
+  target.awards = legacyAwards(calculation);
+  target.awardDetails = calculation.awards;
+  target.awardsStatus = 'official';
+  target.awardsCalculatedAt = Date.now();
+  target.awardsEngineVersion = VERSION;
+  try {
+    core.setState(next);
+    core.persistLocal?.();
+    await core.saveCloud();
+  } catch (error) {
+    console.warn('No se pudieron fijar los premios oficiales v5.17.', error);
+    core.setState(previous);
+  } finally {
+    savingAwards = false;
+  }
+}
+
+function installStyles() {
+  if (document.getElementById('cmV517Styles')) return;
