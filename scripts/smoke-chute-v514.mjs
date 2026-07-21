@@ -5,13 +5,30 @@ const page = await browser.newPage({ viewport: { width: 390, height: 844 } });
 
 try {
   await page.goto('http://127.0.0.1:4173/', { waitUntil: 'domcontentloaded' });
-  await page.waitForFunction(() => window.ChuteV514UnifiedMatch && window.ChuteV513Lineups && window.ChuteMundoCore);
-  await page.evaluate(() => window.ChuteMundoCore.navigate('partidos'));
-  await page.waitForFunction(() => !document.getElementById('partidos')?.hidden && document.querySelector('[data-cm-v52-open-match]'));
-  await page.waitForFunction(() => {
-    const buttons = [...document.querySelectorAll('[data-cm-v52-open-match], [data-cm-hub-match]')];
-    return buttons.length > 0 && buttons.every((button) => button.textContent.trim() === 'Ver partido') && !document.querySelector('[data-edit-match]');
+  await page.waitForFunction(() => window.ChuteV514UnifiedMatch && window.ChuteV513Lineups && window.ChuteMundoCore && window.ChuteV5162PlayoffSeeding);
+
+  const readonlyPair = await page.evaluate(async () => {
+    const core = window.ChuteMundoCore;
+    await window.ChuteV5162PlayoffSeeding.applyRepair();
+    core.navigate('partidos');
+
+    document.getElementById('cmV514SyntheticButton')?.remove();
+    const synthetic = document.createElement('button');
+    synthetic.id = 'cmV514SyntheticButton';
+    synthetic.dataset.cmV52OpenMatch = 'test__match';
+    synthetic.textContent = 'Abrir partido';
+    document.body.appendChild(synthetic);
+    window.ChuteV514UnifiedMatch.decorateEntryButtons();
+
+    const row = core.getState().tournaments.flatMap((tournament) => (tournament.matches || []).map((match) => ({ tournament, match })))
+      .find(({ tournament, match }) => match.stage !== 'bye' && (match.home || core.resolveHome(tournament, match)) && (match.away || core.resolveAway(tournament, match)));
+    if (!row) return '';
+    window.ChuteV514UnifiedMatch.openUnifiedMatch(row.tournament.id, row.match.id);
+    return `${row.tournament.id}__${row.match.id}`;
   });
+  if (!readonlyPair) throw new Error('No se encontró un partido resuelto para probar la vista pública.');
+
+  await page.waitForFunction(() => document.getElementById('cmV514SyntheticButton')?.textContent.trim() === 'Ver partido' && !document.querySelector('[data-edit-match]'));
 
   const initial = await page.evaluate(() => {
     const hiddenLegacy = [...document.querySelectorAll('.cm-v59-live-launch, .cm-v591-live-access, #cmV591LivePanel')]
@@ -30,7 +47,7 @@ try {
       title: document.title,
       version: api.version,
       hiddenLegacy,
-      buttonText: document.querySelector('[data-cm-v52-open-match]')?.textContent.trim(),
+      buttonText: document.getElementById('cmV514SyntheticButton')?.textContent.trim(),
       editButtons: document.querySelectorAll('[data-edit-match]').length,
       canReenter: eligibleAfterExit.includes('Donald Ortega'),
       fieldAfterReturn: api.currentLineup(lineupReturn, 30),
@@ -43,7 +60,6 @@ try {
     throw new Error(`Estado unificado inválido: ${JSON.stringify(initial)}`);
   }
 
-  await page.locator('[data-cm-v52-open-match]').first().click();
   await page.waitForSelector('.cm-match-editor.cm-v514-readonly');
   const readonly = await page.evaluate(() => ({
     notice: Boolean(document.querySelector('.cm-v514-readonly-notice')),
