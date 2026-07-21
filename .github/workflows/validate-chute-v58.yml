@@ -35,6 +35,7 @@ jobs:
           node --check scripts/smoke-chute-v514.mjs
           node --check scripts/smoke-chute-v515.mjs
           node --check scripts/smoke-chute-v516.mjs
+          node scripts/check-chute-v516.mjs
           node scripts/audit-chute-v58.mjs
       - name: Validate required files
         run: |
@@ -59,6 +60,7 @@ jobs:
           test -s public/chute-v516-events-stats.mjs
           test -s public/chute-v516-events-stats.css
           for index in $(seq -w 0 11); do test -s "public/chute-v516-events-stats-part-${index}.txt"; done
+          test -s scripts/check-chute-v516.mjs
           test -s scripts/smoke-chute-v513.mjs
           test -s scripts/smoke-chute-v514.mjs
           test -s scripts/smoke-chute-v515.mjs
