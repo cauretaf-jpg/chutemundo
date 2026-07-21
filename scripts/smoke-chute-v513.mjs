@@ -44,7 +44,7 @@ try {
   const positionsOk = result.davis?.position === 'Medio' && result.jackie?.position === 'Medio' && result.warner?.minute === 45;
   const timingOk = result.parrilla20.includes('Nick Cabezón') && result.parrilla20.includes("Randolph D'Luna") && result.perla45.includes('El Kraken');
   const lineupOk = result.before20.includes('Steven Ramos') && !result.before20.includes('Omar Watson') && result.at20.includes('Omar Watson') && !result.at20.includes('Steven Ramos');
-  if (!/5\.(13|14|15)/.test(result.title) || result.version !== '5.13.0' || !String(result.schema).includes('chute-pc') || !countsOk || !startersOk || !namesOk || !positionsOk || !timingOk || !lineupOk || result.migratedGoal !== 'Arnold Vega' || result.migratedCard !== 'Rocco Caruso' || result.width > result.viewport + 3) throw new Error(JSON.stringify(result));
+  if (!/5\.(13|14|15|16)/.test(result.title) || result.version !== '5.13.0' || !String(result.schema).includes('chute-pc') || !countsOk || !startersOk || !namesOk || !positionsOk || !timingOk || !lineupOk || result.migratedGoal !== 'Arnold Vega' || result.migratedCard !== 'Rocco Caruso' || result.width > result.viewport + 3) throw new Error(JSON.stringify(result));
   console.log('Chute Mundo v5.13 regression smoke OK', result);
 } finally {
   await browser.close();

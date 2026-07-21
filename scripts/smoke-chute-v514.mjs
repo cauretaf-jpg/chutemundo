@@ -39,7 +39,7 @@ try {
     };
   });
 
-  if (!/5\.(14|15)/.test(initial.title) || initial.version !== '5.14.0' || initial.buttonText !== 'Ver partido' || initial.editButtons !== 0 || !initial.hiddenLegacy || !initial.canReenter || !initial.fieldAfterReturn.includes('Donald Ortega') || initial.fieldAfterReturn.includes('Dino Richi') || initial.width > initial.viewport + 3) {
+  if (!/5\.(14|15|16)/.test(initial.title) || initial.version !== '5.14.0' || initial.buttonText !== 'Ver partido' || initial.editButtons !== 0 || !initial.hiddenLegacy || !initial.canReenter || !initial.fieldAfterReturn.includes('Donald Ortega') || initial.fieldAfterReturn.includes('Dino Richi') || initial.width > initial.viewport + 3) {
     throw new Error(`Estado unificado inválido: ${JSON.stringify(initial)}`);
   }
 
@@ -65,18 +65,19 @@ try {
   if (!adminPair) throw new Error('No se encontró un partido resuelto para probar la vista administradora.');
   await page.waitForSelector('.cm-v59-live.cm-v514-unified-live');
   await page.waitForSelector('#cmV513Lineups');
-  await page.waitForFunction(() => document.querySelector('[data-cm-v514-substitute], [data-cm-v515-substitute]'));
+  await page.waitForFunction(() => document.querySelector('[data-cm-v514-substitute], [data-cm-v515-substitute], [data-cm-v516-substitute]'));
 
   const admin = await page.evaluate(() => ({
     unified: Boolean(document.querySelector('.cm-v514-unified-badge')),
     detailedEditor: Boolean(document.querySelector('.cm-match-editor')),
-    substitutionButton: Boolean(document.querySelector('[data-cm-v514-substitute], [data-cm-v515-substitute]')),
+    substitutionButton: Boolean(document.querySelector('[data-cm-v514-substitute], [data-cm-v515-substitute], [data-cm-v516-substitute]')),
     oldSubstitutionButton: Boolean(document.querySelector('[data-cm-v513-substitute]')),
     polished: Boolean(document.querySelector('.cm-v515-lineups')) || !window.ChuteV515MatchCenter,
+    currentLayer: Boolean(document.querySelector('.cm-v516-match-center')) || !window.ChuteV516EventsStats,
     width: document.documentElement.scrollWidth,
     viewport: document.documentElement.clientWidth
   }));
-  if (!admin.unified || admin.detailedEditor || !admin.substitutionButton || admin.oldSubstitutionButton || !admin.polished || admin.width > admin.viewport + 3) {
+  if (!admin.unified || admin.detailedEditor || !admin.substitutionButton || admin.oldSubstitutionButton || !admin.polished || !admin.currentLayer || admin.width > admin.viewport + 3) {
     throw new Error(`Vista administradora no unificada: ${JSON.stringify(admin)}`);
   }
 
