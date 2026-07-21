@@ -1,4 +1,4 @@
-name: Validate Chute Mundo v5.16.2
+name: Validate Chute Mundo v5.16.3
 
 on:
   pull_request:
@@ -74,9 +74,12 @@ jobs:
           grep -q "leaguePodium" public/chute-v511-tournaments.mjs
           grep -q "compactBackups" public/chute-v5121-backup-fix.mjs
           grep -q "chute-v516-events-stats.mjs" public/chute-official.mjs
-          grep -q "chute-v5162-playoff-seeding.mjs" public/chute-official.mjs
+          grep -q "chute-v5162-playoff-seeding.mjs?v=5.16.3" public/chute-official.mjs
           grep -q "TABLE_1.*TABLE_4" public/chute-v5162-playoff-seeding.mjs
           grep -q "TABLE_2.*TABLE_3" public/chute-v5162-playoff-seeding.mjs
+          grep -q "restoreEnhancedTournamentUi" public/chute-v5162-playoff-seeding.mjs
+          grep -q "ChuteTournamentHub?.refresh" public/chute-v5162-playoff-seeding.mjs
+          ! grep -q "new MutationObserver(scheduleRepair)" public/chute-v5162-playoff-seeding.mjs
           grep -q "chute-v516-events-stats-part" public/chute-v516-events-stats.mjs
           grep -q "data-cm-v516-goal-minute" public/chute-v516-events-stats-part-00.txt public/chute-v516-events-stats-part-01.txt public/chute-v516-events-stats-part-02.txt
           grep -q "penaltyShootout" public/chute-v516-events-stats-part-01.txt public/chute-v516-events-stats-part-02.txt public/chute-v516-events-stats-part-03.txt public/chute-v516-events-stats-part-04.txt
@@ -105,7 +108,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: chute-v5-16-2-diagnostics
+          name: chute-v5-16-3-diagnostics
           path: |
             /tmp/chute-v516-syntax.log
             /tmp/chute-smoke-v58.log
