@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <rect width="512" height="512" rx="112" fill="#05271d"/>
+  <circle cx="256" cy="256" r="172" fill="#0b7557"/>
+  <path d="M256 112 380 184v144L256 400 132 328V184z" fill="#fff" opacity=".12"/>
+  <circle cx="256" cy="256" r="82" fill="#fff"/>
+  <path d="m256 205 48 35-18 56h-60l-18-56z" fill="#05271d"/>
+  <path d="m256 174 24 31-24 18-24-18zm78 57-37 10-7-29 37-10zm-30 92-22-31 24-18 22 31zm-96 0-24-18 22-31 24 18zm-30-92 7-29 37 10-7 29z" fill="#0b7557"/>
+  <text x="256" y="470" text-anchor="middle" font-family="system-ui, sans-serif" font-size="52" font-weight="900" fill="#fff">CM</text>
+</svg>
