@@ -42,8 +42,8 @@ try {
   });
   if (setup.error) throw new Error(setup.error);
 
-  await page.waitForSelector('[data-open-tournament="playoff-ui-regression"]');
-  await page.locator('[data-open-tournament="playoff-ui-regression"]').click();
+  await page.waitForFunction(() => [...document.querySelectorAll('[data-open-tournament="playoff-ui-regression"]')].some((element) => element.getClientRects().length && getComputedStyle(element).visibility !== 'hidden' && getComputedStyle(element).display !== 'none'));
+  await page.locator('[data-open-tournament="playoff-ui-regression"]:visible').first().click();
   await page.waitForSelector('#cmTournamentHub[data-tournament-id="playoff-ui-regression"]');
 
   const repaired = await page.evaluate(() => {
@@ -92,7 +92,7 @@ try {
   if (fixtureUi.filters !== 3 || fixtureUi.matchCards < 4 || fixtureUi.shields < 4 || fixtureUi.verPartido < 1) throw new Error(`Fixture incompleto: ${JSON.stringify(fixtureUi)}`);
 
   await page.evaluate(() => { window.ChuteMundoCore.canEdit = () => true; });
-  await page.locator('[data-cm-tournament-panel="fixture"] [data-cm-hub-match]').first().click();
+  await page.locator('[data-cm-tournament-panel="fixture"] [data-cm-hub-match]:visible').first().click();
   await page.waitForSelector('.cm-v516-match-center');
   await page.waitForSelector('[data-cm-v516-goal-minute="home"]');
   const editor = await page.evaluate(() => ({
