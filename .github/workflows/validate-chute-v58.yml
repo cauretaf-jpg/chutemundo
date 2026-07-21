@@ -1,4 +1,4 @@
-name: Validate Chute Mundo v5.14.0
+name: Validate Chute Mundo v5.15.0
 
 on:
   pull_request:
@@ -26,11 +26,13 @@ jobs:
           node --check public/chute-v5121-backup-fix.mjs
           node --check public/chute-v513-lineups.mjs
           node --check public/chute-v514-unified-match.mjs
+          node --check public/chute-v515-match-center.mjs
           node --check public/sw.js
           node --check scripts/smoke-chute-v512.mjs
           node --check scripts/smoke-chute-v5121.mjs
           node --check scripts/smoke-chute-v513.mjs
           node --check scripts/smoke-chute-v514.mjs
+          node --check scripts/smoke-chute-v515.mjs
           node scripts/audit-chute-v58.mjs
       - name: Validate required files
         run: |
@@ -50,15 +52,18 @@ jobs:
           test -s public/chute-v513-lineups.css
           test -s public/chute-v514-unified-match.mjs
           test -s public/chute-v514-unified-match.css
+          test -s public/chute-v515-match-center.mjs
+          test -s public/chute-v515-match-center.css
           test -s scripts/smoke-chute-v513.mjs
           test -s scripts/smoke-chute-v514.mjs
+          test -s scripts/smoke-chute-v515.mjs
           grep -q "playerKey" public/chute-v511-core.mjs
           grep -q "leaguePodium" public/chute-v511-tournaments.mjs
           grep -q "compactBackups" public/chute-v5121-backup-fix.mjs
-          grep -q "chute-v514-unified-match.mjs" public/chute-official.mjs
-          grep -q "openUnifiedMatch" public/chute-v514-unified-match.mjs
-          grep -q "eligiblePlayers" public/chute-v514-unified-match.mjs
-          grep -q "data-cm-v514-substitute" public/chute-v514-unified-match.mjs
+          grep -q "chute-v515-match-center.mjs" public/chute-official.mjs
+          grep -q "syncSubstitutionEvents" public/chute-v515-match-center.mjs
+          grep -q "cm-v515-timeline-event" public/chute-v515-match-center.mjs
+          grep -q "data-cm-v515-substitute" public/chute-v515-match-center.mjs
           grep -q '"display":"standalone"' public/manifest.webmanifest
           test ! -e public/chute-v56-card-metadata.mjs
       - name: Install browser
@@ -77,11 +82,12 @@ jobs:
           node scripts/smoke-chute-v5121.mjs > /tmp/chute-smoke-v5121.log 2>&1
           node scripts/smoke-chute-v513.mjs > /tmp/chute-smoke-v513.log 2>&1
           node scripts/smoke-chute-v514.mjs > /tmp/chute-smoke-v514.log 2>&1
+          node scripts/smoke-chute-v515.mjs > /tmp/chute-smoke-v515.log 2>&1
       - name: Upload diagnostics
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: chute-v5-14-0-diagnostics
+          name: chute-v5-15-0-diagnostics
           path: |
             /tmp/chute-smoke-v58.log
             /tmp/chute-smoke-v59.log
@@ -91,5 +97,6 @@ jobs:
             /tmp/chute-smoke-v5121.log
             /tmp/chute-smoke-v513.log
             /tmp/chute-smoke-v514.log
+            /tmp/chute-smoke-v515.log
             /tmp/chute-server.log
           retention-days: 3

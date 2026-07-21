@@ -1,5 +1,5 @@
 await import('/chute-v511-assets.mjs?v=5.11.0');
-await import('/chute-official-loader.mjs?v=5.9.0');
+await import('/chute-official-loader.mjs?v=5.15.0');
 await import('/password-reset.mjs?v=3.0.3');
 await import('/chute-detail.mjs?v=5.8.1');
 await import('/chute-v582-analysis-theme.mjs?v=5.8.2');
@@ -17,3 +17,4 @@ await import('/chute-v5121-search-fix.mjs?v=5.12.1');
 await import('/chute-v5121-backup-fix.mjs?v=5.12.1');
 await import('/chute-v513-lineups.mjs?v=5.13.0');
 await import('/chute-v514-unified-match.mjs?v=5.14.0');
+await import('/chute-v515-match-center.mjs?v=5.15.0');
