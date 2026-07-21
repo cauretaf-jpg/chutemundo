@@ -70,7 +70,7 @@ jobs:
           test -s public/chute-v517-finalization.mjs
           test -s public/chute-v517-finalization.css
           for index in $(seq -w 0 11); do test -s "public/chute-v516-events-stats-part-${index}.txt"; done
-          for index in $(seq -w 0 7); do test -s "public/chute-v517-finalization-part-${index}.txt"; done
+          for index in $(seq 0 7); do part=$(printf "%02d" "$index"); test -s "public/chute-v517-finalization-part-${part}.txt"; done
           test -s scripts/check-chute-v516.mjs
           test -s scripts/smoke-chute-v513.mjs
           test -s scripts/smoke-chute-v514.mjs
