@@ -9,19 +9,21 @@ page.on('console', (message) => { if (message.type() === 'error') errors.push(me
 try {
   await page.goto('http://127.0.0.1:4173/', { waitUntil: 'domcontentloaded' });
   await page.waitForFunction(() => window.ChuteMundoCore && window.ChuteV59 && window.ChuteV591 && window.ChuteV514UnifiedMatch && window.ChuteV5162PlayoffSeeding);
-  await page.evaluate(() => {
+  await page.evaluate(async () => {
+    await window.ChuteV5162PlayoffSeeding.applyRepair();
     window.ChuteMundoCore.navigate('partidos');
-    const list = document.getElementById('matchesList');
+    document.getElementById('cmV591SyntheticButton')?.remove();
     const button = document.createElement('button');
+    button.id = 'cmV591SyntheticButton';
     button.dataset.cmV52OpenMatch = 'test__match';
     button.textContent = 'Abrir partido';
-    list?.appendChild(button);
+    document.body.appendChild(button);
     window.ChuteV514UnifiedMatch.decorateEntryButtons();
   });
-  await page.waitForFunction(() => !document.getElementById('partidos').hidden && document.getElementById('cmV591LivePanel') && document.querySelector('[data-cm-v52-open-match="test__match"]')?.textContent.trim() === 'Ver partido');
+  await page.waitForFunction(() => !document.getElementById('partidos').hidden && document.getElementById('cmV591LivePanel') && document.getElementById('cmV591SyntheticButton')?.textContent.trim() === 'Ver partido');
   const result = await page.evaluate(() => {
     const legacyButton = document.querySelector('#matchesList .cm-v591-live-access');
-    const unifiedButton = document.querySelector('[data-cm-v52-open-match="test__match"]');
+    const unifiedButton = document.getElementById('cmV591SyntheticButton');
     const panel = document.getElementById('cmV591LivePanel');
     return {
       version: window.ChuteV591?.version || 'ui',
