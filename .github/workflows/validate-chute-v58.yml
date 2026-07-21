@@ -1,4 +1,4 @@
-name: Validate Chute Mundo v5.10
+name: Validate Chute Mundo v5.11
 
 on:
   pull_request:
@@ -56,15 +56,17 @@ jobs:
           node scripts/smoke-chute-v59.mjs > /tmp/chute-smoke-v59.log 2>&1
           node scripts/smoke-chute-v591.mjs > /tmp/chute-smoke-v591.log 2>&1
           node scripts/smoke-chute-v510.mjs > /tmp/chute-smoke-v510.log 2>&1
+          node scripts/smoke-chute-v511.mjs > /tmp/chute-smoke-v511.log 2>&1
       - name: Upload diagnostics
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: chute-v5-10-diagnostics
+          name: chute-v5-11-diagnostics
           path: |
             /tmp/chute-smoke-v58.log
             /tmp/chute-smoke-v59.log
             /tmp/chute-smoke-v591.log
             /tmp/chute-smoke-v510.log
+            /tmp/chute-smoke-v511.log
             /tmp/chute-server.log
           retention-days: 3
