@@ -1,0 +1,23 @@
+
+async function ensureSchema() {
+  const current = core.getState();
+  const currentVenues = venues(current);
+  if (current.config?.matchCenterSchema === SCHEMA && JSON.stringify(current.config?.venues || []) === JSON.stringify(currentVenues)) return;
+  const next = clone(current);
+  next.config = { ...(next.config || {}), venues: currentVenues, matchCenterSchema: SCHEMA };
+  core.setState(next);
+  core.persistLocal?.();
+  if (core.canEdit()) {
+    try { await core.saveCloud(); }
+    catch (error) { console.warn('No se pudo guardar la configuración v5.16.', error); }
+  }
+}
+
+function installStyles() {
+  if (document.getElementById('cmV516Styles')) return;
+  const link = document.createElement('link');
+  link.id = 'cmV516Styles';
+  link.rel = 'stylesheet';
+  link.href = `/chute-v516-events-stats.css?v=${VERSION}`;
+  document.head.appendChild(link);
+}
