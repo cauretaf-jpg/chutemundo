@@ -1,0 +1,119 @@
+    if (map.has(tournament.champion)) map.get(tournament.champion).titles += 1;
+    if (map.has(tournament.runnerUp)) map.get(tournament.runnerUp).runners += 1;
+    if (map.has(tournament.third)) map.get(tournament.third).thirds += 1;
+    for (const row of matchRows([tournament])) {
+      const home = map.get(row.home);
+      const away = map.get(row.away);
+      if (!home || !away) continue;
+      const hg = Number(row.match.homeGoals);
+      const ag = Number(row.match.awayGoals);
+      home.pj += 1; away.pj += 1;
+      home.gf += hg; home.gc += ag; away.gf += ag; away.gc += hg;
+      if (hg > ag) { home.pg += 1; away.pp += 1; }
+      else if (ag > hg) { away.pg += 1; home.pp += 1; }
+      else {
+        home.pe += 1; away.pe += 1;
+        const shootoutWinner = winner(row);
+        if (shootoutWinner && map.has(shootoutWinner)) map.get(shootoutWinner).penWins += 1;
+      }
+    }
+  }
+  return [...map.values()].filter((row) => row.pj || row.titles || row.runners || row.thirds).map((row) => ({
+    ...row,
+    dg: row.gf - row.gc,
+    performance: row.pj ? ((row.pg * 3 + row.pe) / (row.pj * 3)) * 100 : 0
+  })).sort((a, b) => b.titles - a.titles || b.performance - a.performance || b.pg - a.pg || b.dg - a.dg || teamName(a.teamId).localeCompare(teamName(b.teamId), 'es'));
+}
+
+function recordedPlayers(tournaments, source = core.getState()) {
+  const map = new Map();
+  for (const team of source.teams || []) {
+    for (const entry of team.players || []) {
+      const name = playerName(entry);
+      if (!name) continue;
+      map.set(`${team.id}__${name}`, { teamId: team.id, team, name, position: playerPosition(entry), goals: 0, assists: 0, dataTournaments: new Set() });
+    }
+  }
+  for (const tournament of tournaments) {
+    const goals = recordedMetricMap(tournament, 'goals');
+    const assists = recordedMetricMap(tournament, 'assists');
+    for (const [key, row] of goals) {
+      const current = map.get(key) || { teamId: row.teamId, team: teamById(row.teamId, source), name: row.name, position: '', goals: 0, assists: 0, dataTournaments: new Set() };
+      current.goals += row.value;
+      current.dataTournaments.add(tournament.id);
+      map.set(key, current);
+    }
+    for (const [key, row] of assists) {
+      const current = map.get(key) || { teamId: row.teamId, team: teamById(row.teamId, source), name: row.name, position: '', goals: 0, assists: 0, dataTournaments: new Set() };
+      current.assists += row.value;
+      current.dataTournaments.add(tournament.id);
+      map.set(key, current);
+    }
+  }
+  return map;
+}
+
+function modernSource(tournaments, source = core.getState()) {
+  return { ...source, tournaments: tournaments.filter((tournament) => tournament.eraId === ERA_DIVISIONS), friendlies: [] };
+}
+
+function playerRows(tournaments, source = core.getState()) {
+  const recorded = recordedPlayers(tournaments, source);
+  const modern = modernSource(tournaments, source);
+  const api = window.ChuteV516EventsStats;
+  const keys = new Set(recorded.keys());
+  for (const team of source.teams || []) for (const entry of team.players || []) keys.add(`${team.id}__${playerName(entry)}`);
+  const rows = [];
+  for (const key of keys) {
+    const separator = key.indexOf('__');
+    const teamId = key.slice(0, separator);
+    const name = key.slice(separator + 2);
+    const base = recorded.get(key) || { teamId, team: teamById(teamId, source), name, position: '', goals: 0, assists: 0, dataTournaments: new Set() };
+    if (selectedTeam !== 'all' && teamId !== selectedTeam) continue;
+    const stats = api?.playerStats ? api.playerStats(teamId, name, modern) : {};
+    rows.push({
+      ...base,
+      goalkeeper: Boolean(stats.goalkeeper || /arquero/i.test(base.position)),
+      appearances: Number(stats.appearances || 0),
+      minutes: Number(stats.minutes || 0),
+      entries: Number(stats.entries || 0),
+      substituted: Number(stats.substituted || 0),
+      yellows: Number(stats.yellows || 0),
+      reds: Number(stats.reds || 0),
+      penaltiesScored: Number(stats.penaltiesScored || 0),
+      penaltiesMissed: Number(stats.penaltiesMissed || 0),
+      penaltyAttempts: Number(stats.penaltyAttempts || 0),
+      cleanSheets: Number(stats.cleanSheets || 0),
+      goalsConceded: Number(stats.goalsConceded || 0),
+      goalsConcededAverage: stats.goalsConcededAverage || '0.00',
+      wins: Number(stats.wins || 0), draws: Number(stats.draws || 0), losses: Number(stats.losses || 0)
+    });
+  }
+  return rows;
+}
+
+function coverageSummary(tournaments) {
+  const played = tournaments.reduce((sum, tournament) => sum + playedMatches(tournament).length, 0);
+  const detailed = tournaments.reduce((sum, tournament) => sum + playedMatches(tournament).filter((match) => match.participationTracked).length, 0);
+  const scorerComplete = tournaments.filter((tournament) => tournament.coverage?.scorers === 'complete').length;
+  const scorerPartial = tournaments.filter((tournament) => tournament.coverage?.scorers === 'partial').length;
+  return { played, detailed, scorerComplete, scorerPartial, tournaments: tournaments.length };
+}
+
+function coverageChip(value, label) {
+  return `<span class="cm-v518-coverage is-${esc(value)}"><b>${esc(label)}</b><small>${esc(COVERAGE_LABELS[value] || value)}</small></span>`;
+}
+
+function metric(value, label, note = '') {
+  return `<article class="cm-v518-metric"><b>${esc(value)}</b><span>${esc(label)}</span>${note ? `<small>${esc(note)}</small>` : ''}</article>`;
+}
+
+function table(headers, rows, empty = 'Sin datos para este filtro.') {
+  return `<div class="cm-v518-table"><table><thead><tr>${headers.map((header) => `<th>${esc(header)}</th>`).join('')}</tr></thead><tbody>${rows.length ? rows.join('') : `<tr><td colspan="${headers.length}">${esc(empty)}</td></tr>`}</tbody></table></div>`;
+}
+
+function summaryPanel(tournaments, source) {
+  const matches = matchRows(tournaments);
+  const goals = matches.reduce((sum, row) => sum + Number(row.match.homeGoals || 0) + Number(row.match.awayGoals || 0), 0);
+  const teams = teamRows(tournaments, source);
+  const players = playerRows(tournaments, source).filter((row) => row.goals || row.assists);
