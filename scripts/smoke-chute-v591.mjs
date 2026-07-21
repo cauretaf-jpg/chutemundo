@@ -8,25 +8,28 @@ page.on('console', (message) => { if (message.type() === 'error') errors.push(me
 
 try {
   await page.goto('http://127.0.0.1:4173/', { waitUntil: 'domcontentloaded' });
-  await page.waitForFunction(() => window.ChuteMundoCore && window.ChuteV59);
+  await page.waitForFunction(() => window.ChuteMundoCore && window.ChuteV59 && window.ChuteV591 && window.ChuteV514UnifiedMatch);
   await page.evaluate(() => window.ChuteMundoCore.navigate('partidos'));
-  await page.waitForFunction(() => !document.getElementById('partidos').hidden && document.getElementById('cmV591LivePanel') && document.querySelector('#matchesList .cm-v591-live-access'));
+  await page.waitForFunction(() => !document.getElementById('partidos').hidden && document.getElementById('cmV591LivePanel') && document.querySelector('[data-cm-v52-open-match]'));
   const result = await page.evaluate(() => {
-    const button = document.querySelector('#matchesList .cm-v591-live-access');
+    const legacyButton = document.querySelector('#matchesList .cm-v591-live-access');
+    const unifiedButton = document.querySelector('[data-cm-v52-open-match]');
+    const panel = document.getElementById('cmV591LivePanel');
     return {
       version: window.ChuteV591?.version || 'ui',
-      panel: document.getElementById('cmV591LivePanel')?.textContent || '',
-      buttons: document.querySelectorAll('#matchesList .cm-v591-live-access').length,
-      visible: button ? getComputedStyle(button).display !== 'none' : false,
-      locked: Boolean(button?.classList.contains('is-locked')),
+      legacyPanelExists: Boolean(panel),
+      legacyPanelHidden: panel ? getComputedStyle(panel).display === 'none' : true,
+      legacyButtons: document.querySelectorAll('#matchesList .cm-v591-live-access').length,
+      legacyButtonHidden: legacyButton ? getComputedStyle(legacyButton).display === 'none' : true,
+      unifiedText: unifiedButton?.textContent.trim() || '',
       width: document.documentElement.scrollWidth,
       viewport: document.documentElement.clientWidth
     };
   });
-  if (!result.panel.includes('Modo partido') || result.buttons < 1 || !result.visible || !result.locked || result.width > result.viewport + 3) throw new Error(JSON.stringify(result));
+  if (!result.legacyPanelExists || !result.legacyPanelHidden || !result.legacyButtonHidden || result.unifiedText !== 'Ver partido' || result.width > result.viewport + 3) throw new Error(JSON.stringify(result));
   const critical = errors.filter((message) => !/favicon|firestore|permission-denied|Failed to load resource|QUIC_NETWORK|ERR_NAME_NOT_RESOLVED|ERR_CONNECTION/i.test(message));
   if (critical.length) throw new Error(critical.join(' | '));
-  console.log('Chute Mundo v5.9.1 smoke OK', result);
+  console.log('Chute Mundo v5.9.1 regression smoke OK', result);
 } finally {
   await browser.close();
 }
