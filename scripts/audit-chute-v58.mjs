@@ -18,7 +18,7 @@ const failures = [];
 const notes = [];
 const requireCheck = (condition, message) => { if (!condition) failures.push(message); };
 
-requireCheck(packageJson.version === '5.16.0', 'package.json no esta en v5.16.0.');
+requireCheck(packageJson.version === '5.16.1', 'package.json no esta en v5.16.1.');
 requireCheck(detail.indexOf('chute-runtime-v58.mjs') < detail.indexOf('chute-mutation-guard.mjs'), 'El runtime optimizado debe cargarse antes de los modulos periodicos.');
 requireCheck(!detail.includes('chute-v56-card-metadata.mjs'), 'El parche redundante de metadatos sigue importandose.');
 requireCheck(detail.includes('function loadStatistics()'), 'No existe carga diferida del centro estadistico.');
@@ -26,7 +26,7 @@ requireCheck(detail.includes('chute-v58-analysis.mjs'), 'No se carga el analisis
 requireCheck(detail.includes('[data-cm-mobile-page="estadisticas"]'), 'La navegacion movil no activa la carga estadistica.');
 requireCheck(detail.includes('cm-v581-bracket-tabs'), 'No existe la navegacion movil por etapas de la llave.');
 requireCheck(detail.includes('MutationObserver(() => {\n    if (!statisticsPage.hidden)'), 'No existe respaldo automatico al mostrar Estadisticas.');
-requireCheck(official.includes("chute-official-loader.mjs?v=5.16.0"), 'No se invalida la cache del sistema principal v5.16.');
+requireCheck(official.includes("chute-official-loader.mjs?v=5.16.0"), 'No se conserva el cargador principal estable v5.16.');
 requireCheck(loader.includes("prefix: 'chute-official-part', count: 6, version: '5.16.0'"), 'El cargador principal no solicita las partes v5.16.');
 requireCheck(mainPart.includes('const converted = {\n    ...source,'), 'El normalizador sigue descartando campos extendidos del partido.');
 requireCheck(mainPart.includes('specialEvents: Array.isArray(source.specialEvents)') && mainPart.includes("lineups: source.lineups && typeof source.lineups === 'object'"), 'El normalizador no conserva eventos especiales o alineaciones.');
@@ -37,14 +37,14 @@ requireCheck(official.includes('chute-v512-integrity.mjs'), 'No se carga el modu
 requireCheck(official.includes('chute-v513-lineups.mjs?v=5.13.0'), 'No se carga el modulo de planteles y alineaciones v5.13.');
 requireCheck(official.includes('chute-v514-unified-match.mjs?v=5.14.0'), 'No se carga el centro de partido unificado v5.14.');
 requireCheck(official.includes('chute-v515-match-center.mjs?v=5.15.0'), 'No se carga la mejora visual v5.15.');
-requireCheck(official.includes('chute-v516-events-stats.mjs?v=5.16.0'), 'No se carga eventos y estadisticas v5.16.');
+requireCheck(official.includes('chute-v516-events-stats.mjs?v=5.16.0'), 'No se carga la capa estable de eventos v5.16.');
 requireCheck(official.indexOf('chute-v513-lineups.mjs') < official.indexOf('chute-v514-unified-match.mjs') && official.indexOf('chute-v514-unified-match.mjs') < official.indexOf('chute-v515-match-center.mjs') && official.indexOf('chute-v515-match-center.mjs') < official.indexOf('chute-v516-events-stats.mjs'), 'El orden de capas del centro de partido es incorrecto.');
 requireCheck(lineups.includes("const VERSION = '5.13.0'"), 'El modulo de alineaciones no declara v5.13.0.');
 requireCheck(lineups.includes("'Davis Bronson', 'MED', 45") && lineups.includes("'Jackie Sánchez', 'MED', 45"), 'Las posiciones oficiales corregidas no estan presentes.');
 requireCheck(unified.includes('eligiblePlayers') && !unified.includes('usedPlayers(lineup)'), 'El reingreso de jugadores no se conserva.');
 requireCheck(polished.includes('syncSubstitutionEvents') && polished.includes("kind: 'substitution'"), 'Los cambios no se guardan como eventos oficiales.');
-requireCheck(v516Loader.includes("prefix: 'chute-v516-events-stats-part'") && v516Loader.includes('count: 12'), 'El cargador v5.16 no solicita sus 12 partes.');
-requireCheck(v516.includes("const VERSION = '5.16.0'"), 'El modulo funcional no declara v5.16.0.');
+requireCheck(v516Loader.includes("prefix: 'chute-v516-events-stats-part'") && v516Loader.includes('count: 12') && v516Loader.includes("version: '5.16.1'"), 'El cargador v5.16.1 no solicita sus 12 partes actualizadas.');
+requireCheck(v516.includes("const VERSION = '5.16.1'"), 'El modulo funcional no declara v5.16.1.');
 requireCheck(v516.includes('data-cm-v516-goal-minute') && v516.includes('data-cm-v516-card-minute') && v516.includes('data-cm-v516-sub-minute'), 'Faltan minutos independientes por evento.');
 requireCheck(v516.includes('groupedPlayerOptions') && v516.includes('EN CANCHA') && v516.includes('selección flexible'), 'La seleccion de jugadores no distingue quienes estan en cancha.');
 requireCheck(v516.includes("const DEFAULT_VENUES = [\"Wladi's House\", \"Carlo's House\"]") && v516.includes('data-cm-v516-add-venue'), 'Faltan las sedes oficiales o la creacion de nuevas sedes.');
@@ -52,6 +52,8 @@ requireCheck(v516.includes('penaltyShootout') && v516.includes('shootoutStarted'
 requireCheck(v516.includes('function playerStats') && v516.includes('goalsConcededAverage') && v516.includes('cleanSheets'), 'Faltan estadisticas de jugadores o porteros.');
 requireCheck(v516.includes("item.textContent.includes('Titularidades')") && v516.includes('item.remove()'), 'No se elimina Titularidades del perfil.');
 requireCheck(v516.includes('data-cm-v516-undo') && v516.includes('undoLatestEvent'), 'La correccion unificada de eventos no esta instalada.');
+requireCheck(v516.includes('context.match.participationTracked = true'), 'Los eventos nuevos no marcan la participacion como registrada.');
+requireCheck(v516.includes('if (!row.match.participationTracked) continue;'), 'Las alineaciones historicas automaticas siguen contando como participacion real.');
 
 async function walk(directory) {
   const result = [];
@@ -85,9 +87,9 @@ const duplicates = [...imports, ...officialImports].filter((item, index, list) =
 requireCheck(duplicates.length === 0, `Importaciones duplicadas: ${duplicates.join(', ')}`);
 
 if (failures.length) {
-  console.error('Auditoria v5.16.0 fallida:');
+  console.error('Auditoria v5.16.1 fallida:');
   failures.forEach((failure) => console.error(`- ${failure}`));
   process.exit(1);
 }
-console.log('Auditoria v5.16.0 OK');
+console.log('Auditoria v5.16.1 OK');
 notes.forEach((note) => console.log(`- ${note}`));
