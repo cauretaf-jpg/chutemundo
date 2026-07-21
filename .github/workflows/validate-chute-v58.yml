@@ -1,4 +1,4 @@
-name: Validate Chute Mundo v5.16.3
+name: Validate Chute Mundo v5.17
 
 on:
   pull_request:
@@ -30,6 +30,7 @@ jobs:
           node --check public/chute-v515-match-center.mjs
           node --check public/chute-v516-events-stats.mjs
           node --check public/chute-v5162-playoff-seeding.mjs
+          node --check public/chute-v517-finalization.mjs
           node --check public/sw.js
           node --check scripts/smoke-chute-v512.mjs
           node --check scripts/smoke-chute-v5121.mjs
@@ -38,7 +39,10 @@ jobs:
           node --check scripts/smoke-chute-v515.mjs
           node --check scripts/smoke-chute-v516.mjs
           node --check scripts/smoke-chute-v5162.mjs
+          node --check scripts/smoke-chute-v517.mjs
           node scripts/check-chute-v516.mjs 2>&1 | tee /tmp/chute-v516-syntax.log
+          cat public/chute-v517-finalization-part-*.txt > /tmp/chute-v517-concatenated.mjs
+          node --check /tmp/chute-v517-concatenated.mjs 2>&1 | tee /tmp/chute-v517-syntax.log
           node scripts/audit-chute-v58.mjs
       - name: Validate required files
         run: |
@@ -63,18 +67,23 @@ jobs:
           test -s public/chute-v516-events-stats.mjs
           test -s public/chute-v516-events-stats.css
           test -s public/chute-v5162-playoff-seeding.mjs
+          test -s public/chute-v517-finalization.mjs
+          test -s public/chute-v517-finalization.css
           for index in $(seq -w 0 11); do test -s "public/chute-v516-events-stats-part-${index}.txt"; done
+          for index in $(seq -w 0 7); do test -s "public/chute-v517-finalization-part-${index}.txt"; done
           test -s scripts/check-chute-v516.mjs
           test -s scripts/smoke-chute-v513.mjs
           test -s scripts/smoke-chute-v514.mjs
           test -s scripts/smoke-chute-v515.mjs
           test -s scripts/smoke-chute-v516.mjs
           test -s scripts/smoke-chute-v5162.mjs
+          test -s scripts/smoke-chute-v517.mjs
           grep -q "playerKey" public/chute-v511-core.mjs
           grep -q "leaguePodium" public/chute-v511-tournaments.mjs
           grep -q "compactBackups" public/chute-v5121-backup-fix.mjs
           grep -q "chute-v516-events-stats.mjs" public/chute-official.mjs
           grep -q "chute-v5162-playoff-seeding.mjs?v=5.16.3" public/chute-official.mjs
+          grep -q "chute-v517-finalization.mjs?v=5.17.0" public/chute-official.mjs
           grep -q "TABLE_1.*TABLE_4" public/chute-v5162-playoff-seeding.mjs
           grep -q "TABLE_2.*TABLE_3" public/chute-v5162-playoff-seeding.mjs
           grep -q "restoreEnhancedTournamentUi" public/chute-v5162-playoff-seeding.mjs
@@ -83,6 +92,12 @@ jobs:
           grep -q "chute-v516-events-stats-part" public/chute-v516-events-stats.mjs
           grep -q "data-cm-v516-goal-minute" public/chute-v516-events-stats-part-00.txt public/chute-v516-events-stats-part-01.txt public/chute-v516-events-stats-part-02.txt
           grep -q "penaltyShootout" public/chute-v516-events-stats-part-01.txt public/chute-v516-events-stats-part-02.txt public/chute-v516-events-stats-part-03.txt public/chute-v516-events-stats-part-04.txt
+          grep -q "chute-v517-finalization-part" public/chute-v517-finalization.mjs
+          grep -q "function computeAwards" public/chute-v517-finalization-part-*.txt
+          grep -q "data-cm-v517-awards-panel" public/chute-v517-finalization-part-*.txt
+          grep -q "data-cm-v517-penalty-for" public/chute-v517-finalization-part-*.txt
+          grep -q "function qualityIssues" public/chute-v517-finalization-part-*.txt
+          grep -q "data-cm-v517-confirm-finish" public/chute-v517-finalization-part-*.txt
           grep -q '"display":"standalone"' public/manifest.webmanifest
           test ! -e public/chute-v56-card-metadata.mjs
       - name: Install browser
@@ -93,6 +108,7 @@ jobs:
         run: |
           npx serve public -l 4173 --no-clipboard > /tmp/chute-server.log 2>&1 &
           sleep 3
+          node scripts/smoke-chute-v517.mjs > /tmp/chute-smoke-v517.log 2>&1
           node scripts/smoke-chute-v5162.mjs > /tmp/chute-smoke-v5162.log 2>&1
           node scripts/smoke-chute-v58.mjs > /tmp/chute-smoke-v58.log 2>&1
           node scripts/smoke-chute-v59.mjs > /tmp/chute-smoke-v59.log 2>&1
@@ -108,9 +124,10 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: chute-v5-16-3-diagnostics
+          name: chute-v5-17-diagnostics
           path: |
             /tmp/chute-v516-syntax.log
+            /tmp/chute-v517-syntax.log
             /tmp/chute-smoke-v58.log
             /tmp/chute-smoke-v59.log
             /tmp/chute-smoke-v591.log
@@ -122,5 +139,6 @@ jobs:
             /tmp/chute-smoke-v515.log
             /tmp/chute-smoke-v516.log
             /tmp/chute-smoke-v5162.log
+            /tmp/chute-smoke-v517.log
             /tmp/chute-server.log
           retention-days: 3
