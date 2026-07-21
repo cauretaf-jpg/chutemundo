@@ -88,7 +88,7 @@ try {
     text: document.querySelector('.cm-v517-quality-modal')?.textContent || ''
   }));
   if (!quality.confirm || quality.blocks !== 0 || !/Revisión antes de finalizar/.test(quality.text)) throw new Error(`Control de calidad incompleto: ${JSON.stringify(quality)}`);
-  await page.locator('[data-close-modal]').click();
+  await page.getByRole('button', { name: 'Volver' }).click();
 
   await page.locator('[data-cm-tournament-tab="table"]:visible').click();
   await page.waitForSelector('[data-cm-tournament-panel="table"].active');
