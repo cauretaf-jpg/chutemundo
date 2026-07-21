@@ -42,7 +42,11 @@ try {
 
   await page.waitForSelector('.cm-v59-live.cm-v515-match-center');
   await page.waitForSelector('#cmV513Lineups.cm-v515-lineups');
-  await page.selectOption('#cmV59Minute', '45');
+  await page.evaluate(() => {
+    const minute = document.getElementById('cmV59Minute');
+    minute.value = '45';
+    minute.dispatchEvent(new Event('change', { bubbles: true }));
+  });
   await page.waitForFunction(() => document.querySelector('[data-cm-v515-substitute], [data-cm-v516-substitute]') && !document.querySelector('[data-cm-v514-substitute]'));
 
   const side = await page.evaluate(() => {
