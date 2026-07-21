@@ -93,6 +93,7 @@ jobs:
         run: |
           npx serve public -l 4173 --no-clipboard > /tmp/chute-server.log 2>&1 &
           sleep 3
+          node scripts/smoke-chute-v5162.mjs > /tmp/chute-smoke-v5162.log 2>&1
           node scripts/smoke-chute-v58.mjs > /tmp/chute-smoke-v58.log 2>&1
           node scripts/smoke-chute-v59.mjs > /tmp/chute-smoke-v59.log 2>&1
           node scripts/smoke-chute-v591.mjs > /tmp/chute-smoke-v591.log 2>&1
@@ -103,7 +104,6 @@ jobs:
           node scripts/smoke-chute-v514.mjs > /tmp/chute-smoke-v514.log 2>&1
           node scripts/smoke-chute-v515.mjs > /tmp/chute-smoke-v515.log 2>&1
           node scripts/smoke-chute-v516.mjs > /tmp/chute-smoke-v516.log 2>&1
-          node scripts/smoke-chute-v5162.mjs > /tmp/chute-smoke-v5162.log 2>&1
       - name: Upload diagnostics
         if: always()
         uses: actions/upload-artifact@v4
