@@ -68,7 +68,7 @@ async function applyRepair() {
   try {
     originalSetState(repaired.state);
     const signature = JSON.stringify((repaired.state.tournaments || []).filter((tournament) => tournament.type === 'league_playoff').map((tournament) => [tournament.id, (tournament.matches || []).filter((match) => playoffTemplate(match)).map((match) => [match.id, match.homeRef, match.awayRef, match.home, match.away])]));
-    if (core.canEdit() && signature !== lastSavedSignature) {
+    if (core.canEdit() && core.cloudLoaded && signature !== lastSavedSignature) {
       lastSavedSignature = signature;
       await core.saveCloud();
     }
