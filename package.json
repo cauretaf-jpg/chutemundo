@@ -1,15 +1,1 @@
-{
-  "name": "chutemundo",
-  "version": "5.12.0",
-  "private": true,
-  "description": "Plataforma deportiva instalable con fixture, tarjetas, buscador, respaldos, control de calidad y premios.",
-  "scripts": {
-    "dev": "npx serve . -l 5173",
-    "build": "node -e \"console.log('Chute Mundo es una app estatica: no requiere build.')\"",
-    "preview": "npx serve . -l 4173",
-    "check:official": "node scripts/check-chute-v58.mjs"
-  },
-  "devDependencies": {
-    "serve": "^14.2.4"
-  }
-}
+{"name":"chutemundo","version":"5.12.1","private":true,"description":"Plataforma deportiva instalable con fixture, tarjetas, buscador, respaldos, control de calidad y premios.","scripts":{"dev":"npx serve . -l 5173","build":"node -e \"console.log('Chute Mundo es una app estatica: no requiere build.')\"","preview":"npx serve . -l 4173","check:official":"node scripts/check-chute-v58.mjs"},"devDependencies":{"serve":"^14.2.4"}}

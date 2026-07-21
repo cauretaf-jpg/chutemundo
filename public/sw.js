@@ -1,10 +1,10 @@
-const CACHE = 'chute-mundo-v5.11.0';
-const CORE = ['/', '/index.html', '/chute-official.css?v=5.6.0', '/chute-official.mjs?v=5.11.0', '/manifest.webmanifest', '/chute-icon.svg', '/chute-icon-maskable.svg'];
+const CACHE = 'chute-mundo-v5.12.1';
+const CORE = ['/', '/index.html', '/chute-official.css?v=5.6.0', '/chute-official.mjs?v=5.12.1', '/manifest.webmanifest', '/chute-icon.svg', '/chute-icon-maskable.svg'];
 self.addEventListener('install', (event) => {
   event.waitUntil(caches.open(CACHE).then((cache) => cache.addAll(CORE)).then(() => self.skipWaiting()));
 });
 self.addEventListener('activate', (event) => {
-  event.waitUntil(caches.keys().then((keys) => Promise.all(keys.filter((key) => key !== CACHE).map((key) => caches.delete(key)))).then(() => self.clients.claim()));
+  event.waitUntil(caches.keys().then((keys) => Promise.all(keys.filter((key) => key !== CACHE).map((key) => caches.delete(key)))));
 });
 self.addEventListener('message', (event) => {
   if (event.data?.type === 'SKIP_WAITING') self.skipWaiting();
