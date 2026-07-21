@@ -55,9 +55,14 @@ function repairState(source) {
 let uiRefreshToken = 0;
 function restoreEnhancedTournamentUi() {
   const token = ++uiRefreshToken;
+  const tournamentId = document.getElementById('cmTournamentHub')?.dataset.tournamentId || '';
+  const activeTab = document.querySelector('#cmTournamentHub [data-cm-tournament-tab].active')?.dataset.cmTournamentTab || '';
   const refresh = () => {
     if (token !== uiRefreshToken) return;
     window.ChuteTournamentHub?.refresh?.();
+    if (activeTab && document.getElementById('cmTournamentHub')?.dataset.tournamentId === tournamentId) {
+      window.ChuteTournamentHub?.switchTab?.(activeTab);
+    }
     window.ChuteV511Tournaments?.refresh?.();
     window.ChuteMobileV581?.refresh?.();
     window.ChuteV514UnifiedMatch?.decorateEntryButtons?.();
@@ -84,10 +89,7 @@ let lastSavedSignature = '';
 async function applyRepair() {
   if (applying) return false;
   const repaired = repairState(core.getState());
-  if (!repaired.changed) {
-    restoreEnhancedTournamentUi();
-    return false;
-  }
+  if (!repaired.changed) return false;
   applying = true;
   try {
     originalSetState(repaired.state);
