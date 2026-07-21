@@ -98,7 +98,7 @@ try {
   });
 
   const readable = visual.background === 'rgb(245, 250, 247)' && visual.color === 'rgb(16, 32, 25)';
-  if (!/5\.(15|16)/.test(visual.title) || !readable || visual.playerCards < 8 || !visual.eventText.includes('ENTRA') || !visual.eventText.includes('SALE') || !visual.timelineCount.includes('evento') || !visual.persistedEvent || !visual.persistedChange || !visual.undoEnabled || visual.button !== 'Confirmar cambio' || visual.width > visual.viewport + 3) {
+  if (!/5\.(15|16|17)/.test(visual.title) || !readable || visual.playerCards < 8 || !visual.eventText.includes('ENTRA') || !visual.eventText.includes('SALE') || !visual.timelineCount.includes('evento') || !visual.persistedEvent || !visual.persistedChange || !visual.undoEnabled || visual.button !== 'Confirmar cambio' || visual.width > visual.viewport + 3) {
     throw new Error(`Centro de partido v5.15 inválido: ${JSON.stringify(visual)}`);
   }
 
