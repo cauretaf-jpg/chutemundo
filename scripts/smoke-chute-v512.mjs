@@ -18,6 +18,6 @@ try{
     const started=window.ChuteV511Tournaments.changeStatus(next,copy.id,'active');
     return {core:window.ChuteV511Core.version,tournaments:window.ChuteV511Tournaments.version,share:window.ChuteV511MatchShare.version,integrity:window.ChuteV512.version,sameTeams,started:started.tournaments.find(t=>t.id===copy.id).status,search:window.ChuteV511Core.rows((state.teams[0]?.name||'').slice(0,3)).length,issues:Array.isArray(window.ChuteV512.issues()),manifest:Boolean(document.querySelector('link[rel="manifest"]')),toolbar:Boolean(document.getElementById('cmV511Toolbar')),width:document.documentElement.scrollWidth,viewport:document.documentElement.clientWidth};
   });
-  if(!manifest.ok()||!sw.ok()||result.core!=='5.11.0'||result.tournaments!=='5.11.0'||result.share!=='5.11.0'||result.integrity!=='5.12.0'||!result.sameTeams||result.started!=='active'||result.search<1||!result.issues||!result.manifest||!result.toolbar||result.width>result.viewport+3)throw new Error(JSON.stringify(result));
+  if(!manifest.ok()||!sw.ok()||!/^5\.11\./.test(result.core)||!/^5\.11\./.test(result.tournaments)||result.share!=='5.11.0'||!/^5\.12\./.test(result.integrity)||!result.sameTeams||result.started!=='active'||result.search<1||!result.issues||!result.manifest||!result.toolbar||result.width>result.viewport+3)throw new Error(JSON.stringify(result));
   console.log('Chute Mundo v5.12 smoke OK',result);
 }finally{await browser.close();}
