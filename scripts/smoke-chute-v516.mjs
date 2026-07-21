@@ -45,7 +45,10 @@ try {
     const starter = api.playerStats('a', 'Jugador A', source);
     const substitute = api.playerStats('a', 'Suplente A', source);
     const goalkeeper = api.playerStats('a', 'Arquero A', source);
-    const options = api.groupedPlayerOptions('a', source.tournaments[0].matches[0].lineups.home, 30);
+    const realState = window.ChuteMundoCore.getState();
+    const realTeam = realState.teams.find((team) => (team.players || []).length >= 5);
+    const realStarters = realTeam ? window.ChuteV513Lineups.defaultStarters(realTeam.id) : [];
+    const options = realTeam ? api.groupedPlayerOptions(realTeam.id, { starters: realStarters, changes: [] }, 0) : '';
     return { version: api.version, venues: api.venues(source), starter, substitute, goalkeeper, options };
   });
 
