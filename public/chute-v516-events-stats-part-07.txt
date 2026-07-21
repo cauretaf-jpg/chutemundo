@@ -1,5 +1,5 @@
 function allPlayerStats(source = core.getState()) {
-  return (source.teams || []).flatMap((team) => (team.players || []).map((entry) => ({ team, ...playerStats(team.id, playerName(entry), source })));
+  return (source.teams || []).flatMap((team) => (team.players || []).map((entry) => ({ team, ...playerStats(team.id, playerName(entry), source) })));
 }
 
 function decorateStatsPage() {
