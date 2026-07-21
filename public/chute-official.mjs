@@ -17,3 +17,4 @@ await import('/chute-v5121-search-fix.mjs?v=5.12.1');
 await import('/chute-v5121-backup-fix.mjs?v=5.12.1');
 await import('/chute-v513-lineups.mjs?v=5.13.0');
 await import('/chute-v514-unified-match.mjs?v=5.14.0');
+await import('/chute-v515-match-center.mjs?v=5.15.0');
