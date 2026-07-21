@@ -43,7 +43,7 @@ try {
   await page.waitForSelector('.cm-v59-live.cm-v515-match-center');
   await page.waitForSelector('#cmV513Lineups.cm-v515-lineups');
   await page.selectOption('#cmV59Minute', '45');
-  await page.waitForFunction(() => document.querySelector('[data-cm-v515-substitute]') && !document.querySelector('[data-cm-v514-substitute]'));
+  await page.waitForFunction(() => document.querySelector('[data-cm-v515-substitute], [data-cm-v516-substitute]') && !document.querySelector('[data-cm-v514-substitute]'));
 
   const side = await page.evaluate(() => {
     for (const value of ['home', 'away']) {
@@ -65,13 +65,13 @@ try {
   await page.waitForSelector('.cm-v59-live.cm-v515-match-center');
   await page.waitForSelector('#cmV513Lineups.cm-v515-lineups');
   await page.waitForSelector('.cm-v515-timeline-event.is-substitution');
-  await page.waitForFunction(() => document.querySelector('[data-cm-v515-substitute]') && !document.querySelector('[data-cm-v514-substitute]'));
+  await page.waitForFunction(() => document.querySelector('[data-cm-v515-substitute], [data-cm-v516-substitute]') && !document.querySelector('[data-cm-v514-substitute]'));
 
   const visual = await page.evaluate(() => {
     const lineup = document.getElementById('cmV513Lineups');
     const style = getComputedStyle(lineup);
     const event = document.querySelector('.cm-v515-timeline-event.is-substitution');
-    const undo = document.querySelector('[data-cm-v59-undo]');
+    const undo = document.querySelector('[data-cm-v59-undo], [data-cm-v516-undo]');
     const live = document.querySelector('[data-cm-v59-live-pair]');
     const [tournamentId, matchId] = String(live?.dataset.cmV59LivePair || '').split('__');
     const tournament = window.ChuteMundoCore.getState().tournaments.find((item) => item.id === tournamentId);
@@ -87,20 +87,20 @@ try {
       persistedEvent: (match?.specialEvents || []).some((item) => item.kind === 'substitution' && item.playerIn && item.playerOut),
       persistedChange: ['home', 'away'].some((value) => (match?.lineups?.[value]?.changes || []).length > 0),
       undoEnabled: Boolean(undo && !undo.disabled),
-      button: document.querySelector('[data-cm-v515-substitute]')?.textContent.trim(),
+      button: document.querySelector('[data-cm-v515-substitute], [data-cm-v516-substitute]')?.textContent.trim(),
       width: document.documentElement.scrollWidth,
       viewport: document.documentElement.clientWidth
     };
   });
 
   const readable = visual.background === 'rgb(245, 250, 247)' && visual.color === 'rgb(16, 32, 25)';
-  if (!visual.title.includes('5.15') || !readable || visual.playerCards < 8 || !visual.eventText.includes('ENTRA') || !visual.eventText.includes('SALE') || !visual.timelineCount.includes('evento') || !visual.persistedEvent || !visual.persistedChange || !visual.undoEnabled || visual.button !== 'Confirmar cambio' || visual.width > visual.viewport + 3) {
+  if (!/5\.(15|16)/.test(visual.title) || !readable || visual.playerCards < 8 || !visual.eventText.includes('ENTRA') || !visual.eventText.includes('SALE') || !visual.timelineCount.includes('evento') || !visual.persistedEvent || !visual.persistedChange || !visual.undoEnabled || visual.button !== 'Confirmar cambio' || visual.width > visual.viewport + 3) {
     throw new Error(`Centro de partido v5.15 inválido: ${JSON.stringify(visual)}`);
   }
 
   const critical = errors.filter((message) => !/favicon|firestore|permission-denied|Failed to load resource|QUIC_NETWORK|ERR_NAME_NOT_RESOLVED|ERR_CONNECTION/i.test(message));
   if (critical.length) throw new Error(critical.join(' | '));
-  console.log('Chute Mundo v5.15 smoke OK', { pure, visual });
+  console.log('Chute Mundo v5.15 regression smoke OK', { pure, visual });
 } finally {
   await browser.close();
 }
