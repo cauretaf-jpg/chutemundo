@@ -1,3 +1,16 @@
+  const renderSignature = JSON.stringify([
+    selectedEra,
+    selectedTournament,
+    selectedTeam,
+    tournaments.map((tournament) => [
+      tournament.id, tournament.eraId, tournament.status, tournament.champion, tournament.runnerUp, tournament.third, tournament.coverage,
+      (tournament.matches || []).map((match) => [match.id, match.homeGoals, match.awayGoals, match.homePens, match.awayPens, (match.goals || []).length, (match.cards || []).length, match.participationTracked, match.lineups, match.penaltyShootout])
+    ]),
+    (source.teams || []).map((team) => [team.id, team.name, team.players]),
+    source.participants
+  ]);
+  if (host.dataset.signature === renderSignature) { activateTab(selectedTab); return; }
+  host.dataset.signature = renderSignature;
   const tournamentOptions = (source.tournaments || []).filter((tournament) => selectedEra === 'all' || tournament.eraId === selectedEra).map((tournament) => `<option value="${esc(tournament.id)}" ${selectedTournament === tournament.id ? 'selected' : ''}>${esc(tournament.name)}</option>`).join('');
   const teamOptions = (source.teams || []).map((team) => `<option value="${esc(team.id)}" ${selectedTeam === team.id ? 'selected' : ''}>${esc(team.name)}</option>`).join('');
   const tabs = [['summary','Resumen'],['teams','Equipos'],['players','Jugadores'],['keepers','Porteros'],['tournaments','Torneos'],['history','Historia']];
