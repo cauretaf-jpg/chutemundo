@@ -6,6 +6,17 @@ const errors = [];
 page.on('pageerror', (error) => errors.push(String(error)));
 page.on('console', (message) => { if (message.type() === 'error') errors.push(message.text()); });
 
+async function clickCurrent(selector) {
+  await page.waitForFunction((value) => [...document.querySelectorAll(value)].some((item) => item.getClientRects().length), selector);
+  const clicked = await page.evaluate((value) => {
+    const element = [...document.querySelectorAll(value)].find((item) => item.getClientRects().length);
+    if (!element) return false;
+    element.click();
+    return true;
+  }, selector);
+  if (!clicked) throw new Error(`No se pudo pulsar ${selector}.`);
+}
+
 try {
   await page.goto('http://127.0.0.1:4173/', { waitUntil: 'domcontentloaded' });
   await page.waitForFunction(() => window.ChuteV517Finalization && window.ChuteMundoCore && window.ChuteTournamentHub);
@@ -51,8 +62,7 @@ try {
   });
   if (setup.error) throw new Error(setup.error);
 
-  await page.waitForFunction((id) => [...document.querySelectorAll(`[data-open-tournament="${id}"]`)].some((item) => item.getClientRects().length), setup.tournamentId);
-  await page.locator(`[data-open-tournament="${setup.tournamentId}"]:visible`).first().click();
+  await clickCurrent(`[data-open-tournament="${setup.tournamentId}"]`);
   await page.waitForSelector(`#cmTournamentHub[data-tournament-id="${setup.tournamentId}"]`);
   await page.waitForSelector('[data-cm-v517-awards-tab]');
   await page.waitForSelector('[data-cm-v517-awards-panel]', { state: 'attached' });
@@ -63,13 +73,13 @@ try {
   });
   if (!initialAwards.hidden || initialAwards.display !== 'none' || initialAwards.rects !== 0) throw new Error(`Premios visibles sin abrir: ${JSON.stringify(initialAwards)}`);
 
-  await page.locator('[data-cm-tournament-tab="fixture"]:visible').click();
+  await clickCurrent('[data-cm-tournament-tab="fixture"]');
   await page.waitForSelector('[data-cm-tournament-panel="fixture"].active');
   await page.waitForFunction(() => document.querySelectorAll('.cm-v517-penalty-result').length > 0);
   const penaltyText = await page.locator('.cm-v517-penalty-result').first().textContent();
   if (!/Definido por penales/i.test(penaltyText) || !/4.*3/.test(penaltyText)) throw new Error(`Resultado por penales incompleto: ${penaltyText}`);
 
-  await page.locator('[data-cm-v517-awards-tab]:visible').click();
+  await clickCurrent('[data-cm-v517-awards-tab]');
   await page.waitForSelector('[data-cm-v517-awards-panel].active .cm-v517-awards-grid');
   const awards = await page.evaluate(() => ({
     cards: document.querySelectorAll('.cm-v517-award-card').length,
@@ -80,7 +90,7 @@ try {
   const automatic = ['scorer', 'assist', 'mvp', 'goalkeeper', 'revelation', 'finalMvp'];
   if (automatic.some((key) => !awards.computed.awards[key]?.playerName) || automatic.some((key) => !awards.computed.awards[key]?.reason)) throw new Error(`Premios sin estadísticas completas: ${JSON.stringify(awards.computed.awards)}`);
 
-  await page.locator('[data-cm-v517-quality]:visible').first().click();
+  await clickCurrent('[data-cm-v517-quality]');
   await page.waitForSelector('.cm-v517-quality-modal');
   const quality = await page.evaluate(() => ({
     confirm: Boolean(document.querySelector('[data-cm-v517-confirm-finish]')),
@@ -90,7 +100,7 @@ try {
   if (!quality.confirm || quality.blocks !== 0 || !/Revisión antes de finalizar/.test(quality.text)) throw new Error(`Control de calidad incompleto: ${JSON.stringify(quality)}`);
   await page.getByRole('button', { name: 'Volver' }).click();
 
-  await page.locator('[data-cm-tournament-tab="table"]:visible').click();
+  await clickCurrent('[data-cm-tournament-tab="table"]');
   await page.waitForSelector('[data-cm-tournament-panel="table"].active');
   const hiddenAgain = await page.evaluate(() => {
     const panel = document.querySelector('[data-cm-v517-awards-panel]');
@@ -100,9 +110,9 @@ try {
 
   const status = await page.evaluate((id) => window.ChuteMundoCore.getState().tournaments.find((item) => item.id === id)?.status, setup.tournamentId);
   if (status === 'active') {
-    await page.locator('[data-cm-v517-finish]:not([disabled])').click();
+    await clickCurrent('[data-cm-v517-finish]:not([disabled])');
     await page.waitForSelector('[data-cm-v517-confirm-finish]');
-    await page.locator('[data-cm-v517-confirm-finish]').click();
+    await clickCurrent('[data-cm-v517-confirm-finish]');
   }
   await page.waitForFunction((id) => {
     const tournament = window.ChuteMundoCore.getState().tournaments.find((item) => item.id === id);
