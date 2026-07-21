@@ -1,0 +1,45 @@
+
+function unifiedEvents(context) {
+  const base = window.ChuteV515MatchCenter?.unifiedEvents?.(context) || [];
+  const penalties = (context.match.penaltyShootout || []).map((item, index) => ({ ...item, kind: 'shootout_penalty', sort: 1000 + Number(item.order || index + 1) }));
+  return [...base.filter((item) => item.kind !== 'shootout_penalty'), ...penalties]
+    .sort((a, b) => Number(a.sort ?? minuteNumber(a.minute)) - Number(b.sort ?? minuteNumber(b.minute)) || Number(a.createdAt || 0) - Number(b.createdAt || 0));
+}
+
+function timelineMarkup(context, event) {
+  if (event.kind === 'shootout_penalty') return `<div class="cm-v515-timeline-event cm-v516-penalty-event ${event.result === 'scored' ? 'is-scored' : 'is-missed'}"><span class="cm-v515-event-minute">P${event.order}</span>${model.photo(event.teamId, event.playerName, 'cm-v515-event-face')}<div class="cm-v515-event-copy"><strong>${event.result === 'scored' ? '✅ Penal anotado' : '❌ Penal fallado'} · ${esc(event.playerName)}</strong><small>${esc(core.teamName(event.teamId))} · Tanda de Play-Off</small></div></div>`;
+  if (event.kind === 'substitution') return `<div class="cm-v515-timeline-event is-substitution"><span class="cm-v515-event-minute">${minuteLabel(event.minute)}</span><div class="cm-v515-sub-faces">${model.photo(event.teamId, event.playerOut, 'cm-v515-event-face')}<i>→</i>${model.photo(event.teamId, event.playerIn, 'cm-v515-event-face')}</div><div class="cm-v515-event-copy"><strong><span class="cm-v515-in">ENTRA</span> ${esc(event.playerIn)}</strong><small><span class="cm-v515-out">SALE</span> ${esc(event.playerOut)} · ${esc(core.teamName(event.teamId))}</small></div></div>`;
+  const teamId = event.teamId || (event.side === 'away' ? context.away : context.home);
+  if (event.kind === 'goal') return `<div class="cm-v515-timeline-event is-goal"><span class="cm-v515-event-minute">${minuteLabel(event.minute)}</span>${model.photo(teamId, event.playerName, 'cm-v515-event-face')}<div class="cm-v515-event-copy"><strong>⚽ ${esc(event.playerName)}</strong><small>${esc(core.teamName(teamId))}${event.assistName ? ` · Asistencia: ${esc(event.assistName)}` : ''}${event.lineupVerified === false ? ' · Selección flexible' : ''}</small></div></div>`;
+  if (event.kind === 'card') return `<div class="cm-v515-timeline-event is-card"><span class="cm-v515-event-minute">${minuteLabel(event.minute)}</span>${model.photo(teamId, event.playerName, 'cm-v515-event-face')}<div class="cm-v515-event-copy"><strong>${event.type === 'red' ? '🟥' : '🟨'} ${esc(event.playerName)}</strong><small>${esc(core.teamName(teamId))}${event.reason === 'double_yellow' ? ' · Doble amarilla' : ''}</small></div></div>`;
+  return '';
+}
+
+function renderTimeline(live, context) {
+  const timeline = live.querySelector('.cm-v59-live-timeline');
+  if (!timeline) return;
+  const events = unifiedEvents(context);
+  const signature = JSON.stringify(events.map((event) => [event.id, event.kind, event.minute, event.result, event.playerName, event.playerIn, event.playerOut]));
+  const penaltyCount = events.filter((event) => event.kind === 'shootout_penalty').length;
+  if (timeline.dataset.cmV516Timeline === signature && timeline.querySelectorAll('.cm-v516-penalty-event').length === penaltyCount) return;
+  timeline.dataset.cmV516Timeline = signature;
+  const header = timeline.querySelector(':scope > header');
+  header?.querySelector('.eyebrow')?.replaceChildren('EVENTOS OFICIALES');
+  header?.querySelector('h3')?.replaceChildren('Cronología del partido');
+  const count = header?.querySelector(':scope > span');
+  if (count) count.textContent = `${events.length} evento${events.length === 1 ? '' : 's'}`;
+  [...timeline.children].filter((child) => child !== header).forEach((child) => child.remove());
+  timeline.insertAdjacentHTML('beforeend', events.length ? `<div class="cm-v515-timeline-list">${events.map((event) => timelineMarkup(context, event)).join('')}</div>` : '<div class="cm-v59-live-empty">Todavía no hay eventos registrados.</div>');
+  const undo = live.querySelector('[data-cm-v59-undo]');
+  if (undo) undo.disabled = !events.length;
+}
+
+function matchRows(source = core.getState(), filterTournamentId = null) {
+  const official = (source.tournaments || []).flatMap((tournament) => (tournament.matches || []).map((match) => ({ tournamentId: tournament.id, tournamentName: tournament.name, tournament, match, home: match.home || core.resolveHome(tournament, match), away: match.away || core.resolveAway(tournament, match) })));
+  const friendlies = (source.friendlies || []).map((match) => ({ tournamentId: 'friendly', tournamentName: 'Amistosos', tournament: null, match, home: match.home, away: match.away }));
+  return [...official, ...friendlies].filter((row) => row.home && row.away && core.matchPlayed(row.match) && (!filterTournamentId || row.tournamentId === filterTournamentId));
+}
+
+function matchLength(match) {
+  if (match.shootoutStarted) return 120;
+  const minutes = [...(match.goals || []), ...(match.cards || []), ...(match.lineups?.home?.changes || []), ...(match.lineups?.away?.changes || [])].map((item) => minuteNumber(item.minute));
