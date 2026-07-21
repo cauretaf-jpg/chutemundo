@@ -1,0 +1,49 @@
+  const topScorer = [...players].sort((a, b) => b.goals - a.goals || b.assists - a.assists)[0];
+  const topAssist = [...players].sort((a, b) => b.assists - a.assists || b.goals - a.goals)[0];
+  const coverage = coverageSummary(tournaments);
+  const eraText = selectedEra === 'all' ? 'Toda la historia' : ERA_LABELS[selectedEra];
+  return `<section class="cm-v518-panel active" data-cm-v518-panel="summary">
+    <div class="cm-v518-metrics">
+      ${metric(tournaments.length, 'Torneos', eraText)}
+      ${metric(matches.length, 'Partidos jugados')}
+      ${metric(goals, 'Goles', matches.length ? `${(goals / matches.length).toFixed(2)} por partido` : '')}
+      ${metric(teams[0] ? teamName(teams[0].teamId) : '—', 'Más títulos', teams[0] ? `${teams[0].titles} campeonato${teams[0].titles === 1 ? '' : 's'}` : '')}
+      ${metric(topScorer?.name || '—', 'Goleador registrado', topScorer ? `${topScorer.goals} goles` : '')}
+      ${metric(topAssist?.name || '—', 'Asistidor registrado', topAssist ? `${topAssist.assists} asistencias` : '')}
+    </div>
+    <article class="cm-v518-card cm-v518-coverage-card">
+      <header><div><p class="eyebrow">CALIDAD DE DATOS</p><h2>Cobertura del periodo</h2></div><strong>${coverage.detailed}/${coverage.played}</strong></header>
+      <p>Los resultados de equipos abarcan todos los partidos registrados. Goles y asistencias históricas muestran únicamente los torneos que conservaron esos datos. Participaciones, minutos y métricas avanzadas comienzan en la Era de divisiones.</p>
+      <div class="cm-v518-coverage-grid">
+        ${coverageChip(coverage.played ? 'complete' : 'none', 'Resultados')}
+        ${coverageChip(coverage.scorerComplete === coverage.tournaments && coverage.tournaments ? 'complete' : coverage.scorerComplete || coverage.scorerPartial ? 'partial' : 'none', 'Goleadores')}
+        ${coverageChip(coverage.detailed === coverage.played && coverage.played ? 'complete' : coverage.detailed ? 'partial' : 'none', 'Participación')}
+      </div>
+    </article>
+    <div class="cm-v518-two">
+      <article class="cm-v518-card"><p class="eyebrow">CRITERIO HISTÓRICO</p><h2>Resultados reglamentarios</h2><p>PG, PE y PP se calculan con el marcador de 90 o 120 minutos. Las series ganadas por penales se muestran por separado y no convierten el empate reglamentario en victoria.</p></article>
+      <article class="cm-v518-card"><p class="eyebrow">PUNTO DE CORTE</p><h2>${esc(CUTOFF_NAME)}</h2><p>Es el último torneo de la Era de ligas. El torneo siguiente inicia la Era de divisiones y su registro estadístico completo.</p></article>
+    </div>
+  </section>`;
+}
+
+function teamsPanel(tournaments, source) {
+  const rows = teamRows(tournaments, source).filter((row) => selectedTeam === 'all' || row.teamId === selectedTeam);
+  const markup = rows.map((row, index) => `<tr data-cm-v518-team="${esc(row.teamId)}"><td>${index + 1}</td><td><button class="cm-v518-link" data-cm-v518-open-team="${esc(row.teamId)}">${esc(teamName(row.teamId))}</button></td><td>${row.titles}</td><td>${row.runners}</td><td>${row.thirds}</td><td>${row.pj}</td><td>${row.pg}</td><td>${row.pe}</td><td>${row.pp}</td><td>${row.penWins}</td><td>${row.gf}</td><td>${row.gc}</td><td>${row.dg > 0 ? '+' : ''}${row.dg}</td><td>${formatPct(row.performance)}</td></tr>`);
+  return `<section class="cm-v518-panel" data-cm-v518-panel="teams"><article class="cm-v518-card"><header><div><p class="eyebrow">EQUIPOS</p><h2>Rendimiento histórico</h2></div></header>${table(['#','Equipo','Títulos','Subc.','3.º','PJ','PG','PE','PP','Pen.','GF','GC','DG','Rend.'], markup)}</article></section>`;
+}
+
+function playersPanel(tournaments, source) {
+  const rows = playerRows(tournaments, source).filter((row) => !row.goalkeeper && (row.goals || row.assists || row.appearances || row.minutes)).sort((a, b) => b.goals + b.assists - (a.goals + a.assists) || b.goals - a.goals || b.minutes - a.minutes);
+  const modernAvailable = selectedEra !== ERA_LEAGUES;
+  const markup = rows.map((row, index) => `<tr><td>${index + 1}</td><td><button class="cm-v518-link" data-cm-v518-open-player="${esc(row.teamId)}__${encodeURIComponent(row.name)}">${esc(row.name)}</button><small>${esc(row.team?.name || teamName(row.teamId))}</small></td><td>${row.goals}</td><td>${row.assists}</td><td><b>${row.goals + row.assists}</b></td><td>${modernAvailable ? row.appearances : '—'}</td><td>${modernAvailable ? row.minutes : '—'}</td><td>${modernAvailable ? row.entries : '—'}</td><td>${modernAvailable ? row.substituted : '—'}</td><td>${modernAvailable ? `${row.yellows}/${row.reds}` : '—'}</td></tr>`);
+  return `<section class="cm-v518-panel" data-cm-v518-panel="players">
+    <article class="cm-v518-card"><header><div><p class="eyebrow">JUGADORES</p><h2>Producción y participación</h2></div><span class="cm-v518-badge">${modernAvailable ? 'Métricas modernas: Era de divisiones' : 'Registros históricos disponibles'}</span></header>
+    <p class="cm-v518-note">Goles y asistencias corresponden a registros disponibles. PJ, minutos, ingresos, salidas y disciplina solo se comparan desde la Era de divisiones.</p>
+    ${table(['#','Jugador','Goles reg.','Asist. reg.','G+A','PJ*','Min.*','Entró*','Salió*','A/R*'], markup, 'No existen registros individuales para este periodo.')}</article>
+  </section>`;
+}
+
+function keepersPanel(tournaments, source) {
+  const rows = playerRows(tournaments, source).filter((row) => row.goalkeeper && row.appearances).sort((a, b) => b.cleanSheets - a.cleanSheets || Number(a.goalsConcededAverage) - Number(b.goalsConcededAverage));
+  const markup = rows.map((row, index) => `<tr><td>${index + 1}</td><td><button class="cm-v518-link" data-cm-v518-open-player="${esc(row.teamId)}__${encodeURIComponent(row.name)}">${esc(row.name)}</button><small>${esc(row.team?.name || teamName(row.teamId))}</small></td><td>${row.appearances}</td><td>${row.goalsConceded}</td><td>${row.goalsConcededAverage}</td><td>${row.cleanSheets}</td><td>${row.wins}-${row.draws}-${row.losses}</td><td>${row.penaltiesScored}/${row.penaltyAttempts}</td></tr>`);
