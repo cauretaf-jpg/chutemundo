@@ -1,4 +1,4 @@
-const CACHE = 'chute-mundo-v5.16.2';
+const CACHE = 'chute-mundo-v5.16.3';
 const CORE = [
   '/', '/index.html',
   '/chute-official.css?v=5.16.0', '/chute-official.mjs?v=5.16.2', '/chute-official-loader.mjs?v=5.16.0',
@@ -7,7 +7,7 @@ const CORE = [
   '/chute-v515-match-center.mjs?v=5.15.0', '/chute-v515-match-center.css?v=5.15.0',
   '/chute-v516-events-stats.mjs?v=5.16.1', '/chute-v516-events-stats.css?v=5.16.1',
   ...Array.from({ length: 12 }, (_, index) => `/chute-v516-events-stats-part-${String(index).padStart(2, '0')}.txt?v=5.16.1`),
-  '/chute-v5162-playoff-seeding.mjs?v=5.16.2',
+  '/chute-v5162-playoff-seeding.mjs?v=5.16.3',
   '/manifest.webmanifest', '/chute-icon.svg', '/chute-icon-maskable.svg'
 ];
 self.addEventListener('install', (event) => {

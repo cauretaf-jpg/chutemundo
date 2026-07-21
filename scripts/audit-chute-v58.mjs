@@ -19,7 +19,7 @@ const failures = [];
 const notes = [];
 const requireCheck = (condition, message) => { if (!condition) failures.push(message); };
 
-requireCheck(packageJson.version === '5.16.2', 'package.json no esta en v5.16.2.');
+requireCheck(packageJson.version === '5.16.3', 'package.json no esta en v5.16.3.');
 requireCheck(detail.indexOf('chute-runtime-v58.mjs') < detail.indexOf('chute-mutation-guard.mjs'), 'El runtime optimizado debe cargarse antes de los modulos periodicos.');
 requireCheck(!detail.includes('chute-v56-card-metadata.mjs'), 'El parche redundante de metadatos sigue importandose.');
 requireCheck(detail.includes('function loadStatistics()'), 'No existe carga diferida del centro estadistico.');
@@ -39,7 +39,7 @@ requireCheck(official.includes('chute-v513-lineups.mjs?v=5.13.0'), 'No se carga 
 requireCheck(official.includes('chute-v514-unified-match.mjs?v=5.14.0'), 'No se carga el centro de partido unificado v5.14.');
 requireCheck(official.includes('chute-v515-match-center.mjs?v=5.15.0'), 'No se carga la mejora visual v5.15.');
 requireCheck(official.includes('chute-v516-events-stats.mjs?v=5.16.1'), 'No se carga la capa estable de eventos v5.16.1.');
-requireCheck(official.includes('chute-v5162-playoff-seeding.mjs?v=5.16.2'), 'No se carga la correccion de Play-Off v5.16.2.');
+requireCheck(official.includes('chute-v5162-playoff-seeding.mjs?v=5.16.3'), 'No se carga la correccion visual de Play-Off v5.16.3.');
 requireCheck(official.indexOf('chute-v513-lineups.mjs') < official.indexOf('chute-v514-unified-match.mjs') && official.indexOf('chute-v514-unified-match.mjs') < official.indexOf('chute-v515-match-center.mjs') && official.indexOf('chute-v515-match-center.mjs') < official.indexOf('chute-v516-events-stats.mjs') && official.indexOf('chute-v516-events-stats.mjs') < official.indexOf('chute-v5162-playoff-seeding.mjs'), 'El orden de capas del centro de partido es incorrecto.');
 requireCheck(lineups.includes("const VERSION = '5.13.0'"), 'El modulo de alineaciones no declara v5.13.0.');
 requireCheck(lineups.includes("'Davis Bronson', 'MED', 45") && lineups.includes("'Jackie Sánchez', 'MED', 45"), 'Las posiciones oficiales corregidas no estan presentes.');
@@ -56,8 +56,10 @@ requireCheck(v516.includes("item.textContent.includes('Titularidades')") && v516
 requireCheck(v516.includes('data-cm-v516-undo') && v516.includes('undoLatestEvent'), 'La correccion unificada de eventos no esta instalada.');
 requireCheck(v516.includes('context.match.participationTracked = true'), 'Los eventos nuevos no marcan la participacion como registrada.');
 requireCheck(v516.includes('if (!row.match.participationTracked) continue;'), 'Las alineaciones historicas automaticas siguen contando como participacion real.');
-requireCheck(playoff.includes("homeRef: 'TABLE_1', awayRef: 'TABLE_4'") && playoff.includes("homeRef: 'TABLE_2', awayRef: 'TABLE_3'"), 'Los cruces de semifinales no respetan 1-4 y 2-3.');
+requireCheck(playoff.includes("const VERSION = '5.16.3'") && playoff.includes("homeRef: 'TABLE_1', awayRef: 'TABLE_4'") && playoff.includes("homeRef: 'TABLE_2', awayRef: 'TABLE_3'"), 'Los cruces o la version de Play-Off no son correctos.');
 requireCheck(playoff.includes('hasRecordedActivity') && playoff.includes('repairTournament') && playoff.includes("tournament.type !== 'league_playoff'"), 'La reparacion segura de Play-Off no esta completa.');
+requireCheck(playoff.includes('restoreEnhancedTournamentUi') && playoff.includes('ChuteTournamentHub?.refresh') && playoff.includes('ChuteV514UnifiedMatch?.decorateEntryButtons'), 'El hotfix no restaura el centro del torneo y sus controles.');
+requireCheck(!playoff.includes('new MutationObserver(scheduleRepair)'), 'La observacion global que desmontaba la interfaz sigue activa.');
 
 async function walk(directory) {
   const result = [];
@@ -91,9 +93,9 @@ const duplicates = [...imports, ...officialImports].filter((item, index, list) =
 requireCheck(duplicates.length === 0, `Importaciones duplicadas: ${duplicates.join(', ')}`);
 
 if (failures.length) {
-  console.error('Auditoria v5.16.2 fallida:');
+  console.error('Auditoria v5.16.3 fallida:');
   failures.forEach((failure) => console.error(`- ${failure}`));
   process.exit(1);
 }
-console.log('Auditoria v5.16.2 OK');
+console.log('Auditoria v5.16.3 OK');
 notes.forEach((note) => console.log(`- ${note}`));

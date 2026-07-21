@@ -1,7 +1,7 @@
 const core = window.ChuteMundoCore;
 if (!core) throw new Error('Chute Mundo no está listo para corregir los Play-Off.');
 
-const VERSION = '5.16.2';
+const VERSION = '5.16.3';
 const clone = (value) => typeof structuredClone === 'function' ? structuredClone(value) : JSON.parse(JSON.stringify(value));
 const normalize = (value = '') => String(value).normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
 
@@ -52,50 +52,126 @@ function repairState(source) {
   return { state: next, changed };
 }
 
+function installHotfixStyles() {
+  if (document.getElementById('cmV5163PlayoffUiStyles')) return;
+  const style = document.createElement('style');
+  style.id = 'cmV5163PlayoffUiStyles';
+  style.textContent = `
+    #cmTournamentHub .cm-hub-match > footer {
+      display: grid !important;
+      grid-template-columns: 1fr auto;
+      gap: 8px;
+      align-items: center;
+    }
+    #cmTournamentHub .cm-hub-match > footer > div {
+      display: flex !important;
+      justify-content: flex-end;
+      gap: 6px;
+    }
+    #cmTournamentHub [data-cm-hub-match] {
+      visibility: visible !important;
+      opacity: 1 !important;
+      pointer-events: auto !important;
+    }
+  `;
+  document.head.appendChild(style);
+}
+
+function uiContext() {
+  const hub = document.getElementById('cmTournamentHub');
+  const page = [...document.querySelectorAll('.page')].find((item) => !item.hidden);
+  return {
+    page: page?.id || '',
+    tournamentId: hub?.dataset.tournamentId || '',
+    activeTab: hub?.querySelector('[data-cm-tournament-tab].active')?.dataset.cmTournamentTab || ''
+  };
+}
+
+let uiRefreshToken = 0;
+function restoreEnhancedTournamentUi(fallbackContext = {}) {
+  installHotfixStyles();
+  const token = ++uiRefreshToken;
+  let fallback = { ...fallbackContext };
+  const refresh = () => {
+    if (token !== uiRefreshToken) return;
+    const current = uiContext();
+    window.ChuteTournamentHub?.refresh?.();
+    const rebuilt = uiContext();
+    const targetPage = current.page || fallback.page;
+    if (targetPage && document.getElementById(targetPage)?.hidden) core.navigate(targetPage);
+    const activeTab = current.tournamentId === rebuilt.tournamentId && current.activeTab
+      ? current.activeTab
+      : fallback.tournamentId === rebuilt.tournamentId
+        ? fallback.activeTab
+        : '';
+    if (activeTab) window.ChuteTournamentHub?.switchTab?.(activeTab);
+    fallback = {};
+    window.ChuteV511Tournaments?.refresh?.();
+    window.ChuteMobileV581?.refresh?.();
+    window.ChuteV514UnifiedMatch?.decorateEntryButtons?.();
+  };
+  window.requestAnimationFrame(() => {
+    refresh();
+    window.requestAnimationFrame(refresh);
+  });
+  window.setTimeout(refresh, 120);
+  window.setTimeout(refresh, 400);
+}
+
 const originalSetState = core.setState.bind(core);
-core.setState = (nextState) => originalSetState(repairState(nextState).state);
+core.setState = (nextState) => {
+  const previousUi = uiContext();
+  const repaired = repairState(nextState);
+  originalSetState(repaired.state);
+  restoreEnhancedTournamentUi(previousUi);
+  return repaired.state;
+};
 
 let applying = false;
-let scheduled = false;
 let lastSavedSignature = '';
 
 async function applyRepair() {
-  scheduled = false;
   if (applying) return false;
   const repaired = repairState(core.getState());
   if (!repaired.changed) return false;
   applying = true;
+  const previousUi = uiContext();
   try {
     originalSetState(repaired.state);
+    restoreEnhancedTournamentUi(previousUi);
     const signature = JSON.stringify((repaired.state.tournaments || []).filter((tournament) => tournament.type === 'league_playoff').map((tournament) => [tournament.id, (tournament.matches || []).filter((match) => playoffTemplate(match)).map((match) => [match.id, match.homeRef, match.awayRef, match.home, match.away])]));
     if (core.isAdmin() && core.canEdit() && core.cloudLoaded && signature !== lastSavedSignature) {
-      lastSavedSignature = signature;
       await core.saveCloud();
+      lastSavedSignature = signature;
     }
     return true;
   } catch (error) {
     console.error('No se pudo reparar la llave de Play-Off.', error);
+    restoreEnhancedTournamentUi(previousUi);
     return false;
   } finally {
     applying = false;
   }
 }
 
-function scheduleRepair() {
-  if (scheduled || applying) return;
-  scheduled = true;
-  window.requestAnimationFrame(() => { applyRepair(); });
-}
+let cloudChecks = 0;
+const cloudRepairTimer = window.setInterval(() => {
+  cloudChecks += 1;
+  void applyRepair();
+  if (core.cloudLoaded || cloudChecks >= 16) window.clearInterval(cloudRepairTimer);
+}, 500);
 
-new MutationObserver(scheduleRepair).observe(document.body, { childList: true, subtree: true });
-document.addEventListener('chute:ready', scheduleRepair);
-window.addEventListener('focus', scheduleRepair, { passive: true });
+window.addEventListener('focus', () => { void applyRepair(); }, { passive: true });
+document.addEventListener('visibilitychange', () => {
+  if (!document.hidden) void applyRepair();
+});
 
+installHotfixStyles();
 const heroVersion = document.querySelector('.hero .eyebrow');
-if (heroVersion) heroVersion.textContent = 'CHUTE MUNDO v5.16.2';
-document.title = 'Chute Mundo v5.16.2 · Play-Off corregidos';
+if (heroVersion) heroVersion.textContent = 'CHUTE MUNDO v5.16.3';
+document.title = 'Chute Mundo v5.16.3 · Play-Off y centro restaurados';
 
-scheduleRepair();
+void applyRepair();
 
 window.ChuteV5162PlayoffSeeding = {
   version: VERSION,
@@ -103,5 +179,6 @@ window.ChuteV5162PlayoffSeeding = {
   repairTournament,
   playoffTemplate,
   hasRecordedActivity,
+  restoreEnhancedTournamentUi,
   applyRepair
 };

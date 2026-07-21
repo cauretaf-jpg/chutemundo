@@ -1,68 +1,116 @@
 import { chromium } from 'playwright';
 
 const browser = await chromium.launch({ headless: true });
-const page = await browser.newPage({ viewport: { width: 390, height: 844 } });
+const page = await browser.newPage({ viewport: { width: 1440, height: 1000 } });
 const errors = [];
 page.on('pageerror', (error) => errors.push(String(error)));
 page.on('console', (message) => { if (message.type() === 'error') errors.push(message.text()); });
 
 try {
   await page.goto('http://127.0.0.1:4173/', { waitUntil: 'domcontentloaded' });
-  await page.waitForFunction(() => window.ChuteV5162PlayoffSeeding && window.ChuteMundoCore);
+  await page.waitForFunction(() => window.ChuteV5162PlayoffSeeding && window.ChuteMundoCore && window.ChuteTournamentHub && window.ChuteV514UnifiedMatch);
 
-  const result = await page.evaluate(() => {
+  const setup = await page.evaluate(() => {
     const core = window.ChuteMundoCore;
-    const api = window.ChuteV5162PlayoffSeeding;
-    const original = core.getState();
-    const teams = ['a', 'b', 'c', 'd', 'e', 'f'].map((id, index) => ({ id, name: `Equipo ${index + 1}`, players: [] }));
+    const original = structuredClone(core.getState());
+    window.__cmV5163Original = original;
+    const teamIds = original.teams.slice(0, 6).map((team) => team.id);
+    if (teamIds.length < 6) return { error: 'No existen seis equipos reales.' };
+    const standings = teamIds.map((teamId, index) => ({ teamId, pos: index + 1, pj: 5, pg: 5 - index, pe: 0, pp: index, gf: 6 - index, gc: index, dg: 6 - index * 2, pts: 15 - index * 2 }));
+    const match = (id, round, label, home, away, homeRef, awayRef) => ({ id, stage: 'knockout', round, label, home, away, homeRef, awayRef, homeGoals: null, awayGoals: null, goals: [], cards: [], specialEvents: [] });
     const current = {
-      id: 'playoff-current', name: 'Liga con Play-Off', type: 'league_playoff', status: 'active', teamIds: teams.map((team) => team.id),
-      manualStandings: teams.map((team, index) => ({ teamId: team.id, pos: index + 1 })),
+      id: 'playoff-ui-regression', name: 'Prueba visual Play-Off', type: 'league_playoff', status: 'active', teamIds, manualStandings: standings,
       matches: [
-        { id: 's1', stage: 'knockout', round: 'Semifinales', label: 'Semifinal 1', home: 'c', away: 'd', homeRef: 'TABLE_3', awayRef: 'TABLE_4', homeGoals: null, awayGoals: null, goals: [], cards: [], specialEvents: [], lineups: { home: { starters: [] }, away: { starters: [] } } },
-        { id: 's2', stage: 'knockout', round: 'Semifinales', label: 'Semifinal 2', home: 'e', away: 'f', homeRef: 'TABLE_5', awayRef: 'TABLE_6', homeGoals: null, awayGoals: null, goals: [], cards: [], specialEvents: [] },
-        { id: 'third', stage: 'knockout', round: '3er Lugar', label: '3er Puesto', home: 'e', away: 'f', homeRef: 'TABLE_5', awayRef: 'TABLE_6', homeGoals: null, awayGoals: null },
-        { id: 'final', stage: 'knockout', round: 'Final', label: 'Final', home: 'c', away: 'd', homeRef: 'TABLE_3', awayRef: 'TABLE_4', homeGoals: null, awayGoals: null }
+        match('s1', 'Semifinales', 'Semifinal 1', teamIds[2], teamIds[3], 'TABLE_3', 'TABLE_4'),
+        match('s2', 'Semifinales', 'Semifinal 2', teamIds[4], teamIds[5], 'TABLE_5', 'TABLE_6'),
+        match('third', '3er Lugar', '3er Puesto', teamIds[4], teamIds[5], 'TABLE_5', 'TABLE_6'),
+        match('final', 'Final', 'Final', teamIds[2], teamIds[3], 'TABLE_3', 'TABLE_4')
       ]
     };
     const historical = {
-      id: 'playoff-history', name: 'Histórico', type: 'league_playoff', status: 'historical', teamIds: teams.map((team) => team.id),
-      manualStandings: teams.map((team, index) => ({ teamId: team.id, pos: index + 1 })),
-      matches: [{ id: 'old-s1', stage: 'knockout', round: 'Semifinales', label: 'Semifinal 1', home: 'c', away: 'd', homeRef: 'TABLE_3', awayRef: 'TABLE_4', homeGoals: 1, awayGoals: 0, goals: [] }]
+      id: 'playoff-history-protected', name: 'Histórico protegido', type: 'league_playoff', status: 'historical', teamIds, manualStandings: standings,
+      matches: [{ ...match('old-s1', 'Semifinales', 'Semifinal 1', teamIds[2], teamIds[3], 'TABLE_3', 'TABLE_4'), homeGoals: 1, awayGoals: 0 }]
     };
-    const repaired = api.repairState({ teams, tournaments: [current, historical], friendlies: [], participants: [], classics: [], rules: [], activity: [] });
-    core.setState(repaired.state);
-    const state = core.getState();
-    const tournament = state.tournaments.find((item) => item.id === 'playoff-current');
-    const semi1 = tournament.matches.find((match) => match.id === 's1');
-    const semi2 = tournament.matches.find((match) => match.id === 's2');
-    const third = tournament.matches.find((match) => match.id === 'third');
-    const final = tournament.matches.find((match) => match.id === 'final');
-    const old = state.tournaments.find((item) => item.id === 'playoff-history').matches[0];
-    const output = {
-      version: api.version,
-      changed: repaired.changed,
-      semi1: { homeRef: semi1.homeRef, awayRef: semi1.awayRef, home: semi1.home, away: semi1.away, resolvedHome: core.resolveHome(tournament, semi1), resolvedAway: core.resolveAway(tournament, semi1) },
-      semi2: { homeRef: semi2.homeRef, awayRef: semi2.awayRef, home: semi2.home, away: semi2.away, resolvedHome: core.resolveHome(tournament, semi2), resolvedAway: core.resolveAway(tournament, semi2) },
-      third: { homeRef: third.homeRef, awayRef: third.awayRef },
-      final: { homeRef: final.homeRef, awayRef: final.awayRef },
-      historical: { home: old.home, away: old.away, homeRef: old.homeRef, awayRef: old.awayRef },
-      title: document.title
-    };
-    core.setState(original);
-    return output;
+    core.setState({ ...original, tournaments: [...original.tournaments, current, historical] });
+    core.navigate('torneos');
+    return { version: window.ChuteV5162PlayoffSeeding.version, teamIds };
   });
+  if (setup.error) throw new Error(setup.error);
 
-  if (result.version !== '5.16.2' || !result.changed) throw new Error(`Versión o reparación inválida: ${JSON.stringify(result)}`);
-  if (result.semi1.homeRef !== 'TABLE_1' || result.semi1.awayRef !== 'TABLE_4' || result.semi1.home !== null || result.semi1.away !== null || result.semi1.resolvedHome !== 'a' || result.semi1.resolvedAway !== 'd') throw new Error(`Semifinal 1 incorrecta: ${JSON.stringify(result.semi1)}`);
-  if (result.semi2.homeRef !== 'TABLE_2' || result.semi2.awayRef !== 'TABLE_3' || result.semi2.home !== null || result.semi2.away !== null || result.semi2.resolvedHome !== 'b' || result.semi2.resolvedAway !== 'c') throw new Error(`Semifinal 2 incorrecta: ${JSON.stringify(result.semi2)}`);
-  if (result.third.homeRef !== 'S1_L' || result.third.awayRef !== 'S2_L' || result.final.homeRef !== 'S1_W' || result.final.awayRef !== 'S2_W') throw new Error(`Final o tercer lugar incorrectos: ${JSON.stringify(result)}`);
-  if (result.historical.home !== 'c' || result.historical.away !== 'd' || result.historical.homeRef !== 'TABLE_3') throw new Error(`Se modificó una semifinal histórica: ${JSON.stringify(result.historical)}`);
-  if (!result.title.includes('5.16.2')) throw new Error(`Título sin actualizar: ${result.title}`);
+  await page.waitForFunction(() => [...document.querySelectorAll('[data-open-tournament="playoff-ui-regression"]')].some((element) => element.getClientRects().length));
+  await page.locator('[data-open-tournament="playoff-ui-regression"]:visible').first().click();
+  await page.waitForSelector('#cmTournamentHub[data-tournament-id="playoff-ui-regression"]');
 
+  const repaired = await page.evaluate(() => {
+    const core = window.ChuteMundoCore;
+    const tournament = core.getState().tournaments.find((item) => item.id === 'playoff-ui-regression');
+    const data = Object.fromEntries(tournament.matches.map((item) => [item.id, { homeRef: item.homeRef, awayRef: item.awayRef, resolvedHome: core.resolveHome(tournament, item), resolvedAway: core.resolveAway(tournament, item) }]));
+    data.old = core.getState().tournaments.find((item) => item.id === 'playoff-history-protected').matches[0];
+    return data;
+  });
+  if (setup.version !== '5.16.3') throw new Error(`Versión inválida: ${setup.version}`);
+  if (repaired.s1.homeRef !== 'TABLE_1' || repaired.s1.awayRef !== 'TABLE_4' || repaired.s1.resolvedHome !== setup.teamIds[0] || repaired.s1.resolvedAway !== setup.teamIds[3]) throw new Error(`Semifinal 1 incorrecta: ${JSON.stringify(repaired.s1)}`);
+  if (repaired.s2.homeRef !== 'TABLE_2' || repaired.s2.awayRef !== 'TABLE_3' || repaired.s2.resolvedHome !== setup.teamIds[1] || repaired.s2.resolvedAway !== setup.teamIds[2]) throw new Error(`Semifinal 2 incorrecta: ${JSON.stringify(repaired.s2)}`);
+  if (repaired.third.homeRef !== 'S1_L' || repaired.third.awayRef !== 'S2_L' || repaired.final.homeRef !== 'S1_W' || repaired.final.awayRef !== 'S2_W') throw new Error(`Final o tercer lugar incorrectos: ${JSON.stringify(repaired)}`);
+  if (repaired.old.home !== setup.teamIds[2] || repaired.old.away !== setup.teamIds[3] || repaired.old.homeRef !== 'TABLE_3') throw new Error(`Se modificó una semifinal histórica: ${JSON.stringify(repaired.old)}`);
+
+  await page.locator('[data-cm-tournament-tab="table"]:visible').click();
+  await page.waitForSelector('[data-cm-tournament-panel="table"].active table');
+  const tableUi = await page.evaluate(() => ({
+    tabs: document.querySelectorAll('#cmTournamentHub .cm-hub-tabs [data-cm-tournament-tab]').length,
+    rows: document.querySelectorAll('#cmTournamentHub [data-cm-tournament-panel="table"].active tbody tr').length,
+    shields: document.querySelectorAll('#cmTournamentHub [data-cm-tournament-panel="table"].active img').length,
+    hiddenSources: [...document.querySelectorAll('#tournamentDetail > .cm-hub-source-hidden')].every((element) => getComputedStyle(element).display === 'none')
+  }));
+  if (tableUi.tabs < 5 || tableUi.rows < 6 || tableUi.shields < 6 || !tableUi.hiddenSources) throw new Error(`Centro visual incompleto: ${JSON.stringify(tableUi)}`);
+
+  await page.locator('[data-cm-tournament-tab="fixture"]:visible').click();
+  await page.waitForSelector('[data-cm-tournament-panel="fixture"].active .cm-hub-filterbar');
+  await page.waitForFunction(() => [...document.querySelectorAll('#cmTournamentHub [data-cm-tournament-panel="fixture"] [data-cm-hub-match]')].some((button) => button.textContent.trim() === 'Ver partido'));
+  const fixtureUi = await page.evaluate(() => ({
+    filters: document.querySelectorAll('#cmTournamentHub .cm-hub-filterbar [data-cm-fixture-filter]').length,
+    matches: document.querySelectorAll('#cmTournamentHub .cm-hub-match').length,
+    shields: document.querySelectorAll('#cmTournamentHub .cm-hub-match-team img').length
+  }));
+  if (fixtureUi.filters !== 3 || fixtureUi.matches < 4 || fixtureUi.shields < 4) throw new Error(`Fixture incompleto: ${JSON.stringify(fixtureUi)}`);
+
+  await page.evaluate(() => { window.ChuteMundoCore.canEdit = () => true; });
+  await page.waitForTimeout(800);
+  const buttonState = await page.evaluate(() => {
+    const hub = document.getElementById('cmTournamentHub');
+    const first = hub?.querySelector('[data-cm-tournament-panel="fixture"] [data-cm-hub-match]');
+    const describe = (item) => {
+      const style = getComputedStyle(item);
+      const rect = item.getBoundingClientRect();
+      return { tag: item.tagName, id: item.id, className: item.className, hidden: item.hidden, display: style.display, visibility: style.visibility, width: rect.width, height: rect.height };
+    };
+    const ancestors = [];
+    let node = first;
+    while (node && ancestors.length < 12) { ancestors.push(describe(node)); node = node.parentElement; }
+    return {
+      pages: [...document.querySelectorAll('.page')].map((item) => ({ id: item.id, hidden: item.hidden, display: getComputedStyle(item).display, width: item.getBoundingClientRect().width, height: item.getBoundingClientRect().height })),
+      tabs: [...(hub?.querySelectorAll('[data-cm-tournament-tab]') || [])].map((item) => ({ tab: item.dataset.cmTournamentTab, active: item.classList.contains('active') })),
+      panels: [...(hub?.querySelectorAll('[data-cm-tournament-panel]') || [])].map((item) => ({ panel: item.dataset.cmTournamentPanel, active: item.classList.contains('active'), display: getComputedStyle(item).display, width: item.getBoundingClientRect().width, height: item.getBoundingClientRect().height })),
+      ancestors
+    };
+  });
+  const firstButton = buttonState.ancestors[0];
+  if (!firstButton || firstButton.display === 'none' || firstButton.visibility === 'hidden' || firstButton.width <= 0 || firstButton.height <= 0) throw new Error(`Botón de partido oculto: ${JSON.stringify(buttonState)}`);
+  await page.locator('#cmTournamentHub [data-cm-tournament-panel="fixture"] [data-cm-hub-match]').first().click();
+  await page.waitForSelector('.cm-v516-match-center');
+  const editor = await page.evaluate(() => ({
+    goal: Boolean(document.querySelector('[data-cm-v516-goal-minute="home"]')),
+    card: Boolean(document.querySelector('[data-cm-v516-card-minute="home"]')),
+    change: Boolean(document.querySelector('[data-cm-v516-sub-minute="home"]'))
+  }));
+  if (!editor.goal || !editor.card || !editor.change) throw new Error(`Registro de partido no disponible: ${JSON.stringify(editor)}`);
+
+  await page.evaluate(() => window.ChuteMundoCore.setState(window.__cmV5163Original));
+  const title = await page.title();
+  if (!title.includes('5.16.3')) throw new Error(`Título sin actualizar: ${title}`);
   const critical = errors.filter((message) => !/favicon|firestore|permission-denied|Failed to load resource|QUIC_NETWORK|ERR_NAME_NOT_RESOLVED|ERR_CONNECTION|network/i.test(message));
   if (critical.length) throw new Error(critical.join(' | '));
-  console.log('Chute Mundo v5.16.2 playoff smoke OK', result);
+  console.log('Chute Mundo v5.16.3 playoff UI smoke OK', { repaired, tableUi, fixtureUi, buttonState, editor });
 } finally {
   await browser.close();
 }
