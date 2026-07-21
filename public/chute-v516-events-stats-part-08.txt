@@ -1,0 +1,22 @@
+
+function decorateMatchCenter() {
+  const live = document.querySelector('[data-cm-v59-live-pair]');
+  if (!live) { decoratePlayerProfile(); decorateStatsPage(); return; }
+  const context = matchContext(live.dataset.cmV59LivePair);
+  if (!context) return;
+  ensureLineups(context.match, context.home, context.away, core.getState());
+  live.classList.add('cm-v516-match-center');
+  live.querySelector('.cm-v514-unified-badge')?.replaceChildren('Minuto por evento · alineaciones · goles · amonestaciones · cambios · penales');
+  decorateMeta(live, context);
+  decorateForms(live, context);
+  decorateShootout(live, context);
+  renderTimeline(live, context);
+  decoratePlayerProfile();
+  decorateStatsPage();
+}
+
+function scheduleRefresh() {
+  if (refreshQueued) return;
+  refreshQueued = true;
+  requestAnimationFrame(() => { refreshQueued = false; decorateMatchCenter(); });
+}
