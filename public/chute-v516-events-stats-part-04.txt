@@ -1,0 +1,45 @@
+  return Math.max(90, ...minutes, Number(match.duration || 0));
+}
+
+function winnerId(row) {
+  const homeGoals = Number(row.match.homeGoals);
+  const awayGoals = Number(row.match.awayGoals);
+  if (homeGoals > awayGoals) return row.home;
+  if (awayGoals > homeGoals) return row.away;
+  if (row.match.homePens !== null && row.match.homePens !== undefined && row.match.awayPens !== null && row.match.awayPens !== undefined) {
+    if (Number(row.match.homePens) > Number(row.match.awayPens)) return row.home;
+    if (Number(row.match.awayPens) > Number(row.match.homePens)) return row.away;
+  }
+  return null;
+}
+
+function playerStats(teamId, name, source = core.getState(), filterTournamentId = null) {
+  const entry = rosterPlayer(teamId, name, source);
+  const goalkeeper = playerPosition(entry) === 'Arquero';
+  const result = {
+    teamId, name, position: playerPosition(entry) || 'Jugador', goalkeeper,
+    appearances: 0, minutes: 0, entries: 0, substituted: 0,
+    goals: 0, assists: 0, yellows: 0, reds: 0,
+    penaltiesScored: 0, penaltiesMissed: 0, penaltyAttempts: 0,
+    goalsConceded: 0, cleanSheets: 0, wins: 0, draws: 0, losses: 0
+  };
+  for (const row of matchRows(source, filterTournamentId)) {
+    const side = row.home === teamId ? 'home' : row.away === teamId ? 'away' : null;
+    if (!side) continue;
+    for (const goal of row.match.goals || []) {
+      const goalTeam = goal.teamId || (goal.side === 'away' ? row.away : row.home);
+      if (goalTeam !== teamId) continue;
+      if (goal.playerName === name) result.goals += 1;
+      if (goal.assistName === name) result.assists += 1;
+    }
+    for (const card of row.match.cards || []) {
+      const cardTeam = card.teamId || (card.side === 'away' ? row.away : row.home);
+      if (cardTeam !== teamId || card.playerName !== name) continue;
+      if (card.type === 'red') result.reds += 1; else result.yellows += 1;
+    }
+    for (const penalty of row.match.penaltyShootout || []) {
+      if (penalty.teamId !== teamId || penalty.playerName !== name) continue;
+      result.penaltyAttempts += 1;
+      if (penalty.result === 'scored') result.penaltiesScored += 1; else result.penaltiesMissed += 1;
+    }
+    const lineup = row.match.lineups?.[side];
