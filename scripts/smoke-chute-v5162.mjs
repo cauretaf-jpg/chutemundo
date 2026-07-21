@@ -75,7 +75,17 @@ try {
   if (fixtureUi.filters !== 3 || fixtureUi.matches < 4 || fixtureUi.shields < 4) throw new Error(`Fixture incompleto: ${JSON.stringify(fixtureUi)}`);
 
   await page.evaluate(() => { window.ChuteMundoCore.canEdit = () => true; });
-  await page.locator('#cmTournamentHub [data-cm-tournament-panel="fixture"] [data-cm-hub-match]:visible').first().click();
+  await page.waitForTimeout(800);
+  const buttonState = await page.evaluate(() => {
+    const hub = document.getElementById('cmTournamentHub');
+    const tabs = [...(hub?.querySelectorAll('[data-cm-tournament-tab]') || [])].map((item) => ({ tab: item.dataset.cmTournamentTab, active: item.classList.contains('active') }));
+    const panels = [...(hub?.querySelectorAll('[data-cm-tournament-panel]') || [])].map((item) => ({ panel: item.dataset.cmTournamentPanel, active: item.classList.contains('active'), display: getComputedStyle(item).display }));
+    const buttons = [...(hub?.querySelectorAll('[data-cm-hub-match]') || [])].map((item) => ({ pair: item.dataset.cmHubMatch, text: item.textContent.trim(), display: getComputedStyle(item).display, visibility: getComputedStyle(item).visibility, width: item.getBoundingClientRect().width, height: item.getBoundingClientRect().height, panel: item.closest('[data-cm-tournament-panel]')?.dataset.cmTournamentPanel }));
+    return { tabs, panels, buttons };
+  });
+  const visibleButton = buttonState.buttons.find((item) => item.panel === 'fixture' && item.display !== 'none' && item.visibility !== 'hidden' && item.width > 0 && item.height > 0);
+  if (!visibleButton) throw new Error(`Botón de partido oculto: ${JSON.stringify(buttonState)}`);
+  await page.locator(`#cmTournamentHub [data-cm-hub-match="${visibleButton.pair}"]`).first().click();
   await page.waitForSelector('.cm-v516-match-center');
   const editor = await page.evaluate(() => ({
     goal: Boolean(document.querySelector('[data-cm-v516-goal-minute="home"]')),
@@ -88,7 +98,7 @@ try {
   if (!document.title.includes('5.16.3')) throw new Error(`Título sin actualizar: ${document.title}`);
   const critical = errors.filter((message) => !/favicon|firestore|permission-denied|Failed to load resource|QUIC_NETWORK|ERR_NAME_NOT_RESOLVED|ERR_CONNECTION|network/i.test(message));
   if (critical.length) throw new Error(critical.join(' | '));
-  console.log('Chute Mundo v5.16.3 playoff UI smoke OK', { repaired, tableUi, fixtureUi, editor });
+  console.log('Chute Mundo v5.16.3 playoff UI smoke OK', { repaired, tableUi, fixtureUi, buttonState, editor });
 } finally {
   await browser.close();
 }
