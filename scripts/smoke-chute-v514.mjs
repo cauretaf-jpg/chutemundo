@@ -6,7 +6,7 @@ const page = await browser.newPage({ viewport: { width: 390, height: 844 } });
 try {
   await page.goto('http://127.0.0.1:4173/', { waitUntil: 'domcontentloaded' });
   await page.waitForFunction(() => window.ChuteV514UnifiedMatch && window.ChuteV513Lineups && window.ChuteMundoCore);
-  await page.locator('[data-page="partidos"]').first().click();
+  await page.evaluate(() => window.ChuteMundoCore.navigate('partidos'));
   await page.waitForFunction(() => !document.getElementById('partidos')?.hidden && document.querySelector('[data-cm-v52-open-match]'));
   await page.waitForFunction(() => {
     const buttons = [...document.querySelectorAll('[data-cm-v52-open-match], [data-cm-hub-match]')];
