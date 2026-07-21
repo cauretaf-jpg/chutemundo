@@ -17,7 +17,7 @@ const loadSplitModule = async ({ prefix, count, version, label = 'módulo' }) =>
 window.ChuteSplitLoader = loadSplitModule;
 
 try {
-  await loadSplitModule({ prefix: 'chute-official-part', count: 6, version: '5.15.0', label: 'el sistema principal' });
+  await loadSplitModule({ prefix: 'chute-official-part', count: 6, version: '5.16.0', label: 'el sistema principal' });
 } catch (error) {
   console.error('No se pudo iniciar Chute Mundo oficial.', error);
   const status = document.getElementById('syncStatus');
