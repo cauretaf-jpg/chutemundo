@@ -1,0 +1,1 @@
+const manifest=document.createElement('link');manifest.rel='manifest';manifest.href='/manifest.webmanifest?v=5.11.0';document.head.appendChild(manifest);const touch=document.createElement('link');touch.rel='apple-touch-icon';touch.href='/chute-icon.svg?v=5.11.0';document.head.appendChild(touch);
