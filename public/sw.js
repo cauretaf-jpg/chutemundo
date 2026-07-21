@@ -1,5 +1,5 @@
-const CACHE = 'chute-mundo-v5.11.0';
-const CORE = ['/', '/index.html', '/chute-official.css?v=5.6.0', '/chute-official.mjs?v=5.11.0', '/manifest.webmanifest', '/chute-icon.svg', '/chute-icon-maskable.svg'];
+const CACHE = 'chute-mundo-v5.12.1';
+const CORE = ['/', '/index.html', '/chute-official.css?v=5.6.0', '/chute-official.mjs?v=5.12.1', '/manifest.webmanifest', '/chute-icon.svg', '/chute-icon-maskable.svg'];
 self.addEventListener('install', (event) => {
   event.waitUntil(caches.open(CACHE).then((cache) => cache.addAll(CORE)).then(() => self.skipWaiting()));
 });
