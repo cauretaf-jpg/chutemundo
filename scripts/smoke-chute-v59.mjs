@@ -8,7 +8,7 @@ page.on('console', (message) => { if (message.type() === 'error') errors.push(me
 
 try {
   await page.goto('http://127.0.0.1:4173/', { waitUntil: 'domcontentloaded' });
-  await page.waitForFunction(() => window.ChuteMundoCore && window.ChuteV59 && /^Chute Mundo v5\.(9|10)/.test(document.title));
+  await page.waitForFunction(() => window.ChuteMundoCore && window.ChuteV59 && /^Chute Mundo v5\.(9|10|11|12|13|14|15|16)/.test(document.title));
   await page.click('.nav [data-page="equipos"]');
   await page.waitForFunction(() => document.getElementById('cmV59ProfilesRoot') && document.querySelectorAll('.cm-v59-player-card').length >= 6);
 
