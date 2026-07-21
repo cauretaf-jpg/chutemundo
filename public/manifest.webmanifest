@@ -1,0 +1,17 @@
+{
+  "id": "/",
+  "name": "Chute Mundo",
+  "short_name": "Chute Mundo",
+  "description": "Competición, partidos, torneos, estadísticas y perfiles históricos de Chute Mundo.",
+  "lang": "es-CL",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#f4f8f6",
+  "theme_color": "#086348",
+  "categories": ["sports", "entertainment"],
+  "icons": [
+    { "src": "/icons/chute-mundo.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }
+  ]
+}
