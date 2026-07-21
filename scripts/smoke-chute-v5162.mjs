@@ -106,7 +106,8 @@ try {
   if (!editor.goal || !editor.card || !editor.change) throw new Error(`Registro de partido no disponible: ${JSON.stringify(editor)}`);
 
   await page.evaluate(() => window.ChuteMundoCore.setState(window.__cmV5163Original));
-  if (!document.title.includes('5.16.3')) throw new Error(`Título sin actualizar: ${document.title}`);
+  const title = await page.title();
+  if (!title.includes('5.16.3')) throw new Error(`Título sin actualizar: ${title}`);
   const critical = errors.filter((message) => !/favicon|firestore|permission-denied|Failed to load resource|QUIC_NETWORK|ERR_NAME_NOT_RESOLVED|ERR_CONNECTION|network/i.test(message));
   if (critical.length) throw new Error(critical.join(' | '));
   console.log('Chute Mundo v5.16.3 playoff UI smoke OK', { repaired, tableUi, fixtureUi, buttonState, editor });
