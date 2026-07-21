@@ -8,12 +8,17 @@ page.on('console', (message) => { if (message.type() === 'error') errors.push(me
 
 try {
   await page.goto('http://127.0.0.1:4173/', { waitUntil: 'domcontentloaded' });
-  await page.waitForFunction(() => window.ChuteMundoCore && window.ChuteV59 && window.ChuteV591 && window.ChuteV514UnifiedMatch);
+  await page.waitForFunction(() => window.ChuteMundoCore && window.ChuteV59 && window.ChuteV591 && window.ChuteV514UnifiedMatch && window.ChuteV5162PlayoffSeeding);
   await page.evaluate(() => window.ChuteMundoCore.navigate('partidos'));
-  await page.waitForFunction(() => !document.getElementById('partidos').hidden && document.getElementById('cmV591LivePanel') && document.querySelector('[data-cm-v52-open-match]'));
+  await page.waitForFunction(() => {
+    const page = document.getElementById('partidos');
+    const panel = document.getElementById('cmV591LivePanel');
+    const button = [...document.querySelectorAll('[data-cm-v52-open-match]')].find((item) => item.textContent.trim() === 'Ver partido');
+    return page && !page.hidden && panel && button;
+  });
   const result = await page.evaluate(() => {
     const legacyButton = document.querySelector('#matchesList .cm-v591-live-access');
-    const unifiedButton = document.querySelector('[data-cm-v52-open-match]');
+    const unifiedButton = [...document.querySelectorAll('[data-cm-v52-open-match]')].find((item) => item.textContent.trim() === 'Ver partido');
     const panel = document.getElementById('cmV591LivePanel');
     return {
       version: window.ChuteV591?.version || 'ui',
