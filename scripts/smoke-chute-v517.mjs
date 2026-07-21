@@ -47,7 +47,7 @@ try {
     next.tournaments.push(tournament);
     core.setState(next);
     core.navigate('torneos');
-    return { tournamentId: tournament.id, debut: debut.name };
+    return { tournamentId: tournament.id };
   });
   if (setup.error) throw new Error(setup.error);
 
@@ -73,12 +73,21 @@ try {
   const awards = await page.evaluate(() => ({
     cards: document.querySelectorAll('.cm-v517-award-card').length,
     visible: document.querySelector('[data-cm-v517-awards-panel]').getClientRects().length > 0,
-    text: document.querySelector('[data-cm-v517-awards-panel]').textContent,
     computed: window.ChuteV517Finalization.computeAwards(window.ChuteMundoCore.getState().tournaments.find((item) => item.id === 'v517-finalization-test'))
   }));
   if (awards.cards !== 6 || !awards.visible) throw new Error(`Panel de premios incompleto: ${JSON.stringify({ cards: awards.cards, visible: awards.visible })}`);
   const automatic = ['scorer', 'assist', 'mvp', 'goalkeeper', 'revelation', 'finalMvp'];
   if (automatic.some((key) => !awards.computed.awards[key]?.playerName) || automatic.some((key) => !awards.computed.awards[key]?.reason)) throw new Error(`Premios sin estadísticas completas: ${JSON.stringify(awards.computed.awards)}`);
+
+  await page.locator('[data-cm-v517-quality]:visible').first().click();
+  await page.waitForSelector('.cm-v517-quality-modal');
+  const quality = await page.evaluate(() => ({
+    confirm: Boolean(document.querySelector('[data-cm-v517-confirm-finish]')),
+    blocks: document.querySelectorAll('.cm-v517-quality-list .is-critical').length,
+    text: document.querySelector('.cm-v517-quality-modal')?.textContent || ''
+  }));
+  if (!quality.confirm || quality.blocks !== 0 || !/Revisión antes de finalizar/.test(quality.text)) throw new Error(`Control de calidad incompleto: ${JSON.stringify(quality)}`);
+  await page.locator('[data-close-modal]').click();
 
   await page.locator('[data-cm-tournament-tab="table"]:visible').click();
   await page.waitForSelector('[data-cm-tournament-panel="table"].active');
@@ -88,21 +97,23 @@ try {
   });
   if (!hiddenAgain) throw new Error('Premios no se ocultaron al cambiar de pestaña.');
 
-  await page.waitForSelector('[data-cm-v517-finish]');
-  await page.locator('[data-cm-v517-finish]').click();
-  await page.waitForSelector('[data-cm-v517-confirm-finish]');
-  await page.locator('[data-cm-v517-confirm-finish]').click();
-  await page.waitForFunction(() => {
-    const tournament = window.ChuteMundoCore.getState().tournaments.find((item) => item.id === 'v517-finalization-test');
+  const status = await page.evaluate((id) => window.ChuteMundoCore.getState().tournaments.find((item) => item.id === id)?.status, setup.tournamentId);
+  if (status === 'active') {
+    await page.locator('[data-cm-v517-finish]:not([disabled])').click();
+    await page.waitForSelector('[data-cm-v517-confirm-finish]');
+    await page.locator('[data-cm-v517-confirm-finish]').click();
+  }
+  await page.waitForFunction((id) => {
+    const tournament = window.ChuteMundoCore.getState().tournaments.find((item) => item.id === id);
     return tournament?.status === 'historical' && tournament.awardsEngineVersion === '5.17.0' && tournament.awardDetails?.mvp?.playerName;
-  });
+  }, setup.tournamentId);
 
   const title = await page.title();
   if (!title.includes('5.17')) throw new Error(`Título incorrecto: ${title}`);
   const critical = errors.filter((message) => !/favicon|firestore|permission-denied|Failed to load resource|QUIC_NETWORK|ERR_NAME_NOT_RESOLVED|ERR_CONNECTION|network/i.test(message));
   if (critical.length) throw new Error(critical.join(' | '));
   await page.evaluate(() => window.ChuteMundoCore.setState(window.__cmV517Original));
-  console.log('Chute Mundo v5.17 smoke OK', { penaltyText, cards: awards.cards, mvp: awards.computed.awards.mvp.playerName, goalkeeper: awards.computed.awards.goalkeeper.playerName });
+  console.log('Chute Mundo v5.17 smoke OK', { penaltyText, cards: awards.cards, mvp: awards.computed.awards.mvp.playerName, goalkeeper: awards.computed.awards.goalkeeper.playerName, quality, status });
 } finally {
   await browser.close();
 }
