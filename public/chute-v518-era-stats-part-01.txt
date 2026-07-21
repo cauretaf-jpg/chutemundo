@@ -1,0 +1,127 @@
+  const tracked = played.filter((match) => match.participationTracked && match.lineups?.home?.starters?.length && match.lineups?.away?.starters?.length).length;
+  const cards = played.reduce((sum, match) => sum + (match.cards || []).length, 0);
+  const shootoutMatches = played.filter((match) => match.stage === 'knockout' && Number(match.homeGoals) === Number(match.awayGoals));
+  const awards = tournament.awardDetails ? 'complete' : tournament.awards && Object.values(tournament.awards).some(Boolean) ? 'partial' : 'none';
+  const resultCoverage = played.length ? (played.every((match) => match.homeGoals !== null && match.awayGoals !== null) ? 'complete' : 'partial') : 'none';
+  const scorerCoverage = goals === 0 && played.length ? 'complete' : recordedGoals >= goals && goals > 0 ? 'complete' : recordedGoals > 0 ? 'partial' : 'none';
+  const assistCoverage = eraId === ERA_DIVISIONS
+    ? (played.length && played.every((match) => (match.goals || []).every((goal) => Object.prototype.hasOwnProperty.call(goal, 'assistName'))) ? 'complete' : recordedAssists ? 'partial' : 'none')
+    : recordedAssists ? 'partial' : 'none';
+  const participationCoverage = played.length && tracked === played.length ? 'complete' : tracked ? 'partial' : 'none';
+  const penaltyCoverage = shootoutMatches.length ? (shootoutMatches.every(validShootout) ? 'complete' : 'partial') : 'not_applicable';
+  return {
+    schema: SCHEMA,
+    results: resultCoverage,
+    scorers: scorerCoverage,
+    assists: assistCoverage,
+    cards: eraId === ERA_DIVISIONS && played.length ? 'complete' : cards ? 'partial' : 'none',
+    lineups: participationCoverage,
+    minutes: participationCoverage,
+    substitutions: participationCoverage,
+    penalties: penaltyCoverage,
+    awards,
+    updatedAt: Date.now()
+  };
+}
+
+function divisionsCriticalIssues(tournament) {
+  if (tournament.eraId !== ERA_DIVISIONS) return [];
+  const issues = [];
+  for (const match of playedMatches(tournament)) {
+    const label = `${match.round || ''} ${match.label || ''}`.trim() || 'Partido';
+    if (!match.participationTracked || !match.lineups?.home?.starters?.length || !match.lineups?.away?.starters?.length) issues.push(`${label}: falta alineación o participación.`);
+    const expected = Number(match.homeGoals || 0) + Number(match.awayGoals || 0);
+    const goals = Array.isArray(match.goals) ? match.goals : [];
+    if (goals.length !== expected || goals.some((goal) => !goal.playerName)) issues.push(`${label}: los goleadores no coinciden con el marcador.`);
+    if (goals.some((goal) => !Object.prototype.hasOwnProperty.call(goal, 'assistName'))) issues.push(`${label}: falta registrar asistencia o “sin asistencia”.`);
+    if (!match.date || !match.venue) issues.push(`${label}: falta fecha o sede.`);
+    if (!validShootout(match)) issues.push(`${label}: la tanda no está registrada completamente.`);
+  }
+  return [...new Set(issues)];
+}
+
+function migrateState(source) {
+  const next = clone(source);
+  const cutoffIndex = findCutoffIndex(next);
+  next.config = {
+    ...(next.config || {}),
+    statsEraSchema: SCHEMA,
+    statsEraCutoffName: CUTOFF_NAME,
+    defaultEraId: ERA_DIVISIONS,
+    statsCompleteFromEra: ERA_DIVISIONS
+  };
+  (next.tournaments || []).forEach((tournament, index) => {
+    const eraId = plannedEra(next, tournament, index, cutoffIndex);
+    tournament.eraId = eraId;
+    tournament.coverage = { ...(tournament.coverage || {}), ...inferCoverage(tournament, eraId) };
+    if (eraId === ERA_DIVISIONS && tournament.status === 'historical' && !tournament.awardsEngineVersion && divisionsCriticalIssues(tournament).length) {
+      tournament.status = 'active';
+      tournament.statsClosureBlocked = true;
+    }
+  });
+  return next;
+}
+
+function migrationSignature(source) {
+  return JSON.stringify({
+    schema: source.config?.statsEraSchema,
+    defaultEraId: source.config?.defaultEraId,
+    tournaments: (source.tournaments || []).map((tournament) => [tournament.id, tournament.eraId, tournament.status, tournament.coverage?.schema, tournament.coverage?.scorers, tournament.coverage?.lineups])
+  });
+}
+
+async function ensureMigration() {
+  if (migrationBusy) return;
+  const source = core.getState();
+  const next = migrateState(source);
+  const before = migrationSignature(source);
+  const after = migrationSignature(next);
+  if (before === after) return;
+  migrationBusy = true;
+  try {
+    core.setState(next);
+    core.persistLocal?.();
+    if (core.isAdmin?.() && core.cloudLoaded && lastSavedMigration !== after) {
+      lastSavedMigration = after;
+      await core.saveCloud();
+      core.showToast('Eras y cobertura estadística sincronizadas.');
+    }
+  } catch (error) {
+    console.error('No se pudo migrar las eras estadísticas.', error);
+  } finally {
+    migrationBusy = false;
+  }
+}
+
+function filteredTournaments(source = core.getState()) {
+  let rows = source.tournaments || [];
+  if (selectedEra !== 'all') rows = rows.filter((tournament) => tournament.eraId === selectedEra);
+  if (selectedTournament !== 'all') rows = rows.filter((tournament) => tournament.id === selectedTournament);
+  return rows;
+}
+
+function matchRows(tournaments) {
+  return tournaments.flatMap((tournament) => playedMatches(tournament).map((match) => ({
+    tournament,
+    match,
+    home: match.home || core.resolveHome(tournament, match),
+    away: match.away || core.resolveAway(tournament, match)
+  }))).filter((row) => row.home && row.away);
+}
+
+function winner(row) {
+  const hg = Number(row.match.homeGoals);
+  const ag = Number(row.match.awayGoals);
+  if (hg > ag) return row.home;
+  if (ag > hg) return row.away;
+  if (Number(row.match.homePens) > Number(row.match.awayPens)) return row.home;
+  if (Number(row.match.awayPens) > Number(row.match.homePens)) return row.away;
+  return null;
+}
+
+function teamRows(tournaments, source = core.getState()) {
+  const map = new Map((source.teams || []).map((team) => [team.id, {
+    team, teamId: team.id, pj: 0, pg: 0, pe: 0, pp: 0, gf: 0, gc: 0, penWins: 0,
+    titles: 0, runners: 0, thirds: 0
+  }]));
+  for (const tournament of tournaments) {
