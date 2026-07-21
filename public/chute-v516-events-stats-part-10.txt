@@ -1,0 +1,45 @@
+
+window.addEventListener('click', (event) => {
+  const live = event.target.closest?.('[data-cm-v59-live-pair]');
+  if (!live) return;
+  const pair = live.dataset.cmV59LivePair;
+  const goal = event.target.closest?.('[data-cm-v516-add-goal]');
+  if (goal) { event.preventDefault(); event.stopImmediatePropagation(); void addGoal(pair, goal.dataset.cmV516AddGoal); return; }
+  const card = event.target.closest?.('[data-cm-v516-add-card]');
+  if (card) { event.preventDefault(); event.stopImmediatePropagation(); void addCard(pair, card.dataset.cmV516AddCard); return; }
+  const substitution = event.target.closest?.('[data-cm-v516-substitute]');
+  if (substitution) { event.preventDefault(); event.stopImmediatePropagation(); void addSubstitution(pair, substitution.dataset.cmV516Substitute); return; }
+  if (event.target.closest?.('[data-cm-v516-start-shootout]')) { event.preventDefault(); event.stopImmediatePropagation(); void startShootout(pair); return; }
+  const penalty = event.target.closest?.('[data-cm-v516-add-penalty]');
+  if (penalty) { event.preventDefault(); event.stopImmediatePropagation(); void addShootoutPenalty(pair, penalty.dataset.cmV516AddPenalty); return; }
+  if (event.target.closest?.('[data-cm-v516-add-venue]')) { event.preventDefault(); event.stopImmediatePropagation(); void addVenue(pair); return; }
+  const undo = event.target.closest?.('[data-cm-v59-undo]');
+  if (undo && !undo.disabled) {
+    const context = matchContext(pair);
+    const latest = unifiedEvents(context).sort((a, b) => Number(b.createdAt || 0) - Number(a.createdAt || 0))[0];
+    if (latest?.kind === 'shootout_penalty') { event.preventDefault(); event.stopImmediatePropagation(); void undoShootoutPenalty(pair); }
+  }
+}, true);
+
+document.addEventListener('change', (event) => {
+  const goalMinute = event.target.closest?.('[data-cm-v516-goal-minute]');
+  if (goalMinute) updatePlayerSelects(goalMinute.dataset.cmV516GoalMinute, 'goal');
+  const cardMinute = event.target.closest?.('[data-cm-v516-card-minute]');
+  if (cardMinute) updatePlayerSelects(cardMinute.dataset.cmV516CardMinute, 'card');
+  const subMinute = event.target.closest?.('[data-cm-v516-sub-minute]');
+  if (subMinute) renderSideForMinute(subMinute.dataset.cmV516SubMinute);
+}, true);
+
+window.addEventListener('click', (event) => {
+  const player = event.target.closest?.('[data-cm-v59-player]');
+  if (player) lastPlayerKey = player.dataset.cmV59Player || '';
+}, true);
+
+const originalOpenPlayerProfile = window.ChuteV59?.openPlayerProfile?.bind(window.ChuteV59);
+if (originalOpenPlayerProfile) window.ChuteV59.openPlayerProfile = (key) => { lastPlayerKey = key; const result = originalOpenPlayerProfile(key); scheduleRefresh(); return result; };
+
+const observer = new MutationObserver(scheduleRefresh);
+observer.observe(document.body, { childList: true, subtree: true });
+
+installStyles();
+await ensureSchema();
