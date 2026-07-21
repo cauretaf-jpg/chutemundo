@@ -15,3 +15,4 @@ await import('/chute-v5121-storage-preflight.mjs?v=5.12.1');
 await import('/chute-v512-integrity.mjs?v=5.12.0');
 await import('/chute-v5121-search-fix.mjs?v=5.12.1');
 await import('/chute-v5121-backup-fix.mjs?v=5.12.1');
+await import('/chute-v513-lineups.mjs?v=5.13.0');
