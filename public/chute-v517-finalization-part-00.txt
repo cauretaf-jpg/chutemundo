@@ -1,0 +1,78 @@
+function waitForCore() {
+  if (window.ChuteMundoCore) return Promise.resolve(window.ChuteMundoCore);
+  return new Promise((resolve) => document.addEventListener('chute:ready', (event) => resolve(event.detail), { once: true }));
+}
+
+const core = await waitForCore();
+const model = window.ChuteDetailModel;
+const statsApi = window.ChuteV516EventsStats;
+if (!model || !statsApi) throw new Error('Chute Mundo v5.17 requiere el modelo detallado y las estadísticas v5.16.');
+
+const VERSION = '5.17.0';
+const clone = (value) => typeof structuredClone === 'function' ? structuredClone(value) : JSON.parse(JSON.stringify(value));
+const esc = (value = '') => String(value).replace(/[&<>"']/g, (character) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[character]);
+const normalize = (value = '') => String(value).normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLocaleLowerCase('es').replace(/[^a-z0-9]+/g, ' ').trim();
+const playerName = (entry) => Array.isArray(entry) ? String(entry[0] || '') : String(entry?.name || '');
+const playerPosition = (entry) => Array.isArray(entry) ? String(entry[1] || '') : String(entry?.position || entry?.role || '');
+const played = (match) => core.matchPlayed(match);
+const minuteNumber = (value) => Math.max(0, Number.parseInt(String(value ?? '0'), 10) || 0);
+let refreshQueued = false;
+let savingAwards = false;
+
+function tournamentFromHub(source = core.getState()) {
+  const id = document.getElementById('cmTournamentHub')?.dataset.tournamentId || '';
+  return source.tournaments?.find((item) => item.id === id) || null;
+}
+
+function teamById(teamId, source = core.getState()) {
+  return source.teams?.find((team) => team.id === teamId) || null;
+}
+
+function rosterEntry(teamId, name, source = core.getState()) {
+  return teamById(teamId, source)?.players?.find((entry) => playerName(entry) === name) || null;
+}
+
+function matchContext(tournament, match) {
+  const home = match.home || core.resolveHome(tournament, match);
+  const away = match.away || core.resolveAway(tournament, match);
+  return home && away ? { tournament, match, home, away, pair: `${tournament.id}__${match.id}` } : null;
+}
+
+function penaltyScore(match) {
+  const attempts = Array.isArray(match.penaltyShootout) ? match.penaltyShootout : [];
+  const recordedHome = match.homePens !== null && match.homePens !== undefined && match.homePens !== '' ? Number(match.homePens) : null;
+  const recordedAway = match.awayPens !== null && match.awayPens !== undefined && match.awayPens !== '' ? Number(match.awayPens) : null;
+  const home = recordedHome ?? attempts.filter((item) => item.side === 'home' && item.result === 'scored').length;
+  const away = recordedAway ?? attempts.filter((item) => item.side === 'away' && item.result === 'scored').length;
+  const active = Boolean(match.shootoutStarted || attempts.length || recordedHome !== null || recordedAway !== null);
+  return { home, away, active, attempts };
+}
+
+function resultInfo(tournament, match) {
+  const context = matchContext(tournament, match);
+  if (!context || !played(match)) return null;
+  const homeGoals = Number(match.homeGoals || 0);
+  const awayGoals = Number(match.awayGoals || 0);
+  const penalties = penaltyScore(match);
+  let winner = null;
+  let decidedByPenalties = false;
+  if (homeGoals > awayGoals) winner = context.home;
+  else if (awayGoals > homeGoals) winner = context.away;
+  else if (penalties.active && penalties.home !== penalties.away) {
+    winner = penalties.home > penalties.away ? context.home : context.away;
+    decidedByPenalties = true;
+  }
+  return {
+    ...context,
+    homeGoals,
+    awayGoals,
+    homePens: penalties.home,
+    awayPens: penalties.away,
+    winner,
+    decidedByPenalties,
+    score: `${homeGoals}–${awayGoals}`,
+    completeScore: decidedByPenalties ? `${homeGoals}–${awayGoals} · pen. ${penalties.home}–${penalties.away}` : `${homeGoals}–${awayGoals}`
+  };
+}
+
+function eventTeamId(event, context) {
