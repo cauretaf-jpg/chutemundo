@@ -1,0 +1,180 @@
+function waitForCore() {
+  if (window.ChuteMundoCore) return Promise.resolve(window.ChuteMundoCore);
+  return new Promise((resolve) => document.addEventListener('chute:ready', (event) => resolve(event.detail), { once: true }));
+}
+
+const core = await waitForCore();
+const model = window.ChuteDetailModel;
+if (!model) throw new Error('El modelo detallado no está disponible para Chute Mundo v5.16.');
+
+const VERSION = '5.16.0';
+const SCHEMA = 'match-events-stats-v516';
+const OFFICIAL_MINUTES = ['0', '10', '20', '30', '45', '50', '60', '70', '80', '90', '105', '120'];
+const DEFAULT_VENUES = ["Wladi's House", "Carlo's House"];
+const clone = (value) => typeof structuredClone === 'function' ? structuredClone(value) : JSON.parse(JSON.stringify(value));
+const esc = (value = '') => String(value).replace(/[&<>"']/g, (character) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[character]);
+const minuteNumber = (value) => Math.max(0, Number.parseInt(String(value ?? '0'), 10) || 0);
+const minuteLabel = (value) => `${minuteNumber(value)}′`;
+const playerName = (entry) => Array.isArray(entry) ? String(entry[0] || '') : String(entry?.name || '');
+const playerPosition = (entry) => Array.isArray(entry) ? String(entry[1] || '') : String(entry?.position || entry?.role || '');
+let busy = false;
+let refreshQueued = false;
+let lastPlayerKey = '';
+
+function matchContext(pair, source = core.getState()) {
+  const [tournamentId, matchId] = String(pair || '').split('__');
+  const tournament = source.tournaments?.find((item) => item.id === tournamentId);
+  const match = tournament?.matches?.find((item) => item.id === matchId);
+  if (!tournament || !match) return null;
+  const home = match.home || core.resolveHome(tournament, match);
+  const away = match.away || core.resolveAway(tournament, match);
+  if (!home || !away) return null;
+  return { tournamentId, matchId, tournament, match, home, away, pair: `${tournamentId}__${matchId}` };
+}
+
+function teamRoster(teamId, source = core.getState()) {
+  return source.teams?.find((team) => team.id === teamId)?.players || [];
+}
+
+function rosterPlayer(teamId, name, source = core.getState()) {
+  return teamRoster(teamId, source).find((entry) => playerName(entry) === name) || null;
+}
+
+function currentLineup(lineup, minute = 120) {
+  if (window.ChuteV515MatchCenter?.currentLineup) return window.ChuteV515MatchCenter.currentLineup(lineup, minute);
+  if (window.ChuteV514UnifiedMatch?.currentLineup) return window.ChuteV514UnifiedMatch.currentLineup(lineup, minute);
+  if (window.ChuteV513Lineups?.currentLineup) return window.ChuteV513Lineups.currentLineup(lineup, minute);
+  return [...(lineup?.starters || [])];
+}
+
+function ensureLineups(match, home, away, source = core.getState()) {
+  window.ChuteV513Lineups?.ensureMatchLineups?.(match, home, away, source);
+}
+
+function venues(source = core.getState(), current = '') {
+  const custom = Array.isArray(source.config?.venues) ? source.config.venues : [];
+  return [...new Set([...DEFAULT_VENUES, ...custom, current].map((value) => String(value || '').trim()).filter(Boolean))];
+}
+
+function minuteOptions(selected = '0') {
+  return OFFICIAL_MINUTES.map((minute) => `<option value="${minute}" ${String(selected) === minute ? 'selected' : ''}>${minute}′</option>`).join('');
+}
+
+function groupedPlayerOptions(teamId, lineup, minute, selected = '', { emptyLabel = '' } = {}) {
+  const field = new Set(currentLineup(lineup, minute));
+  const roster = teamRoster(teamId);
+  const onField = roster.filter((entry) => field.has(playerName(entry)));
+  const others = roster.filter((entry) => !field.has(playerName(entry)));
+  const option = (entry, active) => {
+    const name = playerName(entry);
+    const suffix = active ? ' · EN CANCHA' : ' · Otro jugador';
+    return `<option value="${esc(name)}" class="${active ? 'cm-v516-option-field' : ''}" data-on-field="${active ? 'true' : 'false'}" ${name === selected ? 'selected' : ''}>${active ? '● ' : ''}${esc(name)}${suffix}</option>`;
+  };
+  return `${emptyLabel ? `<option value="">${esc(emptyLabel)}</option>` : '<option value="">Selecciona</option>'}
+    <optgroup label="EN CANCHA">${onField.map((entry) => option(entry, true)).join('')}</optgroup>
+    <optgroup label="OTROS JUGADORES · selección flexible">${others.map((entry) => option(entry, false)).join('')}</optgroup>`;
+}
+
+function groupedShootoutOptions(teamId, lineup, selected = '') {
+  return groupedPlayerOptions(teamId, lineup, 120, selected, { emptyLabel: 'Selecciona lanzador' });
+}
+
+function readMetadata(match) {
+  const date = document.getElementById('cmV59Date');
+  const time = document.getElementById('cmV59Time');
+  const venue = document.getElementById('cmV59Venue');
+  if (date) match.date = date.value;
+  if (time) match.time = time.value;
+  if (venue) match.venue = venue.value.trim();
+}
+
+function syncPenaltyScore(match) {
+  const attempts = Array.isArray(match.penaltyShootout) ? match.penaltyShootout : [];
+  if (!match.shootoutStarted && !attempts.length) return;
+  match.homePens = attempts.filter((item) => item.side === 'home' && item.result === 'scored').length;
+  match.awayPens = attempts.filter((item) => item.side === 'away' && item.result === 'scored').length;
+}
+
+async function persist(pair, mutate, successText) {
+  if (busy || !core.canEdit()) return false;
+  const previous = clone(core.getState());
+  const next = clone(previous);
+  const context = matchContext(pair, next);
+  if (!context) return core.showToast('El partido ya no está disponible.');
+  ensureLineups(context.match, context.home, context.away, next);
+  busy = true;
+  try {
+    readMetadata(context.match);
+    mutate(context, next);
+    syncPenaltyScore(context.match);
+    model.syncLegacyLogs?.(context.match);
+    context.match.updatedAt = Date.now();
+    next.activity = Array.isArray(next.activity) ? next.activity : [];
+    next.activity.unshift({ id: core.uid('activity'), text: successText, at: Date.now() });
+    next.activity = next.activity.slice(0, 50);
+    core.setState(next);
+    core.persistLocal?.();
+    await core.saveCloud();
+    core.showToast(`${successText} Sincronizado con Firebase.`);
+    window.ChuteV59?.openLiveMatch?.(pair);
+    scheduleRefresh();
+    return true;
+  } catch (error) {
+    console.error(error);
+    core.setState(previous);
+    core.showToast(`No se pudo guardar: ${error.code || error.message || 'error desconocido'}.`);
+    window.ChuteV59?.openLiveMatch?.(pair);
+    return false;
+  } finally {
+    busy = false;
+  }
+}
+
+function selectedMinute(kind, side) {
+  return document.querySelector(`[data-cm-v516-${kind}-minute="${side}"]`)?.value || '0';
+}
+
+async function addGoal(pair, side) {
+  const scorer = document.getElementById(`cmV59Scorer-${side}`)?.value || '';
+  const assist = document.getElementById(`cmV59Assist-${side}`)?.value || '';
+  const minute = selectedMinute('goal', side);
+  if (!scorer) return core.showToast('Selecciona al goleador.');
+  if (assist && assist === scorer) return core.showToast('El goleador y el asistidor deben ser distintos.');
+  const current = matchContext(pair);
+  const teamId = side === 'away' ? current?.away : current?.home;
+  const field = new Set(currentLineup(current?.match.lineups?.[side], minute));
+  const warnings = [!field.has(scorer) ? scorer : '', assist && !field.has(assist) ? assist : ''].filter(Boolean);
+  await persist(pair, (context) => {
+    const eventTeamId = side === 'away' ? context.away : context.home;
+    const scoreKey = side === 'away' ? 'awayGoals' : 'homeGoals';
+    context.match.goals = Array.isArray(context.match.goals) ? context.match.goals : [];
+    context.match.goals.push({
+      id: core.uid('livegoal'), side, teamId: eventTeamId, playerName: scorer, assistName: assist,
+      minute, createdAt: Date.now(), lineupVerified: warnings.length === 0
+    });
+    context.match[scoreKey] = Number(context.match[scoreKey] ?? 0) + 1;
+    context.match.liveMinute = Math.max(Number(context.match.liveMinute || 0), minuteNumber(minute));
+    context.match.liveStatus = 'active';
+  }, `Gol de ${scorer} registrado${warnings.length ? ` · selección flexible: ${warnings.join(' y ')} no figuraba en cancha` : ''}.`);
+}
+
+async function addCard(pair, side) {
+  const player = document.getElementById(`cmV59CardPlayer-${side}`)?.value || '';
+  const requested = document.getElementById(`cmV59CardType-${side}`)?.value || 'yellow';
+  const minute = selectedMinute('card', side);
+  if (!player) return core.showToast('Selecciona al jugador sancionado.');
+  await persist(pair, (context) => {
+    const teamId = side === 'away' ? context.away : context.home;
+    context.match.cards = Array.isArray(context.match.cards) ? context.match.cards : [];
+    const priorYellow = requested === 'yellow' && context.match.cards.some((card) => card.side === side && card.playerName === player && card.type === 'yellow');
+    context.match.cards.push({
+      id: core.uid('livecard'), side, teamId, playerName: player, role: 'player',
+      type: priorYellow || requested === 'red' ? 'red' : 'yellow', minute, createdAt: Date.now(),
+      reason: priorYellow ? 'double_yellow' : '', secondYellow: priorYellow
+    });
+    context.match.liveMinute = Math.max(Number(context.match.liveMinute || 0), minuteNumber(minute));
+    context.match.liveStatus = 'active';
+  }, requested === 'red' ? `Tarjeta roja para ${player}.` : `Amonestación para ${player} registrada.`);
+}
+
+function substitutionEvent(change, side, teamId) {
