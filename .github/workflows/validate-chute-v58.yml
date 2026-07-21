@@ -1,4 +1,4 @@
-name: Validate Chute Mundo v5.12.1
+name: Validate Chute Mundo v5.13.0
 
 on:
   pull_request:
@@ -24,9 +24,11 @@ jobs:
           node --check public/chute-v512-integrity.mjs
           node --check public/chute-v5121-search-fix.mjs
           node --check public/chute-v5121-backup-fix.mjs
+          node --check public/chute-v513-lineups.mjs
           node --check public/sw.js
           node --check scripts/smoke-chute-v512.mjs
           node --check scripts/smoke-chute-v5121.mjs
+          node --check scripts/smoke-chute-v513.mjs
           node scripts/audit-chute-v58.mjs
       - name: Validate required files
         run: |
@@ -42,11 +44,14 @@ jobs:
           test -s public/chute-v5121-storage-preflight.mjs
           test -s public/chute-v5121-search-fix.mjs
           test -s public/chute-v5121-backup-fix.mjs
-          test -s scripts/smoke-chute-v5121.mjs
+          test -s public/chute-v513-lineups.mjs
+          test -s public/chute-v513-lineups.css
+          test -s scripts/smoke-chute-v513.mjs
           grep -q "playerKey" public/chute-v511-core.mjs
           grep -q "leaguePodium" public/chute-v511-tournaments.mjs
           grep -q "compactBackups" public/chute-v5121-backup-fix.mjs
-          grep -q "chute-v5121-search-fix.mjs" public/chute-official.mjs
+          grep -q "chute-v513-lineups.mjs" public/chute-official.mjs
+          grep -q "registerSubstitution" public/chute-v513-lineups.mjs
           grep -q '"display":"standalone"' public/manifest.webmanifest
           test ! -e public/chute-v56-card-metadata.mjs
       - name: Install browser
@@ -63,11 +68,12 @@ jobs:
           node scripts/smoke-chute-v510.mjs > /tmp/chute-smoke-v510.log 2>&1
           node scripts/smoke-chute-v512.mjs > /tmp/chute-smoke-v512.log 2>&1
           node scripts/smoke-chute-v5121.mjs > /tmp/chute-smoke-v5121.log 2>&1
+          node scripts/smoke-chute-v513.mjs > /tmp/chute-smoke-v513.log 2>&1
       - name: Upload diagnostics
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: chute-v5-12-1-diagnostics
+          name: chute-v5-13-0-diagnostics
           path: |
             /tmp/chute-smoke-v58.log
             /tmp/chute-smoke-v59.log
@@ -75,5 +81,6 @@ jobs:
             /tmp/chute-smoke-v510.log
             /tmp/chute-smoke-v512.log
             /tmp/chute-smoke-v5121.log
+            /tmp/chute-smoke-v513.log
             /tmp/chute-server.log
           retention-days: 3
