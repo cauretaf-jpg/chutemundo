@@ -32,7 +32,7 @@ try {
       friendlies: [],
       tournaments: [{ id: 't', name: 'Play-Off test', matches: [{
         id: 'm', stage: 'knockout', home: 'a', away: 'b', homeGoals: 1, awayGoals: 1,
-        shootoutStarted: true,
+        shootoutStarted: true, participationTracked: true,
         lineups: {
           home: { starters: ['Arquero A', 'Jugador A', 'Jugador B', 'Jugador C'], changes: [{ id: 'sub', minute: 20, playerOut: 'Jugador A', playerIn: 'Suplente A', createdAt: 20 }] },
           away: { starters: ['Arquero B', 'Rival A', 'Rival B', 'Rival C'], changes: [] }
@@ -45,17 +45,21 @@ try {
     const starter = api.playerStats('a', 'Jugador A', source);
     const substitute = api.playerStats('a', 'Suplente A', source);
     const goalkeeper = api.playerStats('a', 'Arquero A', source);
+    const untrackedSource = JSON.parse(JSON.stringify(source));
+    delete untrackedSource.tournaments[0].matches[0].participationTracked;
+    const untracked = api.playerStats('a', 'Jugador A', untrackedSource);
     const realState = window.ChuteMundoCore.getState();
     const realTeam = realState.teams.find((team) => (team.players || []).length >= 5);
     const realStarters = realTeam ? window.ChuteV513Lineups.defaultStarters(realTeam.id) : [];
     const options = realTeam ? api.groupedPlayerOptions(realTeam.id, { starters: realStarters, changes: [] }, 0) : '';
-    return { version: api.version, venues: api.venues(source), starter, substitute, goalkeeper, options };
+    return { version: api.version, venues: api.venues(source), starter, substitute, goalkeeper, untracked, options };
   });
 
-  if (pure.version !== '5.16.0' || !pure.venues.includes("Wladi's House") || !pure.venues.includes("Carlo's House")) throw new Error(`Sedes o versión inválidas: ${JSON.stringify(pure)}`);
+  if (pure.version !== '5.16.1' || !pure.venues.includes("Wladi's House") || !pure.venues.includes("Carlo's House")) throw new Error(`Sedes o versión inválidas: ${JSON.stringify(pure)}`);
   if (pure.starter.appearances !== 1 || pure.starter.minutes !== 20 || pure.starter.substituted !== 1 || pure.starter.goals !== 1 || pure.starter.assists !== 0) throw new Error(`Estadísticas del titular inválidas: ${JSON.stringify(pure.starter)}`);
   if (pure.substitute.appearances !== 1 || pure.substitute.entries !== 1 || pure.substitute.minutes !== 100 || pure.substitute.penaltiesScored !== 1 || pure.substitute.yellows !== 1) throw new Error(`Estadísticas del suplente inválidas: ${JSON.stringify(pure.substitute)}`);
   if (!pure.goalkeeper.goalkeeper || pure.goalkeeper.appearances !== 1 || pure.goalkeeper.minutes !== 0 || pure.goalkeeper.goalsConceded !== 1) throw new Error(`Estadísticas de portero inválidas: ${JSON.stringify(pure.goalkeeper)}`);
+  if (pure.untracked.goals !== 1 || pure.untracked.appearances !== 0 || pure.untracked.minutes !== 0 || pure.untracked.substituted !== 0) throw new Error(`La participación histórica se está inventando: ${JSON.stringify(pure.untracked)}`);
   if (!pure.options.includes('optgroup label="EN CANCHA"') || !pure.options.includes('cm-v516-option-field') || !pure.options.includes('selección flexible')) throw new Error('La selección flexible no distingue jugadores en cancha.');
 
   const pair = await page.evaluate(() => {
@@ -67,7 +71,7 @@ try {
     window.ChuteV514UnifiedMatch.openUnifiedMatch(row.tournament.id, row.match.id);
     return `${row.tournament.id}__${row.match.id}`;
   });
-  if (!pair) throw new Error('No se encontró un partido para validar v5.16.');
+  if (!pair) throw new Error('No se encontró un partido para validar v5.16.1.');
 
   await page.waitForSelector('.cm-v516-match-center');
   await page.waitForSelector('[data-cm-v516-goal-minute="home"]');
@@ -95,7 +99,7 @@ try {
       viewport: document.documentElement.clientWidth
     };
   });
-  if (!visual.title.includes('5.16') || visual.venueTag !== 'SELECT' || !visual.venues.includes("Wladi's House") || !visual.venues.includes("Carlo's House") || !visual.addVenue || visual.goalMinutes !== 2 || visual.cardMinutes !== 2 || visual.subMinutes !== 2 || !visual.groups.includes('EN CANCHA') || visual.onFieldOptions < 4 || !visual.globalMinuteHidden || !visual.legacyPenaltyHidden || !visual.undoUnified || visual.width > visual.viewport + 3) throw new Error(`Interfaz v5.16 inválida: ${JSON.stringify(visual)}`);
+  if (!visual.title.includes('5.16.1') || visual.venueTag !== 'SELECT' || !visual.venues.includes("Wladi's House") || !visual.venues.includes("Carlo's House") || !visual.addVenue || visual.goalMinutes !== 2 || visual.cardMinutes !== 2 || visual.subMinutes !== 2 || !visual.groups.includes('EN CANCHA') || visual.onFieldOptions < 4 || !visual.globalMinuteHidden || !visual.legacyPenaltyHidden || !visual.undoUnified || visual.width > visual.viewport + 3) throw new Error(`Interfaz v5.16.1 inválida: ${JSON.stringify(visual)}`);
 
   const playerKey = await page.evaluate(() => {
     const core = window.ChuteMundoCore;
@@ -121,7 +125,7 @@ try {
 
   const critical = errors.filter((message) => !/favicon|firestore|permission-denied|Failed to load resource|QUIC_NETWORK|ERR_NAME_NOT_RESOLVED|ERR_CONNECTION|network/i.test(message));
   if (critical.length) throw new Error(critical.join(' | '));
-  console.log('Chute Mundo v5.16 smoke OK', { pure, visual, profile, statsPage });
+  console.log('Chute Mundo v5.16.1 smoke OK', { pure, visual, profile, statsPage });
 } finally {
   await browser.close();
 }
