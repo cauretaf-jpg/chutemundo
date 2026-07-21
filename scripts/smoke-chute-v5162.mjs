@@ -78,14 +78,25 @@ try {
   await page.waitForTimeout(800);
   const buttonState = await page.evaluate(() => {
     const hub = document.getElementById('cmTournamentHub');
-    const tabs = [...(hub?.querySelectorAll('[data-cm-tournament-tab]') || [])].map((item) => ({ tab: item.dataset.cmTournamentTab, active: item.classList.contains('active') }));
-    const panels = [...(hub?.querySelectorAll('[data-cm-tournament-panel]') || [])].map((item) => ({ panel: item.dataset.cmTournamentPanel, active: item.classList.contains('active'), display: getComputedStyle(item).display }));
-    const buttons = [...(hub?.querySelectorAll('[data-cm-hub-match]') || [])].map((item) => ({ pair: item.dataset.cmHubMatch, text: item.textContent.trim(), display: getComputedStyle(item).display, visibility: getComputedStyle(item).visibility, width: item.getBoundingClientRect().width, height: item.getBoundingClientRect().height, panel: item.closest('[data-cm-tournament-panel]')?.dataset.cmTournamentPanel }));
-    return { tabs, panels, buttons };
+    const first = hub?.querySelector('[data-cm-tournament-panel="fixture"] [data-cm-hub-match]');
+    const describe = (item) => {
+      const style = getComputedStyle(item);
+      const rect = item.getBoundingClientRect();
+      return { tag: item.tagName, id: item.id, className: item.className, hidden: item.hidden, display: style.display, visibility: style.visibility, width: rect.width, height: rect.height };
+    };
+    const ancestors = [];
+    let node = first;
+    while (node && ancestors.length < 12) { ancestors.push(describe(node)); node = node.parentElement; }
+    return {
+      pages: [...document.querySelectorAll('.page')].map((item) => ({ id: item.id, hidden: item.hidden, display: getComputedStyle(item).display, width: item.getBoundingClientRect().width, height: item.getBoundingClientRect().height })),
+      tabs: [...(hub?.querySelectorAll('[data-cm-tournament-tab]') || [])].map((item) => ({ tab: item.dataset.cmTournamentTab, active: item.classList.contains('active') })),
+      panels: [...(hub?.querySelectorAll('[data-cm-tournament-panel]') || [])].map((item) => ({ panel: item.dataset.cmTournamentPanel, active: item.classList.contains('active'), display: getComputedStyle(item).display, width: item.getBoundingClientRect().width, height: item.getBoundingClientRect().height })),
+      ancestors
+    };
   });
-  const visibleButton = buttonState.buttons.find((item) => item.panel === 'fixture' && item.display !== 'none' && item.visibility !== 'hidden' && item.width > 0 && item.height > 0);
-  if (!visibleButton) throw new Error(`Botón de partido oculto: ${JSON.stringify(buttonState)}`);
-  await page.locator(`#cmTournamentHub [data-cm-hub-match="${visibleButton.pair}"]`).first().click();
+  const firstButton = buttonState.ancestors[0];
+  if (!firstButton || firstButton.display === 'none' || firstButton.visibility === 'hidden' || firstButton.width <= 0 || firstButton.height <= 0) throw new Error(`Botón de partido oculto: ${JSON.stringify(buttonState)}`);
+  await page.locator('#cmTournamentHub [data-cm-tournament-panel="fixture"] [data-cm-hub-match]').first().click();
   await page.waitForSelector('.cm-v516-match-center');
   const editor = await page.evaluate(() => ({
     goal: Boolean(document.querySelector('[data-cm-v516-goal-minute="home"]')),
