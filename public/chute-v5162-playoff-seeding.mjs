@@ -52,6 +52,31 @@ function repairState(source) {
   return { state: next, changed };
 }
 
+function installHotfixStyles() {
+  if (document.getElementById('cmV5163PlayoffUiStyles')) return;
+  const style = document.createElement('style');
+  style.id = 'cmV5163PlayoffUiStyles';
+  style.textContent = `
+    #cmTournamentHub .cm-hub-match > footer {
+      display: grid !important;
+      grid-template-columns: 1fr auto;
+      gap: 8px;
+      align-items: center;
+    }
+    #cmTournamentHub .cm-hub-match > footer > div {
+      display: flex !important;
+      justify-content: flex-end;
+      gap: 6px;
+    }
+    #cmTournamentHub [data-cm-hub-match] {
+      visibility: visible !important;
+      opacity: 1 !important;
+      pointer-events: auto !important;
+    }
+  `;
+  document.head.appendChild(style);
+}
+
 function uiContext() {
   const hub = document.getElementById('cmTournamentHub');
   const page = [...document.querySelectorAll('.page')].find((item) => !item.hidden);
@@ -64,6 +89,7 @@ function uiContext() {
 
 let uiRefreshToken = 0;
 function restoreEnhancedTournamentUi(fallbackContext = {}) {
+  installHotfixStyles();
   const token = ++uiRefreshToken;
   let fallback = { ...fallbackContext };
   const refresh = () => {
@@ -140,6 +166,7 @@ document.addEventListener('visibilitychange', () => {
   if (!document.hidden) void applyRepair();
 });
 
+installHotfixStyles();
 const heroVersion = document.querySelector('.hero .eyebrow');
 if (heroVersion) heroVersion.textContent = 'CHUTE MUNDO v5.16.3';
 document.title = 'Chute Mundo v5.16.3 · Play-Off y centro restaurados';
