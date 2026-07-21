@@ -77,7 +77,8 @@ try {
     computed: window.ChuteV517Finalization.computeAwards(window.ChuteMundoCore.getState().tournaments.find((item) => item.id === 'v517-finalization-test'))
   }));
   if (awards.cards !== 6 || !awards.visible) throw new Error(`Panel de premios incompleto: ${JSON.stringify({ cards: awards.cards, visible: awards.visible })}`);
-  if (!awards.text.includes(setup.debut) || !awards.computed.awards.mvp.playerName || !awards.computed.awards.goalkeeper.playerName || !awards.computed.awards.finalMvp.playerName) throw new Error(`Premios sin estadísticas completas: ${JSON.stringify(awards.computed.awards)}`);
+  const automatic = ['scorer', 'assist', 'mvp', 'goalkeeper', 'revelation', 'finalMvp'];
+  if (automatic.some((key) => !awards.computed.awards[key]?.playerName) || automatic.some((key) => !awards.computed.awards[key]?.reason)) throw new Error(`Premios sin estadísticas completas: ${JSON.stringify(awards.computed.awards)}`);
 
   await page.locator('[data-cm-tournament-tab="table"]:visible').click();
   await page.waitForSelector('[data-cm-tournament-panel="table"].active');
