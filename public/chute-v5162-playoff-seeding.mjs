@@ -52,17 +52,30 @@ function repairState(source) {
   return { state: next, changed };
 }
 
+function hubContext() {
+  const hub = document.getElementById('cmTournamentHub');
+  return {
+    tournamentId: hub?.dataset.tournamentId || '',
+    activeTab: hub?.querySelector('[data-cm-tournament-tab].active')?.dataset.cmTournamentTab || ''
+  };
+}
+
 let uiRefreshToken = 0;
-function restoreEnhancedTournamentUi() {
+function restoreEnhancedTournamentUi(fallbackContext = {}) {
   const token = ++uiRefreshToken;
-  const tournamentId = document.getElementById('cmTournamentHub')?.dataset.tournamentId || '';
-  const activeTab = document.querySelector('#cmTournamentHub [data-cm-tournament-tab].active')?.dataset.cmTournamentTab || '';
+  let fallback = { ...fallbackContext };
   const refresh = () => {
     if (token !== uiRefreshToken) return;
+    const current = hubContext();
     window.ChuteTournamentHub?.refresh?.();
-    if (activeTab && document.getElementById('cmTournamentHub')?.dataset.tournamentId === tournamentId) {
-      window.ChuteTournamentHub?.switchTab?.(activeTab);
-    }
+    const rebuilt = hubContext();
+    const activeTab = current.tournamentId === rebuilt.tournamentId && current.activeTab
+      ? current.activeTab
+      : fallback.tournamentId === rebuilt.tournamentId
+        ? fallback.activeTab
+        : '';
+    if (activeTab) window.ChuteTournamentHub?.switchTab?.(activeTab);
+    fallback = {};
     window.ChuteV511Tournaments?.refresh?.();
     window.ChuteMobileV581?.refresh?.();
     window.ChuteV514UnifiedMatch?.decorateEntryButtons?.();
@@ -77,9 +90,10 @@ function restoreEnhancedTournamentUi() {
 
 const originalSetState = core.setState.bind(core);
 core.setState = (nextState) => {
+  const previousUi = hubContext();
   const repaired = repairState(nextState);
   originalSetState(repaired.state);
-  restoreEnhancedTournamentUi();
+  restoreEnhancedTournamentUi(previousUi);
   return repaired.state;
 };
 
@@ -91,9 +105,10 @@ async function applyRepair() {
   const repaired = repairState(core.getState());
   if (!repaired.changed) return false;
   applying = true;
+  const previousUi = hubContext();
   try {
     originalSetState(repaired.state);
-    restoreEnhancedTournamentUi();
+    restoreEnhancedTournamentUi(previousUi);
     const signature = JSON.stringify((repaired.state.tournaments || []).filter((tournament) => tournament.type === 'league_playoff').map((tournament) => [tournament.id, (tournament.matches || []).filter((match) => playoffTemplate(match)).map((match) => [match.id, match.homeRef, match.awayRef, match.home, match.away])]));
     if (core.isAdmin() && core.canEdit() && core.cloudLoaded && signature !== lastSavedSignature) {
       await core.saveCloud();
@@ -102,7 +117,7 @@ async function applyRepair() {
     return true;
   } catch (error) {
     console.error('No se pudo reparar la llave de Play-Off.', error);
-    restoreEnhancedTournamentUi();
+    restoreEnhancedTournamentUi(previousUi);
     return false;
   } finally {
     applying = false;
