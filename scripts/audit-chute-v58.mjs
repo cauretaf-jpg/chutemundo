@@ -15,13 +15,15 @@ const v516 = (await Promise.all(Array.from({ length: 12 }, (_, index) => readFil
 const playoff = await readFile(path.join(publicDir, 'chute-v5162-playoff-seeding.mjs'), 'utf8');
 const v517Loader = await readFile(path.join(publicDir, 'chute-v517-finalization.mjs'), 'utf8');
 const v517 = (await Promise.all(Array.from({ length: 8 }, (_, index) => readFile(path.join(publicDir, `chute-v517-finalization-part-${String(index).padStart(2, '0')}.txt`), 'utf8')))).join('');
+const v518Loader = await readFile(path.join(publicDir, 'chute-v518-era-stats.mjs'), 'utf8');
+const v518 = (await Promise.all(Array.from({ length: 6 }, (_, index) => readFile(path.join(publicDir, `chute-v518-era-stats-part-${String(index).padStart(2, '0')}.txt`), 'utf8')))).join('');
 const packageJson = JSON.parse(await readFile(path.join(root, 'package.json'), 'utf8'));
 
 const failures = [];
 const notes = [];
 const requireCheck = (condition, message) => { if (!condition) failures.push(message); };
 
-requireCheck(packageJson.version === '5.17.0', 'package.json no esta en v5.17.0.');
+requireCheck(packageJson.version === '5.18.0', 'package.json no esta en v5.18.0.');
 requireCheck(detail.indexOf('chute-runtime-v58.mjs') < detail.indexOf('chute-mutation-guard.mjs'), 'El runtime optimizado debe cargarse antes de los modulos periodicos.');
 requireCheck(!detail.includes('chute-v56-card-metadata.mjs'), 'El parche redundante de metadatos sigue importandose.');
 requireCheck(detail.includes('function loadStatistics()'), 'No existe carga diferida del centro estadistico.');
@@ -43,7 +45,8 @@ requireCheck(official.includes('chute-v515-match-center.mjs?v=5.15.0'), 'No se c
 requireCheck(official.includes('chute-v516-events-stats.mjs?v=5.16.1'), 'No se carga la capa estable de eventos v5.16.1.');
 requireCheck(official.includes('chute-v5162-playoff-seeding.mjs?v=5.16.3'), 'No se carga la correccion visual de Play-Off v5.16.3.');
 requireCheck(official.includes('chute-v517-finalization.mjs?v=5.17.0'), 'No se carga la capa de finalizacion v5.17.');
-requireCheck(official.indexOf('chute-v513-lineups.mjs') < official.indexOf('chute-v514-unified-match.mjs') && official.indexOf('chute-v514-unified-match.mjs') < official.indexOf('chute-v515-match-center.mjs') && official.indexOf('chute-v515-match-center.mjs') < official.indexOf('chute-v516-events-stats.mjs') && official.indexOf('chute-v516-events-stats.mjs') < official.indexOf('chute-v5162-playoff-seeding.mjs') && official.indexOf('chute-v5162-playoff-seeding.mjs') < official.indexOf('chute-v517-finalization.mjs'), 'El orden de capas del centro de partido es incorrecto.');
+requireCheck(official.includes('chute-v518-era-stats.mjs?v=5.18.0'), 'No se carga la capa de eras y estadisticas v5.18.');
+requireCheck(official.indexOf('chute-v513-lineups.mjs') < official.indexOf('chute-v514-unified-match.mjs') && official.indexOf('chute-v514-unified-match.mjs') < official.indexOf('chute-v515-match-center.mjs') && official.indexOf('chute-v515-match-center.mjs') < official.indexOf('chute-v516-events-stats.mjs') && official.indexOf('chute-v516-events-stats.mjs') < official.indexOf('chute-v5162-playoff-seeding.mjs') && official.indexOf('chute-v5162-playoff-seeding.mjs') < official.indexOf('chute-v517-finalization.mjs') && official.indexOf('chute-v517-finalization.mjs') < official.indexOf('chute-v518-era-stats.mjs'), 'El orden de capas del centro de partido y estadisticas es incorrecto.');
 requireCheck(lineups.includes("const VERSION = '5.13.0'"), 'El modulo de alineaciones no declara v5.13.0.');
 requireCheck(lineups.includes("'Davis Bronson', 'MED', 45") && lineups.includes("'Jackie Sánchez', 'MED', 45"), 'Las posiciones oficiales corregidas no estan presentes.');
 requireCheck(unified.includes('eligiblePlayers') && !unified.includes('usedPlayers(lineup)'), 'El reingreso de jugadores no se conserva.');
@@ -68,6 +71,13 @@ requireCheck(v517.includes("const VERSION = '5.17.0'") && v517.includes('functio
 requireCheck(v517.includes('data-cm-v517-awards-panel') && v517.includes('syncAwardsVisibility') && v517.includes("panel.style.display = active ? 'block' : 'none'"), 'Premios no queda aislado en su propia pestana.');
 requireCheck(v517.includes('function resultInfo') && v517.includes('decidedByPenalties') && v517.includes('data-cm-v517-penalty-for'), 'Los resultados definidos por penales no estan integrados.');
 requireCheck(v517.includes('function qualityIssues') && v517.includes('data-cm-v517-confirm-finish') && v517.includes('awardsEngineVersion'), 'El cierre con control de calidad y premios oficiales esta incompleto.');
+requireCheck(v518Loader.includes("prefix: 'chute-v518-era-stats-part'") && v518Loader.includes('count: 6') && v518Loader.includes("version: '5.18.0'"), 'El cargador v5.18 no solicita sus seis partes.');
+requireCheck(v518.includes("const VERSION = '5.18.0'") && v518.includes("const CUTOFF_NAME = '8vo Torneo - Copa'"), 'La version o el punto de corte de eras no son correctos.');
+requireCheck(v518.includes("const ERA_LEAGUES = 'leagues'") && v518.includes("const ERA_DIVISIONS = 'divisions'") && v518.includes('function plannedEra'), 'La asignacion explicita de eras no esta implementada.');
+requireCheck(v518.includes('function inferCoverage') && v518.includes("none: 'Sin registro'") && v518.includes('function coverageSummary'), 'La cobertura estadistica no distingue ausencia de registro.');
+requireCheck(v518.includes('function divisionsCriticalIssues') && v518.includes('falta registrar asistencia o “sin asistencia”') && v518.includes('data-cm-v517-confirm-finish'), 'La Era de divisiones no exige registros completos al finalizar.');
+requireCheck(v518.includes("['summary','teams','players','keepers','tournaments','history']") && v518.includes('data-cm-v518-filter="era"') && v518.includes('data-cm-v518-filter="tournament"') && v518.includes('data-cm-v518-filter="team"'), 'El centro estadistico v5.18 no contiene las secciones o filtros acordados.');
+requireCheck(v518.includes('penWins') && v518.includes('Las series ganadas por penales se muestran por separado'), 'Las tandas siguen mezclandose con victorias reglamentarias.');
 
 async function walk(directory) {
   const result = [];
@@ -101,9 +111,9 @@ const duplicates = [...imports, ...officialImports].filter((item, index, list) =
 requireCheck(duplicates.length === 0, `Importaciones duplicadas: ${duplicates.join(', ')}`);
 
 if (failures.length) {
-  console.error('Auditoria v5.17 fallida:');
+  console.error('Auditoria v5.18 fallida:');
   failures.forEach((failure) => console.error(`- ${failure}`));
   process.exit(1);
 }
-console.log('Auditoria v5.17 OK');
+console.log('Auditoria v5.18 OK');
 notes.forEach((note) => console.log(`- ${note}`));

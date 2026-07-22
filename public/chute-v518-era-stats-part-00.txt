@@ -1,0 +1,134 @@
+const core = window.ChuteMundoCore;
+if (!core) throw new Error('Chute Mundo no está listo.');
+
+const VERSION = '5.18.0';
+const SCHEMA = 'era-stats-v1';
+const CUTOFF_NAME = '8vo Torneo - Copa';
+const ERA_LEAGUES = 'leagues';
+const ERA_DIVISIONS = 'divisions';
+const ERA_LABELS = {
+  [ERA_LEAGUES]: 'Era de ligas',
+  [ERA_DIVISIONS]: 'Era de divisiones'
+};
+const COVERAGE_LABELS = {
+  complete: 'Completo',
+  partial: 'Parcial',
+  none: 'Sin registro',
+  not_applicable: 'No aplica'
+};
+const clone = (value) => JSON.parse(JSON.stringify(value));
+const esc = (value = '') => String(value).replace(/[&<>"']/g, (character) => ({
+  '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+}[character]));
+const norm = (value = '') => String(value).normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
+const playerName = (entry) => Array.isArray(entry) ? String(entry[0] || '') : String(entry?.name || '');
+const playerPosition = (entry) => Array.isArray(entry) ? String(entry[1] || '') : String(entry?.position || entry?.role || '');
+const matchPlayed = (match) => core.matchPlayed(match);
+const allMatches = (tournament) => (tournament.matches || []).filter((match) => match.stage !== 'bye');
+const playedMatches = (tournament) => allMatches(tournament).filter(matchPlayed);
+const teamById = (id, source = core.getState()) => (source.teams || []).find((team) => team.id === id);
+const teamName = (id) => core.teamName(id);
+const formatPct = (value) => Number.isFinite(value) ? `${Math.round(value)}%` : '—';
+
+let selectedTab = localStorage.getItem('cm_v518_stats_tab') || 'summary';
+let selectedEra = localStorage.getItem('cm_v518_stats_era') || 'all';
+let selectedTournament = localStorage.getItem('cm_v518_stats_tournament') || 'all';
+let selectedTeam = localStorage.getItem('cm_v518_stats_team') || 'all';
+let refreshQueued = false;
+let migrationBusy = false;
+let lastSavedMigration = '';
+
+function findCutoffIndex(source) {
+  const target = norm(CUTOFF_NAME);
+  return (source.tournaments || []).findIndex((tournament) => norm(tournament.name) === target || norm(tournament.name).includes(target));
+}
+
+function plannedEra(source, tournament, index, cutoffIndex = findCutoffIndex(source)) {
+  if (cutoffIndex >= 0) return index <= cutoffIndex ? ERA_LEAGUES : ERA_DIVISIONS;
+  if ([ERA_LEAGUES, ERA_DIVISIONS].includes(tournament.eraId)) return tournament.eraId;
+  return /division/.test(norm(tournament.name)) || String(tournament.type || '').startsWith('division') ? ERA_DIVISIONS : ERA_LEAGUES;
+}
+
+function parseGoalLog(text = '', teamId = '') {
+  return String(text).split('\n').map((line) => line.trim()).filter(Boolean).map((line) => {
+    const [scorer = '', assist = '', minute = ''] = line.split('|').map((part) => part.trim());
+    return { playerName: scorer, assistName: assist, minute, teamId };
+  });
+}
+
+function detailedGoals(tournament) {
+  const out = [];
+  for (const match of playedMatches(tournament)) {
+    const home = match.home || core.resolveHome(tournament, match);
+    const away = match.away || core.resolveAway(tournament, match);
+    if (Array.isArray(match.goals) && match.goals.length) {
+      for (const goal of match.goals) out.push({
+        ...goal,
+        teamId: goal.teamId || (goal.side === 'away' ? away : home)
+      });
+    } else {
+      out.push(...parseGoalLog(match.homeGoalLog, home), ...parseGoalLog(match.awayGoalLog, away));
+    }
+  }
+  return out;
+}
+
+function legacyMetricMap(tournament, kind) {
+  const rows = kind === 'goals' ? tournament.playerScorers : tournament.playerAssists;
+  const map = new Map();
+  for (const row of rows || []) {
+    const [name, teamId, appearances, value] = row;
+    if (!name || !teamId) continue;
+    map.set(`${teamId}__${name}`, { teamId, name, appearances: Number(appearances || 0), value: Number(value || 0) });
+  }
+  return map;
+}
+
+function recordedMetricMap(tournament, kind) {
+  const legacy = legacyMetricMap(tournament, kind);
+  const detailed = new Map();
+  for (const goal of detailedGoals(tournament)) {
+    const name = kind === 'goals' ? goal.playerName : goal.assistName;
+    if (!name || !goal.teamId || (kind === 'assists' && /sin asistencia/i.test(name))) continue;
+    const key = `${goal.teamId}__${name}`;
+    detailed.set(key, (detailed.get(key) || 0) + 1);
+  }
+  const out = new Map(legacy);
+  for (const [key, value] of detailed) {
+    if (!out.has(key)) {
+      const [teamId, ...nameParts] = key.split('__');
+      out.set(key, { teamId, name: nameParts.join('__'), appearances: 0, value });
+    }
+  }
+  return out;
+}
+
+function goalCount(tournament) {
+  return playedMatches(tournament).reduce((sum, match) => sum + Number(match.homeGoals || 0) + Number(match.awayGoals || 0), 0);
+}
+
+function recordedGoalCount(tournament) {
+  const legacy = [...legacyMetricMap(tournament, 'goals').values()].reduce((sum, row) => sum + row.value, 0);
+  const detailed = detailedGoals(tournament).filter((goal) => goal.playerName).length;
+  return Math.max(legacy, detailed);
+}
+
+function recordedAssistCount(tournament) {
+  const legacy = [...legacyMetricMap(tournament, 'assists').values()].reduce((sum, row) => sum + row.value, 0);
+  const detailed = detailedGoals(tournament).filter((goal) => goal.assistName && !/sin asistencia/i.test(goal.assistName)).length;
+  return Math.max(legacy, detailed);
+}
+
+function validShootout(match) {
+  const tied = Number(match.homeGoals) === Number(match.awayGoals);
+  if (!tied || match.stage !== 'knockout') return true;
+  const scoreValid = Number.isFinite(Number(match.homePens)) && Number.isFinite(Number(match.awayPens)) && Number(match.homePens) !== Number(match.awayPens);
+  const attempts = Array.isArray(match.penaltyShootout) ? match.penaltyShootout : [];
+  return scoreValid && attempts.length > 0;
+}
+
+function inferCoverage(tournament, eraId) {
+  const played = playedMatches(tournament);
+  const goals = goalCount(tournament);
+  const recordedGoals = recordedGoalCount(tournament);
+  const recordedAssists = recordedAssistCount(tournament);

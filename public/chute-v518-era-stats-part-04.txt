@@ -1,0 +1,68 @@
+  return `<section class="cm-v518-panel" data-cm-v518-panel="keepers"><article class="cm-v518-card"><header><div><p class="eyebrow">PORTEROS</p><h2>Rendimiento desde la Era de divisiones</h2></div></header><p class="cm-v518-note">Los torneos de la Era de ligas no se incorporan a promedios de porteros porque no poseen alineaciones completas.</p>${table(['#','Portero','PJ','GC','GC/PJ','Vallas inv.','G-E-P','Penales'], markup, selectedEra === ERA_LEAGUES ? 'Las estadísticas comparables de porteros comienzan en la Era de divisiones.' : 'Aún no existen partidos con porteros registrados en la Era de divisiones.')}</article></section>`;
+}
+
+function tournamentsPanel(tournaments) {
+  const rows = [...tournaments].reverse().map((tournament) => {
+    const matches = allMatches(tournament);
+    const played = playedMatches(tournament);
+    const coverage = tournament.coverage || inferCoverage(tournament, tournament.eraId);
+    return `<tr><td><b>${esc(tournament.name)}</b><small>${esc(ERA_LABELS[tournament.eraId] || tournament.eraId)}</small></td><td>${esc(tournament.type || '—')}</td><td>${esc(tournament.status || '—')}</td><td>${played.length}/${matches.length}</td><td>${goalCount(tournament)}</td><td>${esc(tournament.champion ? teamName(tournament.champion) : '—')}</td><td>${coverageChip(coverage.scorers, 'G')}</td><td>${coverageChip(coverage.assists, 'A')}</td><td>${coverageChip(coverage.lineups, 'AL')}</td><td>${coverageChip(coverage.penalties, 'P')}</td></tr>`;
+  });
+  return `<section class="cm-v518-panel" data-cm-v518-panel="tournaments"><article class="cm-v518-card"><header><div><p class="eyebrow">TORNEOS</p><h2>Era y cobertura por competencia</h2></div></header>${table(['Torneo','Formato','Estado','Jugados','Goles','Campeón','Goleadores','Asist.','Alineac.','Penales'], rows)}</article></section>`;
+}
+
+function controllerRows(tournaments, source) {
+  const map = new Map((source.participants || []).map((participant) => [participant.id, { ...participant, titles: 0, runners: 0, thirds: 0 }]));
+  for (const tournament of tournaments) {
+    if (map.has(tournament.participantChampion)) map.get(tournament.participantChampion).titles += 1;
+    if (map.has(tournament.participantRunnerUp)) map.get(tournament.participantRunnerUp).runners += 1;
+    if (map.has(tournament.participantThird)) map.get(tournament.participantThird).thirds += 1;
+  }
+  return [...map.values()].filter((row) => row.titles || row.runners || row.thirds).sort((a, b) => b.titles - a.titles || b.runners - a.runners);
+}
+
+function historyPanel(tournaments, source) {
+  const teams = teamRows(tournaments, source);
+  const matches = matchRows(tournaments);
+  const biggest = [...matches].sort((a, b) => Math.abs(Number(b.match.homeGoals) - Number(b.match.awayGoals)) - Math.abs(Number(a.match.homeGoals) - Number(a.match.awayGoals)))[0];
+  const mostGoals = [...matches].sort((a, b) => Number(b.match.homeGoals) + Number(b.match.awayGoals) - Number(a.match.homeGoals) - Number(a.match.awayGoals))[0];
+  const controllers = controllerRows(tournaments, source);
+  const controllerMarkup = controllers.map((row, index) => `<tr><td>${index + 1}</td><td>${esc(row.name || row.id)}</td><td>${row.titles}</td><td>${row.runners}</td><td>${row.thirds}</td></tr>`);
+  return `<section class="cm-v518-panel" data-cm-v518-panel="history">
+    <div class="cm-v518-records">
+      <article><b>${esc(teams[0] ? teamName(teams[0].teamId) : '—')}</b><span>Más títulos</span><small>${teams[0]?.titles || 0} campeonatos</small></article>
+      <article><b>${biggest ? `${esc(teamName(biggest.home))} ${biggest.match.homeGoals}-${biggest.match.awayGoals} ${esc(teamName(biggest.away))}` : '—'}</b><span>Mayor diferencia</span><small>${biggest ? esc(biggest.tournament.name) : ''}</small></article>
+      <article><b>${mostGoals ? `${esc(teamName(mostGoals.home))} ${mostGoals.match.homeGoals}-${mostGoals.match.awayGoals} ${esc(teamName(mostGoals.away))}` : '—'}</b><span>Partido con más goles</span><small>${mostGoals ? `${Number(mostGoals.match.homeGoals) + Number(mostGoals.match.awayGoals)} goles` : ''}</small></article>
+      <article><b>${teams.reduce((sum, row) => sum + row.penWins, 0)}</b><span>Series ganadas por penales</span><small>Separadas del resultado reglamentario</small></article>
+    </div>
+    <div class="cm-v518-two">
+      <article class="cm-v518-card"><p class="eyebrow">PALMARÉS</p><h2>Podios históricos</h2>${table(['#','Equipo','Títulos','Subc.','3.º'], teams.slice(0, 20).map((row, index) => `<tr><td>${index + 1}</td><td>${esc(teamName(row.teamId))}</td><td>${row.titles}</td><td>${row.runners}</td><td>${row.thirds}</td></tr>`) )}</article>
+      <article class="cm-v518-card"><p class="eyebrow">CONTROLADORES</p><h2>Rendimiento de participantes</h2>${table(['#','Participante','Títulos','Subc.','3.º'], controllerMarkup, 'Sin participantes asignados.')}</article>
+    </div>
+  </section>`;
+}
+
+function renderShell() {
+  const page = document.getElementById('estadisticas');
+  if (!page) return;
+  const source = core.getState();
+  const tournaments = filteredTournaments(source);
+  if (selectedTournament !== 'all' && !source.tournaments.some((tournament) => tournament.id === selectedTournament)) selectedTournament = 'all';
+  if (selectedTeam !== 'all' && !source.teams.some((team) => team.id === selectedTeam)) selectedTeam = 'all';
+
+  [...page.children].forEach((child) => {
+    if (child.id === 'cmV518Stats' || child.classList.contains('page-title')) return;
+    child.classList.add('cm-v518-source-hidden');
+    child.hidden = true;
+    child.setAttribute('aria-hidden', 'true');
+    child.style.setProperty('display', 'none', 'important');
+  });
+  const title = page.querySelector('.page-title');
+  if (title) title.innerHTML = '<p class="eyebrow">RENDIMIENTO</p><h1>Centro estadístico</h1><p>Historia unificada con cobertura explícita y métricas completas desde la Era de divisiones.</p>';
+
+  let host = document.getElementById('cmV518Stats');
+  if (!host) {
+    host = document.createElement('div');
+    host.id = 'cmV518Stats';
+    title?.insertAdjacentElement('afterend', host);
+  }

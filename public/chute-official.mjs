@@ -21,3 +21,4 @@ await import('/chute-v515-match-center.mjs?v=5.15.0');
 await import('/chute-v516-events-stats.mjs?v=5.16.1');
 await import('/chute-v5162-playoff-seeding.mjs?v=5.16.3');
 await import('/chute-v517-finalization.mjs?v=5.17.0');
+await import('/chute-v518-era-stats.mjs?v=5.18.0');
