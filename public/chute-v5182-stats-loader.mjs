@@ -34,6 +34,43 @@ function removeLegacyStatisticsShells() {
   }
 }
 
+function ensureAnalysisTab() {
+  const tabs = document.querySelector('#cmV518Stats .cm-v518-tabs');
+  if (!tabs) return null;
+  let button = tabs.querySelector('[data-cm-v5181-analysis]');
+  if (!button) {
+    button = document.createElement('button');
+    button.type = 'button';
+    button.dataset.cmV5181Analysis = '';
+    button.textContent = 'Análisis histórico';
+    tabs.appendChild(button);
+  }
+  button.hidden = false;
+  button.removeAttribute('aria-hidden');
+  button.style.removeProperty('display');
+  return button;
+}
+
+function applyStandaloneAnalysisVisibility(open) {
+  const page = document.getElementById('estadisticas');
+  const host = document.getElementById('cmV518Stats');
+  const root = document.getElementById('cmV58AnalysisRoot');
+  const button = ensureAnalysisTab();
+  if (!page || !host) return;
+  page.classList.toggle('cm-v5181-analysis-open', open);
+  button?.classList.toggle('active', open);
+  const filters = host.querySelector('.cm-v518-filter-grid');
+  const content = host.querySelector('.cm-v518-content');
+  if (filters) filters.hidden = open;
+  if (content) content.hidden = open;
+  if (root) {
+    root.hidden = !open;
+    root.setAttribute('aria-hidden', open ? 'false' : 'true');
+    root.style.setProperty('display', open ? 'grid' : 'none', 'important');
+  }
+  if (!open) window.ChuteAnalysisV58?.setMode?.('standard');
+}
+
 async function activateRecovery(error) {
   console.error('El centro estadístico avanzado falló; se activará la vista compatible.', error);
   window.__CM_V518_IMPORT_ERROR__ = error;
@@ -42,6 +79,7 @@ async function activateRecovery(error) {
   const recovery = window.ChuteV5183StatsRecovery || module;
   recovery.activate?.(error);
   removeLegacyStatisticsShells();
+  ensureAnalysisTab();
   stampVersion(true);
   return true;
 }
@@ -53,7 +91,9 @@ function refreshCurrentStatistics() {
     window.ChuteV5183StatsPreflight?.normalizeState?.();
     window.ChuteLazyV58?.refreshCurrentStatistics?.();
     window.ChuteV518EraStats?.renderShell?.();
+    ensureAnalysisTab();
     window.ChuteV5181StatsPolish?.refresh?.();
+    ensureAnalysisTab();
     removeLegacyStatisticsShells();
     stampVersion();
   } catch (error) {
@@ -71,6 +111,7 @@ async function loadHistoricalAnalysis() {
   if (window.ChuteAnalysisV58) {
     window.ChuteAnalysisV58.setMode?.('analysis');
     window.ChuteV5181StatsPolish?.refresh?.();
+    if (!window.ChuteV5181StatsPolish) applyStandaloneAnalysisVisibility(true);
     stampVersion();
     return true;
   }
@@ -79,13 +120,16 @@ async function loadHistoricalAnalysis() {
       .then(() => {
         window.ChuteAnalysisV58?.setMode?.('analysis');
         window.ChuteV5181StatsPolish?.refresh?.();
+        if (!window.ChuteV5181StatsPolish) applyStandaloneAnalysisVisibility(true);
         removeLegacyStatisticsShells();
+        ensureAnalysisTab();
         stampVersion();
         return true;
       })
       .catch((error) => {
         analysisRequest = null;
         window.ChuteV5181StatsPolish?.closeAnalysis?.();
+        if (!window.ChuteV5181StatsPolish) applyStandaloneAnalysisVisibility(false);
         stampVersion();
         throw error;
       });
@@ -95,14 +139,21 @@ async function loadHistoricalAnalysis() {
 
 document.addEventListener('click', (event) => {
   if (event.target.closest?.('[data-cm-v5181-analysis]')) {
+    event.preventDefault();
     void loadHistoricalAnalysis();
     return;
+  }
+  if (event.target.closest?.('#cmV518Stats [data-cm-v518-tab]') && !window.ChuteV5181StatsPolish) {
+    applyStandaloneAnalysisVisibility(false);
   }
   if (event.target.closest?.('[data-page="estadisticas"],[data-cm-page="estadisticas"],[data-cm-mobile-page="estadisticas"],#cmV518Stats [data-cm-v518-tab]')) {
     setTimeout(scheduleCurrentRefresh, 0);
     setTimeout(() => {
       if (!currentStatsVisible() && !document.getElementById('estadisticas')?.classList.contains('cm-v5181-analysis-open')) refreshCurrentStatistics();
-      else stampVersion();
+      else {
+        ensureAnalysisTab();
+        stampVersion();
+      }
     }, 120);
   }
 }, true);
@@ -135,6 +186,7 @@ if (titleElement) {
 }
 
 removeLegacyStatisticsShells();
+ensureAnalysisTab();
 scheduleCurrentRefresh();
 stampVersion();
 
@@ -144,6 +196,7 @@ window.ChuteV5182StatsLoader = {
   refreshCurrentStatistics,
   activateRecovery,
   currentStatsVisible,
+  ensureAnalysisTab,
   loadedLegacyStatistics() {
     return Boolean(window.ChuteStatsV52 || window.ChuteGameMinuteStats || window.ChuteControllersV57 || window.ChuteVisibilityV58);
   }
