@@ -2,40 +2,38 @@ const core = window.ChuteMundoCore;
 if (!core) throw new Error('Chute Mundo no está listo para normalizar estadísticas.');
 
 const VERSION = '5.18.3';
-const report = { normalizedRows: 0, inferredTeams: 0, skippedRows: 0, normalizedRosters: 0 };
+const report = { normalizedRows: 0, inferredTeams: 0, skippedRows: 0, normalizedRosters: 0, passes: 0 };
 const norm = (value = '') => String(value).normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
 const number = (value) => Number.isFinite(Number(value)) ? Number(value) : 0;
-const state = core.getState?.();
+let queued = false;
 
-if (!state || typeof state !== 'object') throw new Error('El estado compartido no está disponible.');
-if (!Array.isArray(state.teams)) state.teams = [];
-if (!Array.isArray(state.tournaments)) state.tournaments = [];
-if (!Array.isArray(state.participants)) state.participants = [];
-
-const teamByToken = new Map();
-const playerTeams = new Map();
-for (const team of state.teams) {
-  if (!team || typeof team !== 'object') continue;
-  teamByToken.set(String(team.id || ''), team.id);
-  teamByToken.set(norm(team.id), team.id);
-  teamByToken.set(norm(team.name), team.id);
-  if (!Array.isArray(team.players)) {
-    team.players = team.players && typeof team.players === 'object' ? Object.values(team.players) : [];
-    report.normalizedRosters += 1;
+function indexes(state) {
+  const teamByToken = new Map();
+  const playerTeams = new Map();
+  for (const team of state.teams || []) {
+    if (!team || typeof team !== 'object') continue;
+    teamByToken.set(String(team.id || ''), team.id);
+    teamByToken.set(norm(team.id), team.id);
+    teamByToken.set(norm(team.name), team.id);
+    if (!Array.isArray(team.players)) {
+      team.players = team.players && typeof team.players === 'object' ? Object.values(team.players) : [];
+      report.normalizedRosters += 1;
+    }
+    for (const entry of team.players) {
+      const name = Array.isArray(entry) ? entry[0] : entry?.name;
+      if (!name) continue;
+      const key = norm(name);
+      if (!playerTeams.has(key)) playerTeams.set(key, new Set());
+      playerTeams.get(key).add(team.id);
+    }
   }
-  for (const entry of team.players) {
-    const name = Array.isArray(entry) ? entry[0] : entry?.name;
-    if (!name) continue;
-    const key = norm(name);
-    if (!playerTeams.has(key)) playerTeams.set(key, new Set());
-    playerTeams.get(key).add(team.id);
-  }
+  return { teamByToken, playerTeams };
 }
 
-function inferTeamId(value, name) {
-  const direct = teamByToken.get(String(value || '')) || teamByToken.get(norm(value));
+function inferTeamId(value, name, lookup) {
+  const direct = lookup.teamByToken.get(String(value || '')) || lookup.teamByToken.get(norm(value));
   if (direct) return direct;
-  const candidates = playerTeams.get(norm(name));
+  const candidates = lookup.playerTeams.get(norm(name));
   if (candidates?.size === 1) {
     report.inferredTeams += 1;
     return [...candidates][0];
@@ -43,12 +41,11 @@ function inferTeamId(value, name) {
   return '';
 }
 
-function normalizeMetricRow(row, kind) {
+function normalizeMetricRow(row, kind, lookup) {
   let name = '';
   let teamToken = '';
   let appearances = 0;
   let value = 0;
-
   if (Array.isArray(row)) {
     name = row[0] ?? '';
     teamToken = row[1] ?? '';
@@ -64,9 +61,8 @@ function normalizeMetricRow(row, kind) {
   } else if (typeof row === 'string') {
     name = row;
   }
-
   name = String(name || '').trim();
-  const teamId = inferTeamId(teamToken, name);
+  const teamId = inferTeamId(teamToken, name, lookup);
   if (!name || !teamId) {
     report.skippedRows += 1;
     return null;
@@ -75,11 +71,12 @@ function normalizeMetricRow(row, kind) {
   return [name, teamId, number(appearances), number(value)];
 }
 
-function normalizeMetricRows(rows, kind) {
+function normalizeMetricRows(rows, kind, state = core.getState?.()) {
+  const lookup = indexes(state || { teams: [] });
   const source = Array.isArray(rows) ? rows : rows && typeof rows === 'object' ? Object.values(rows) : [];
   const merged = new Map();
   for (const row of source) {
-    const normalized = normalizeMetricRow(row, kind);
+    const normalized = normalizeMetricRow(row, kind, lookup);
     if (!normalized) continue;
     const [name, teamId, appearances, value] = normalized;
     const key = `${teamId}__${norm(name)}`;
@@ -90,15 +87,53 @@ function normalizeMetricRows(rows, kind) {
   return [...merged.values()];
 }
 
-for (const tournament of state.tournaments) {
-  if (!tournament || typeof tournament !== 'object') continue;
-  if (!Array.isArray(tournament.matches)) tournament.matches = [];
-  tournament.playerScorers = normalizeMetricRows(tournament.playerScorers, 'goals');
-  tournament.playerAssists = normalizeMetricRows(tournament.playerAssists, 'assists');
+function rowIsCanonical(row, state) {
+  return Array.isArray(row) && row.length >= 4 && typeof row[0] === 'string' && (state.teams || []).some((team) => team.id === row[1]);
 }
+
+function normalizeState(target = core.getState?.()) {
+  if (!target || typeof target !== 'object') return false;
+  if (!Array.isArray(target.teams)) target.teams = [];
+  if (!Array.isArray(target.tournaments)) target.tournaments = [];
+  if (!Array.isArray(target.participants)) target.participants = [];
+  indexes(target);
+  let changed = false;
+  for (const tournament of target.tournaments) {
+    if (!tournament || typeof tournament !== 'object') continue;
+    if (!Array.isArray(tournament.matches)) { tournament.matches = []; changed = true; }
+    const scorerRows = Array.isArray(tournament.playerScorers) ? tournament.playerScorers : tournament.playerScorers && typeof tournament.playerScorers === 'object' ? Object.values(tournament.playerScorers) : [];
+    const assistRows = Array.isArray(tournament.playerAssists) ? tournament.playerAssists : tournament.playerAssists && typeof tournament.playerAssists === 'object' ? Object.values(tournament.playerAssists) : [];
+    if (!Array.isArray(tournament.playerScorers) || scorerRows.some((row) => !rowIsCanonical(row, target))) {
+      tournament.playerScorers = normalizeMetricRows(scorerRows, 'goals', target);
+      changed = true;
+    }
+    if (!Array.isArray(tournament.playerAssists) || assistRows.some((row) => !rowIsCanonical(row, target))) {
+      tournament.playerAssists = normalizeMetricRows(assistRows, 'assists', target);
+      changed = true;
+    }
+  }
+  report.passes += 1;
+  return changed;
+}
+
+function scheduleNormalization() {
+  if (queued) return;
+  queued = true;
+  queueMicrotask(() => {
+    queued = false;
+    normalizeState();
+  });
+}
+
+normalizeState();
+new MutationObserver(scheduleNormalization).observe(document.body, { childList: true, subtree: true });
+document.addEventListener('chute:ready', scheduleNormalization);
+document.addEventListener('chute:state', scheduleNormalization);
 
 window.ChuteV5183StatsPreflight = {
   version: VERSION,
   report,
-  normalizeMetricRows
+  normalizeMetricRows,
+  normalizeState,
+  scheduleNormalization
 };
