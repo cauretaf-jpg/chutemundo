@@ -120,11 +120,11 @@ try {
   }, setup.tournamentId);
 
   const title = await page.title();
-  if (!title.includes('5.17')) throw new Error(`Título incorrecto: ${title}`);
+  if (!/5\.(17|18)/.test(title)) throw new Error(`Título incorrecto: ${title}`);
   const critical = errors.filter((message) => !/favicon|firestore|permission-denied|Failed to load resource|QUIC_NETWORK|ERR_NAME_NOT_RESOLVED|ERR_CONNECTION|network/i.test(message));
   if (critical.length) throw new Error(critical.join(' | '));
   await page.evaluate(() => window.ChuteMundoCore.setState(window.__cmV517Original));
-  console.log('Chute Mundo v5.17 smoke OK', { penaltyText, cards: awards.cards, mvp: awards.computed.awards.mvp.playerName, goalkeeper: awards.computed.awards.goalkeeper.playerName, quality, status });
+  console.log('Chute Mundo v5.17 regression smoke OK', { penaltyText, cards: awards.cards, mvp: awards.computed.awards.mvp.playerName, goalkeeper: awards.computed.awards.goalkeeper.playerName, quality, status });
 } finally {
   await browser.close();
 }
