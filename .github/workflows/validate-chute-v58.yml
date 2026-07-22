@@ -1,4 +1,4 @@
-name: Validate Chute Mundo v5.18
+name: Validate Chute Mundo v5.18.1
 
 on:
   pull_request:
@@ -29,8 +29,10 @@ jobs:
           node --check public/chute-v5162-playoff-seeding.mjs
           node --check public/chute-v517-finalization.mjs
           node --check public/chute-v518-era-stats.mjs
+          node --check public/chute-v5181-stats-polish.mjs
           node --check public/sw.js
           node --check scripts/smoke-chute-v518.mjs
+          node --check scripts/smoke-chute-v5181.mjs
           node scripts/check-chute-v516.mjs 2>&1 | tee /tmp/chute-v516-syntax.log
           cat public/chute-v517-finalization-part-*.txt > /tmp/chute-v517-concatenated.mjs
           node --check /tmp/chute-v517-concatenated.mjs 2>&1 | tee /tmp/chute-v517-syntax.log
@@ -51,16 +53,23 @@ jobs:
           test -s public/chute-v517-finalization.css
           test -s public/chute-v518-era-stats.mjs
           test -s public/chute-v518-era-stats.css
+          test -s public/chute-v5181-stats-polish.mjs
+          test -s public/chute-v5181-stats-polish.css
           for index in $(seq 0 11); do part=$(printf "%02d" "$index"); test -s "public/chute-v516-events-stats-part-${part}.txt"; done
           for index in $(seq 0 7); do part=$(printf "%02d" "$index"); test -s "public/chute-v517-finalization-part-${part}.txt"; done
           for index in $(seq 0 5); do part=$(printf "%02d" "$index"); test -s "public/chute-v518-era-stats-part-${part}.txt"; done
           test -s scripts/smoke-chute-v518.mjs
+          test -s scripts/smoke-chute-v5181.mjs
           grep -q "chute-v518-era-stats.mjs?v=5.18.0" public/chute-official.mjs
+          grep -q "chute-v5181-stats-polish.mjs?v=5.18.1" public/chute-official.mjs
           grep -q "8vo Torneo - Copa" public/chute-v518-era-stats-part-*.txt
           grep -q "function inferCoverage" public/chute-v518-era-stats-part-*.txt
           grep -q "function divisionsCriticalIssues" public/chute-v518-era-stats-part-*.txt
           grep -q "data-cm-v518-filter=\"era\"" public/chute-v518-era-stats-part-*.txt
           grep -q "data-cm-v518-panel=\"keepers\"" public/chute-v518-era-stats-part-*.txt
+          grep -q "data-cm-v5181-analysis" public/chute-v5181-stats-polish.mjs
+          grep -q "Goleador registrado" public/chute-v5181-stats-polish.mjs
+          grep -q "cm-v5181-analysis-open" public/chute-v5181-stats-polish.css
 
       - name: Install browser
         run: |
@@ -71,6 +80,7 @@ jobs:
         run: |
           npx serve public -l 4173 --no-clipboard > /tmp/chute-server.log 2>&1 &
           sleep 3
+          node scripts/smoke-chute-v5181.mjs > /tmp/chute-smoke-v5181.log 2>&1
           node scripts/smoke-chute-v518.mjs > /tmp/chute-smoke-v518.log 2>&1
           node scripts/smoke-chute-v517.mjs > /tmp/chute-smoke-v517.log 2>&1
           node scripts/smoke-chute-v5162.mjs > /tmp/chute-smoke-v5162.log 2>&1
@@ -89,7 +99,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: chute-v5-18-diagnostics
+          name: chute-v5-18-1-diagnostics
           path: |
             /tmp/chute-v516-syntax.log
             /tmp/chute-v517-syntax.log
