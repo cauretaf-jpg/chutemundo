@@ -2,6 +2,11 @@ const VERSION = '5.18.2';
 let analysisRequest = null;
 let refreshQueued = false;
 
+function stampVersion() {
+  document.title = 'Chute Mundo v5.18.2 · Estadísticas estables';
+  document.querySelector('.hero .eyebrow')?.replaceChildren('CHUTE MUNDO v5.18.2');
+}
+
 function currentStatsVisible() {
   const page = document.getElementById('estadisticas');
   const host = document.getElementById('cmV518Stats');
@@ -31,6 +36,7 @@ function refreshCurrentStatistics() {
   window.ChuteV518EraStats?.renderShell?.();
   window.ChuteV5181StatsPolish?.refresh?.();
   removeLegacyStatisticsShells();
+  stampVersion();
 }
 
 function scheduleCurrentRefresh() {
@@ -43,6 +49,7 @@ async function loadHistoricalAnalysis() {
   if (window.ChuteAnalysisV58) {
     window.ChuteAnalysisV58.setMode?.('analysis');
     window.ChuteV5181StatsPolish?.refresh?.();
+    stampVersion();
     return true;
   }
   if (!analysisRequest) {
@@ -51,11 +58,13 @@ async function loadHistoricalAnalysis() {
         window.ChuteAnalysisV58?.setMode?.('analysis');
         window.ChuteV5181StatsPolish?.refresh?.();
         removeLegacyStatisticsShells();
+        stampVersion();
         return true;
       })
       .catch((error) => {
         analysisRequest = null;
         window.ChuteV5181StatsPolish?.closeAnalysis?.();
+        stampVersion();
         throw error;
       });
   }
@@ -71,6 +80,7 @@ document.addEventListener('click', (event) => {
     setTimeout(scheduleCurrentRefresh, 0);
     setTimeout(() => {
       if (!currentStatsVisible() && !document.getElementById('estadisticas')?.classList.contains('cm-v5181-analysis-open')) refreshCurrentStatistics();
+      else stampVersion();
     }, 120);
   }
 }, true);
@@ -84,8 +94,7 @@ if (statisticsPage) {
 
 removeLegacyStatisticsShells();
 scheduleCurrentRefresh();
-document.title = 'Chute Mundo v5.18.2 · Estadísticas estables';
-document.querySelector('.hero .eyebrow')?.replaceChildren('CHUTE MUNDO v5.18.2');
+stampVersion();
 
 window.ChuteV5182StatsLoader = {
   version: VERSION,
