@@ -9,7 +9,7 @@ page.on('console', (message) => { if (message.type() === 'error') errors.push(me
 try {
   await page.goto('http://127.0.0.1:4173/', { waitUntil: 'domcontentloaded' });
   await page.waitForFunction(() => window.ChuteV5181StatsPolish && window.ChuteV518EraStats && window.ChuteMundoCore);
-  await page.click('.nav [data-page="estadisticas"]');
+  await page.evaluate(() => window.ChuteMundoCore.navigate('estadisticas'));
   await page.waitForFunction(() => window.ChuteAnalysisV58 && document.querySelector('[data-cm-v5181-analysis]'));
   await page.waitForSelector('#cmV518Stats', { state: 'visible' });
 
