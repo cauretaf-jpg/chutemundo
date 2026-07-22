@@ -1,0 +1,2 @@
+Chute Mundo v5.20.1
+Arranque estable, versión única, limpieza automática de caché y pantalla inicial en Inicio.
