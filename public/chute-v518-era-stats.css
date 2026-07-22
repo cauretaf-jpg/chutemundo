@@ -1,3 +1,5 @@
+#estadisticas:not([hidden]){display:block!important;visibility:visible!important;height:auto!important;max-height:none!important;overflow:visible!important}
+#estadisticas:not([hidden])>#cmV518Stats{display:grid!important;visibility:visible!important;opacity:1!important;height:auto!important;max-height:none!important;overflow:visible!important}
 #estadisticas > .cm-v518-source-hidden{display:none!important}
 #cmV518Stats{display:grid;gap:18px;color:#102019}
 .cm-v518-toolbar{position:sticky;top:74px;z-index:20;display:grid;gap:14px;padding:18px;border:1px solid #d6e4de;border-radius:22px;background:rgba(250,253,251,.96);box-shadow:0 12px 30px rgba(5,39,29,.08);backdrop-filter:blur(14px)}
