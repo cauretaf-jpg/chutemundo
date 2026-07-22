@@ -114,7 +114,7 @@ try {
     bars: document.querySelectorAll('.cm-v519-bars > div').length,
     text: document.querySelector('[data-cm-v519-panel="analysis"]')?.innerText || ''
   }));
-  if (!analysis.visible || !analysis.chart || analysis.h2h < 2 || analysis.bars !== 7 || !analysis.text.includes('Puntos acumulados') || !analysis.text.includes('Escenarios')) throw new Error(`Análisis histórico incompleto: ${JSON.stringify(analysis)}`);
+  if (!analysis.visible || !analysis.chart || analysis.h2h < 2 || analysis.bars !== 7 || !analysis.text.includes('Ranking histórico') || !analysis.text.includes('Escenarios')) throw new Error(`Análisis histórico incompleto: ${JSON.stringify(analysis)}`);
 
   const mobile = await page.evaluate(() => ({ width: document.documentElement.scrollWidth, viewport: document.documentElement.clientWidth }));
   if (mobile.width > mobile.viewport + 3) throw new Error(`Desborde móvil en Estadísticas: ${JSON.stringify(mobile)}`);
