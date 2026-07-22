@@ -43,6 +43,7 @@ try {
       return tournament?.eraId && tournament?.coverage?.schema === 'era-stats-v1';
     });
   });
+  await page.waitForTimeout(650);
   await page.evaluate(() => window.ChuteMundoCore.navigate('torneos'));
   await page.waitForFunction(() => [...document.querySelectorAll('[data-open-tournament="playoff-ui-regression"]')].some((element) => element.getClientRects().length));
   await page.locator('[data-open-tournament="playoff-ui-regression"]:visible').first().click();
