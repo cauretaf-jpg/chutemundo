@@ -4,12 +4,13 @@ import path from 'node:path';
 const root = process.cwd();
 const publicDir = path.join(root, 'public');
 const readPublic = (name) => readFile(path.join(publicDir, name), 'utf8');
-const [official, index, sw, stats, css, guard, preflight, detail] = await Promise.all([
+const [official, index, sw, stats, css, sync, guard, preflight, detail] = await Promise.all([
   readPublic('chute-official.mjs'),
   readPublic('index.html'),
   readPublic('sw.js'),
   readPublic('chute-v519-stats.mjs'),
   readPublic('chute-v519-stats.css'),
+  readPublic('chute-v519-stats-sync.mjs'),
   readPublic('chute-v519-stats-guard.mjs'),
   readPublic('chute-v5183-stats-preflight.mjs'),
   readPublic('chute-detail.mjs')
@@ -21,7 +22,7 @@ const check = (condition, message) => { if (!condition) failures.push(message); 
 
 check(pkg.version === '5.19.0', 'package.json no está en v5.19.0.');
 check(index.includes('Chute Mundo v5.19') && index.includes('/chute-official.mjs?v=5.19.0'), 'index.html no usa la entrada v5.19.0.');
-check(official.includes('/chute-v519-stats.mjs?v=5.19.0') && official.includes('/chute-v519-stats-guard.mjs?v=5.19.0'), 'La entrada no carga el centro y guard v5.19.');
+check(official.includes('/chute-v519-stats.mjs?v=5.19.0') && official.includes('/chute-v519-stats-sync.mjs?v=5.19.0') && official.includes('/chute-v519-stats-guard.mjs?v=5.19.0'), 'La entrada no carga centro, sincronización y guard v5.19.');
 check(official.includes('/chute-v5183-stats-preflight.mjs?v=5.18.3'), 'La entrada perdió el normalizador histórico.');
 for (const legacy of ['chute-v518-era-stats.mjs','chute-v5181-stats-polish.mjs','chute-v5182-stats-loader.mjs','chute-v5183-stats-recovery.mjs','chute-v58-analysis.mjs','chute-v582-analysis-theme.mjs']) {
   check(!official.includes(legacy), `La entrada todavía carga ${legacy}.`);
@@ -36,9 +37,10 @@ check(stats.includes('function analysisPanel') && stats.includes('function ranki
 check(!stats.includes("import('/chute-v58-analysis.mjs"), 'El centro v5.19 todavía depende del análisis v5.8.');
 check(css.includes('#cmV519Stats') && css.includes('.cm-v519-analysis-grid') && css.includes('.cm-v519-leaders') && css.includes('@media(max-width:760px)'), 'El rediseño v5.19 no cubre escritorio y móvil.');
 check(css.includes('#cmV58AnalysisRoot') && css.includes('#cmV518Stats'), 'La hoja v5.19 no neutraliza centros estadísticos anteriores.');
+check(sync.includes('installSetStateBridge') && sync.includes('queueStatisticsRefresh') && sync.includes('__cmV519StatsSync'), 'El centro v5.19 no se actualiza después de setState/Firebase.');
 check(guard.includes('function divisionsCriticalIssues') && guard.includes('function validShootout') && guard.includes('data-cm-v517-confirm-finish'), 'Se perdió la validación de cierre de la Era de divisiones.');
 check(preflight.includes('installSetStateGuard') && preflight.includes('normalizeMetricRows'), 'El normalizador previo a Firebase está incompleto.');
-check(sw.includes("const CACHE = 'chute-mundo-v5.19.0'") && sw.includes('/chute-v519-stats.mjs?v=5.19.0') && sw.includes('function networkFirst'), 'La PWA no usa caché v5.19 con estrategia de actualización segura.');
+check(sw.includes("const CACHE = 'chute-mundo-v5.19.0'") && sw.includes('/chute-v519-stats.mjs?v=5.19.0') && sw.includes('/chute-v519-stats-sync.mjs?v=5.19.0') && sw.includes('function networkFirst'), 'La PWA no usa caché v5.19 con recursos completos.');
 for (const legacy of ['chute-v518-era-stats.mjs','chute-v5181-stats-polish.mjs','chute-v5182-stats-loader.mjs','chute-v58-analysis.mjs']) {
   check(!sw.includes(legacy), `El service worker todavía precarga ${legacy}.`);
 }
