@@ -1,0 +1,88 @@
+    const parsed = parseMetricEntry(entry, kind, source);
+    if (!parsed) continue;
+    rows.set(`${parsed.teamId}__${norm(parsed.name)}`, parsed);
+  }
+
+  const detailed = new Map();
+  for (const row of matchRows([tournament])) {
+    const goals = Array.isArray(row.match.goals) ? row.match.goals : [];
+    for (const goal of goals) {
+      const name = kind === 'goals' ? goal.playerName : goal.assistName;
+      const teamId = resolveTeamId(goal.teamId || (goal.side === 'away' ? row.away : row.home), name, source);
+      if (!name || !teamId || (kind === 'assists' && /sin asistencia|sin pase|ninguna/i.test(String(name)))) continue;
+      const key = `${teamId}__${norm(name)}`;
+      const current = detailed.get(key) || { teamId, name: String(name).trim(), appearances: 0, value: 0 };
+      current.value += 1;
+      detailed.set(key, current);
+    }
+  }
+
+  for (const [key, detail] of detailed) {
+    const current = rows.get(key);
+    if (!current) rows.set(key, detail);
+    else current.value = Math.max(current.value, detail.value);
+  }
+  return [...rows.values()];
+}
+
+function rankingRows(tournaments, kind, source = state()) {
+  const map = new Map();
+  for (const tournament of tournaments) {
+    for (const row of tournamentMetricRows(tournament, kind, source)) {
+      if (selectedTeam !== 'all' && row.teamId !== selectedTeam) continue;
+      const key = `${row.teamId}__${norm(row.name)}`;
+      const current = map.get(key) || { teamId: row.teamId, name: row.name, value: 0, appearances: 0, tournaments: new Set() };
+      current.value += row.value;
+      current.appearances = Math.max(current.appearances, row.appearances);
+      current.tournaments.add(tournament.id);
+      map.set(key, current);
+    }
+  }
+  return [...map.values()].filter((row) => row.value > 0).sort((left, right) => right.value - left.value || right.tournaments.size - left.tournaments.size || left.name.localeCompare(right.name, 'es'));
+}
+
+function teamRows(tournaments, source = state()) {
+  const map = new Map((source.teams || []).map((team) => [team.id, {
+    teamId: team.id, titles: 0, runners: 0, thirds: 0, pj: 0, pg: 0, pe: 0, pp: 0, gf: 0, gc: 0, penWins: 0
+  }]));
+
+  for (const tournament of tournaments) {
+    if (map.has(tournament.champion)) map.get(tournament.champion).titles += 1;
+    if (map.has(tournament.runnerUp)) map.get(tournament.runnerUp).runners += 1;
+    if (map.has(tournament.third)) map.get(tournament.third).thirds += 1;
+    for (const row of matchRows([tournament])) {
+      const home = map.get(row.home);
+      const away = map.get(row.away);
+      if (!home || !away) continue;
+      const homeGoals = number(row.match.homeGoals);
+      const awayGoals = number(row.match.awayGoals);
+      home.pj += 1;
+      away.pj += 1;
+      home.gf += homeGoals;
+      home.gc += awayGoals;
+      away.gf += awayGoals;
+      away.gc += homeGoals;
+      if (homeGoals > awayGoals) {
+        home.pg += 1;
+        away.pp += 1;
+      } else if (awayGoals > homeGoals) {
+        away.pg += 1;
+        home.pp += 1;
+      } else {
+        home.pe += 1;
+        away.pe += 1;
+        const winner = winnerId(row);
+        if (winner && map.has(winner)) map.get(winner).penWins += 1;
+      }
+    }
+  }
+
+  return [...map.values()]
+    .filter((row) => row.pj || row.titles || row.runners || row.thirds)
+    .map((row) => ({ ...row, dg: row.gf - row.gc, performance: row.pj ? ((row.pg * 3 + row.pe) / (row.pj * 3)) * 100 : 0 }))
+    .filter((row) => selectedTeam === 'all' || row.teamId === selectedTeam)
+    .sort((left, right) => right.titles - left.titles || right.performance - left.performance || right.dg - left.dg || right.gf - left.gf);
+}
+
+function lineupNames(lineup, field) {
+  const values = Array.isArray(lineup?.[field]) ? lineup[field] : [];

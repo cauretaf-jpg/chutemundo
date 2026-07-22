@@ -1,0 +1,88 @@
+const core = window.ChuteMundoCore;
+if (!core) throw new Error('Chute Mundo no está listo para Estadísticas v5.20.');
+
+const VERSION = '5.20.0';
+const ERA_LEAGUES = 'leagues';
+const ERA_DIVISIONS = 'divisions';
+const CUTOFF_NAME = '8vo Torneo - Copa';
+const TABS = [
+  ['summary', 'Resumen', 'Vista general'],
+  ['teams', 'Equipos', 'Rendimiento colectivo'],
+  ['scorers', 'Goleadores', 'Tabla de goles'],
+  ['assists', 'Asistidores', 'Tabla de asistencias'],
+  ['keepers', 'Portería imbatida', 'Rendimiento de porteros'],
+  ['tournaments', 'Torneos', 'Cobertura histórica'],
+  ['analysis', 'Análisis histórico', 'Récords y evolución']
+];
+
+const model = window.ChuteDetailModel || {};
+const esc = model.esc || ((value = '') => String(value).replace(/[&<>"']/g, (character) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[character])));
+const norm = (value = '') => String(value).normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
+const number = (value) => Number.isFinite(Number(value)) ? Number(value) : 0;
+const playerName = (entry) => Array.isArray(entry) ? String(entry[0] || '') : String(entry?.name || entry?.playerName || '');
+const playerPosition = (entry) => Array.isArray(entry) ? String(entry[1] || '') : String(entry?.position || entry?.role || '');
+const isGoalkeeper = (entry) => /arquero|portero|goalkeeper|keeper|gk/i.test(playerPosition(entry));
+const logoUrl = (teamId) => model.logoUrl?.(teamId) || '';
+const photo = (teamId, name, className = '') => model.photo?.(teamId, name, className) || `<span class="cm-v520-avatar ${className}">${esc(String(name || '?').slice(0, 1).toUpperCase())}</span>`;
+const matchPlayed = (match) => core.matchPlayed?.(match) ?? (match?.homeGoals !== null && match?.homeGoals !== '' && match?.awayGoals !== null && match?.awayGoals !== '');
+const state = () => core.getState?.() || { teams: [], tournaments: [] };
+const teamName = (teamId, source = state()) => (source.teams || []).find((team) => team.id === teamId)?.name || core.teamName?.(teamId) || teamId || 'Por definir';
+const storage = {
+  tab: 'cm_v520_stats_tab',
+  era: 'cm_v520_stats_era',
+  tournament: 'cm_v520_stats_tournament',
+  team: 'cm_v520_stats_team'
+};
+
+let selectedTab = localStorage.getItem(storage.tab) || 'summary';
+let selectedEra = localStorage.getItem(storage.era) || 'all';
+let selectedTournament = localStorage.getItem(storage.tournament) || 'all';
+let selectedTeam = localStorage.getItem(storage.team) || 'all';
+let refreshQueued = false;
+let rendering = false;
+
+function parseChronology(value) {
+  if (typeof value === 'number' && Number.isFinite(value)) return value;
+  if (!value) return null;
+  const timestamp = Date.parse(String(value));
+  return Number.isFinite(timestamp) ? timestamp : null;
+}
+
+function orderedTournaments(source = state()) {
+  return (source.tournaments || []).map((tournament, index) => ({ tournament, index, time: parseChronology(tournament.createdAt || tournament.startDate || tournament.date) }))
+    .sort((left, right) => {
+      if (left.time !== null && right.time !== null && left.time !== right.time) return left.time - right.time;
+      return left.index - right.index;
+    })
+    .map((row) => row.tournament);
+}
+
+function cutoffIndex(source = state()) {
+  const target = norm(CUTOFF_NAME);
+  return orderedTournaments(source).findIndex((tournament) => {
+    const name = norm(tournament?.name);
+    return name === target || name.includes(target);
+  });
+}
+
+function eraOf(tournament, source = state()) {
+  if ([ERA_LEAGUES, ERA_DIVISIONS].includes(tournament?.eraId)) return tournament.eraId;
+  const ordered = orderedTournaments(source);
+  const index = ordered.findIndex((item) => item.id === tournament?.id);
+  const cutoff = cutoffIndex(source);
+  if (cutoff >= 0 && index >= 0) return index <= cutoff ? ERA_LEAGUES : ERA_DIVISIONS;
+  return String(tournament?.type || '').startsWith('division') || /division/.test(norm(tournament?.name)) ? ERA_DIVISIONS : ERA_LEAGUES;
+}
+
+function resolveTeamId(value, name = '', source = state()) {
+  const token = String(value || '').trim();
+  const direct = (source.teams || []).find((team) => team.id === token || norm(team.id) === norm(token) || norm(team.name) === norm(token));
+  if (direct) return direct.id;
+  const candidates = (source.teams || []).filter((team) => {
+    const roster = Array.isArray(team.players) ? team.players : team.players && typeof team.players === 'object' ? Object.values(team.players) : [];
+    return roster.some((entry) => norm(playerName(entry)) === norm(name));
+  });
+  return candidates.length === 1 ? candidates[0].id : '';
+}
+
+function resolveMatchTeam(tournament, match, side) {

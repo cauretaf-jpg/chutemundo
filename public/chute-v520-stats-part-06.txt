@@ -1,0 +1,87 @@
+    <div class="cm-v520-analysis-intro"><div><span>ANÁLISIS HISTÓRICO</span><h2>La historia completa, visible y filtrable</h2><p>${esc(filterLabel(source, tournaments))}</p></div><div><b>${records.length}</b><span>partidos analizados</span><b>${totalGoals}</b><span>goles</span></div></div>
+    <div class="cm-v520-analysis-grid">
+      <article class="cm-v520-card cm-v520-wide"><header><div><span class="cm-v520-kicker">EVOLUCIÓN</span><h2>Ranking histórico</h2><p>Puntos acumulados por resultados y posiciones finales.</p></div></header>${rankingChart(tournaments, source)}</article>
+      <article class="cm-v520-record-card"><span>Mayor diferencia</span>${biggest ? `<b>${esc(teamName(biggest.home, source))} ${number(biggest.match.homeGoals)}–${number(biggest.match.awayGoals)} ${esc(teamName(biggest.away, source))}</b><small>${esc(biggest.tournament.name)}</small>` : '<b>—</b><small>Sin partidos</small>'}</article>
+      <article class="cm-v520-record-card"><span>Partido con más goles</span>${highest ? `<b>${esc(teamName(highest.home, source))} ${number(highest.match.homeGoals)}–${number(highest.match.awayGoals)} ${esc(teamName(highest.away, source))}</b><small>${esc(highest.tournament.name)}</small>` : '<b>—</b><small>Sin partidos</small>'}</article>
+      <article class="cm-v520-card cm-v520-wide"><header><div><span class="cm-v520-kicker">RIVALIDADES</span><h2>Enfrentamientos más repetidos</h2></div></header>${table(['Cruce', 'PJ', 'Victorias', 'Empates', 'Goles'], h2h.map((row) => `<tr><td><b>${esc(teamName(row.left, source))}</b> vs <b>${esc(teamName(row.right, source))}</b></td><td>${row.matches}</td><td>${row.leftWins}–${row.rightWins}</td><td>${row.draws}</td><td>${row.leftGoals}–${row.rightGoals}</td></tr>`), 'Sin enfrentamientos para este filtro.')}</article>
+      <article class="cm-v520-card"><header><div><span class="cm-v520-kicker">MINUTOS</span><h2>Goles por tramo</h2><p>Solo partidos con minuto registrado.</p></div></header><div class="cm-v520-bars">${minutes.map((row) => `<div><span>${row.label}</span><i><b style="width:${Math.round(row.value / maximum * 100)}%"></b></i><strong>${row.value}</strong></div>`).join('')}</div></article>
+      <article class="cm-v520-card"><header><div><span class="cm-v520-kicker">SEDES</span><h2>Rendimiento por escenario</h2></div></header>${table(['Sede', 'PJ', 'Goles', 'G/PJ', 'Tarjetas'], venues.map((row) => `<tr><td>${esc(row.venue)}</td><td>${row.matches}</td><td>${row.goals}</td><td>${(row.goals / row.matches).toFixed(2)}</td><td>${row.cards}</td></tr>`), 'Sin sedes registradas.')}</article>
+      <article class="cm-v520-card cm-v520-wide"><header><div><span class="cm-v520-kicker">PALMARÉS</span><h2>Línea histórica de torneos</h2></div></header>${tournamentTimeline(tournaments, source)}</article>
+    </div>
+  </section>`;
+}
+
+function filterOptions(source) {
+  const tournaments = orderedTournaments(source).filter((tournament) => selectedEra === 'all' || eraOf(tournament, source) === selectedEra);
+  return {
+    tournaments: tournaments.map((tournament) => `<option value="${esc(tournament.id)}" ${selectedTournament === tournament.id ? 'selected' : ''}>${esc(tournament.name)}</option>`).join(''),
+    teams: (source.teams || []).map((team) => `<option value="${esc(team.id)}" ${selectedTeam === team.id ? 'selected' : ''}>${esc(team.name)}</option>`).join('')
+  };
+}
+
+function activateTab(tab, { focus = false } = {}) {
+  selectedTab = TABS.some(([id]) => id === tab) ? tab : 'summary';
+  localStorage.setItem(storage.tab, selectedTab);
+  document.querySelectorAll('#cmV520Stats [data-cm-v520-tab]').forEach((button) => {
+    const active = button.dataset.cmV520Tab === selectedTab;
+    button.classList.toggle('active', active);
+    button.setAttribute('aria-selected', String(active));
+    button.tabIndex = active ? 0 : -1;
+  });
+  document.querySelectorAll('#cmV520Stats [data-cm-v520-panel]').forEach((panel) => {
+    const active = panel.dataset.cmV520Panel === selectedTab;
+    panel.classList.toggle('active', active);
+    panel.hidden = !active;
+  });
+  if (focus) document.querySelector('#cmV520Stats .cm-v520-content')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+function renderShell() {
+  if (rendering) return;
+  rendering = true;
+  try {
+    const page = document.getElementById('estadisticas');
+    if (!page) return;
+    const source = state();
+    if (selectedTournament !== 'all' && !(source.tournaments || []).some((tournament) => tournament.id === selectedTournament)) selectedTournament = 'all';
+    if (selectedTeam !== 'all' && !(source.teams || []).some((team) => team.id === selectedTeam)) selectedTeam = 'all';
+    const tournaments = filteredTournaments(source);
+
+    [...page.children].forEach((child) => {
+      if (child.id === 'cmV520Stats' || child.classList.contains('page-title')) return;
+      child.hidden = true;
+      child.setAttribute('aria-hidden', 'true');
+      child.style.setProperty('display', 'none', 'important');
+    });
+
+    const title = page.querySelector('.page-title');
+    if (title) title.innerHTML = '<p class="eyebrow">CENTRO DE DATOS</p><h1>Estadísticas</h1><p>Rankings, palmarés y análisis histórico en una sola vista.</p>';
+    let host = document.getElementById('cmV520Stats');
+    if (!host) {
+      host = document.createElement('div');
+      host.id = 'cmV520Stats';
+      title?.insertAdjacentElement('afterend', host);
+    }
+
+    const options = filterOptions(source);
+    const signature = JSON.stringify({
+      selectedTab, selectedEra, selectedTournament, selectedTeam,
+      tournaments: tournaments.map((tournament) => [tournament.id, tournament.eraId, tournament.status, tournament.champion, tournament.runnerUp, tournament.third, tournament.playerScorers, tournament.playerAssists, (tournament.matches || []).map((match) => [match.id, match.home, match.away, match.homeGoals, match.awayGoals, match.homePens, match.awayPens, match.venue, match.participationTracked, match.lineups, match.goals, match.cards])]),
+      teams: (source.teams || []).map((team) => [team.id, team.name, team.players])
+    });
+    if (host.dataset.signature === signature) {
+      activateTab(selectedTab);
+      return;
+    }
+    host.dataset.signature = signature;
+
+    host.innerHTML = `<section class="cm-v520-head"><div><span>CHUTE MUNDO · DATOS OFICIALES</span><h2>${esc(filterLabel(source, tournaments))}</h2><p>${tournaments.length} torneos incluidos en la consulta.</p></div><button type="button" data-cm-v520-tab-jump="analysis"><small>ABRIR</small><b>Análisis histórico</b><span>→</span></button></section>
+      <section class="cm-v520-toolbar"><div class="cm-v520-toolbar-title"><div><span>FILTROS GLOBALES</span><b>Aplican a todas las tablas y gráficos</b></div><button type="button" data-cm-v520-reset>Restablecer</button></div><div class="cm-v520-filters"><label>Periodo<select data-cm-v520-filter="era"><option value="all" ${selectedEra === 'all' ? 'selected' : ''}>General</option><option value="${ERA_LEAGUES}" ${selectedEra === ERA_LEAGUES ? 'selected' : ''}>Era de ligas</option><option value="${ERA_DIVISIONS}" ${selectedEra === ERA_DIVISIONS ? 'selected' : ''}>Era de divisiones</option></select></label><label>Torneo<select data-cm-v520-filter="tournament"><option value="all">Todos los torneos</option>${options.tournaments}</select></label><label>Equipo<select data-cm-v520-filter="team"><option value="all">Todos los equipos</option>${options.teams}</select></label></div></section>
+      <nav class="cm-v520-tabs" aria-label="Secciones estadísticas" role="tablist">${TABS.map(([id, label, description]) => `<button type="button" role="tab" data-cm-v520-tab="${id}" class="${selectedTab === id ? 'active' : ''}${id === 'analysis' ? ' is-analysis' : ''}"><b>${label}</b><small>${description}</small></button>`).join('')}</nav>
+      <div class="cm-v520-content">${summaryPanel(tournaments, source)}${teamsPanel(tournaments, source)}${rankingPanel(tournaments, source, 'goals')}${rankingPanel(tournaments, source, 'assists')}${keepersPanel(tournaments, source)}${tournamentsPanel(tournaments, source)}${analysisPanel(tournaments, source)}</div>`;
+    activateTab(selectedTab);
+    document.getElementById('cmV581StatsStatus')?.remove();
+  } finally {
+    rendering = false;
+  }
+}

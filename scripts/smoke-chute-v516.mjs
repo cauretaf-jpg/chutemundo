@@ -8,7 +8,7 @@ page.on('console', (message) => { if (message.type() === 'error') errors.push(me
 
 try {
   await page.goto('http://127.0.0.1:4173/', { waitUntil: 'domcontentloaded' });
-  await page.waitForFunction(() => window.ChuteV516EventsStats && window.ChuteV515MatchCenter && window.ChuteMundoCore && window.ChuteV519Stats);
+  await page.waitForFunction(() => window.ChuteV516EventsStats && window.ChuteV515MatchCenter && window.ChuteMundoCore && window.ChuteV520Stats);
 
   const pure = await page.evaluate(() => {
     const api = window.ChuteV516EventsStats;
@@ -99,7 +99,7 @@ try {
       viewport: document.documentElement.clientWidth
     };
   });
-  if (!/5\.(16|17|18|19)/.test(visual.title) || visual.venueTag !== 'SELECT' || !visual.venues.includes("Wladi's House") || !visual.venues.includes("Carlo's House") || !visual.addVenue || visual.goalMinutes !== 2 || visual.cardMinutes !== 2 || visual.subMinutes !== 2 || !visual.groups.includes('EN CANCHA') || visual.onFieldOptions < 4 || !visual.globalMinuteHidden || !visual.legacyPenaltyHidden || !visual.undoUnified || visual.width > visual.viewport + 3) throw new Error(`Interfaz v5.16 inválida: ${JSON.stringify(visual)}`);
+  if (!/5\.(16|17|18|19|20)/.test(visual.title) || visual.venueTag !== 'SELECT' || !visual.venues.includes("Wladi's House") || !visual.venues.includes("Carlo's House") || !visual.addVenue || visual.goalMinutes !== 2 || visual.cardMinutes !== 2 || visual.subMinutes !== 2 || !visual.groups.includes('EN CANCHA') || visual.onFieldOptions < 4 || !visual.globalMinuteHidden || !visual.legacyPenaltyHidden || !visual.undoUnified || visual.width > visual.viewport + 3) throw new Error(`Interfaz v5.16 inválida: ${JSON.stringify(visual)}`);
 
   const playerKey = await page.evaluate(() => {
     const core = window.ChuteMundoCore;
@@ -118,9 +118,9 @@ try {
   await page.locator('[data-close-modal]').first().click();
   await page.waitForFunction(() => document.getElementById('modal')?.hidden === true);
   await page.evaluate(() => window.ChuteMundoCore.navigate('estadisticas'));
-  await page.waitForSelector('#cmV519Stats', { state: 'visible' });
-  const statsPage = await page.evaluate(() => ({ text: document.getElementById('cmV519Stats')?.innerText || '', width: document.documentElement.scrollWidth, viewport: document.documentElement.clientWidth }));
-  if (!statsPage.text.includes('Datos disponibles') || !statsPage.text.includes('Análisis histórico') || !statsPage.text.includes('Portería imbatida') || statsPage.width > statsPage.viewport + 3) throw new Error(`Centro estadístico v5.19 inválido: ${JSON.stringify(statsPage)}`);
+  await page.waitForSelector('#cmV520Stats', { state: 'visible' });
+  const statsPage = await page.evaluate(() => ({ text: document.getElementById('cmV520Stats')?.innerText || '', width: document.documentElement.scrollWidth, viewport: document.documentElement.clientWidth }));
+  if (!statsPage.text.includes('Análisis histórico') || !statsPage.text.includes('Portería imbatida') || !statsPage.text.includes('Goleadores') || !statsPage.text.includes('Asistidores') || statsPage.width > statsPage.viewport + 3) throw new Error(`Centro estadístico v5.20 inválido: ${JSON.stringify(statsPage)}`);
 
   const critical = errors.filter((message) => !/favicon|firestore|permission-denied|Failed to load resource|QUIC_NETWORK|ERR_NAME_NOT_RESOLVED|ERR_CONNECTION|network/i.test(message));
   if (critical.length) throw new Error(critical.join(' | '));

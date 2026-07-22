@@ -1,0 +1,88 @@
+  const data = coverage(tournaments, source);
+  const leaders = [
+    ['Máximo goleador', scorers[0], scorers[0] ? `${scorers[0].value} goles` : 'Sin registro', 'scorers'],
+    ['Máximo asistidor', assists[0], assists[0] ? `${assists[0].value} asistencias` : 'Sin registro', 'assists'],
+    ['Más vallas invictas', keepers[0], keepers[0] ? `${keepers[0].cleanSheets} porterías imbatidas` : 'Sin registro', 'keepers']
+  ];
+
+  return `<section class="cm-v520-panel active" data-cm-v520-panel="summary">
+    <div class="cm-v520-metrics">
+      <article><span>Partidos</span><b>${matches.length}</b><small>${tournaments.length} torneos incluidos</small></article>
+      <article><span>Goles</span><b>${goals}</b><small>${matches.length ? (goals / matches.length).toFixed(2) : '0.00'} por partido</small></article>
+      <article><span>Equipo destacado</span><b>${esc(teams[0] ? teamName(teams[0].teamId, source) : '—')}</b><small>${teams[0]?.titles || 0} títulos · ${teams[0] ? Math.round(teams[0].performance) : 0}% rendimiento</small></article>
+      <article><span>Cobertura detallada</span><b>${data.tracked}/${data.played}</b><small>partidos con alineación</small></article>
+    </div>
+    <div class="cm-v520-leader-grid">${leaders.map(([label, row, value, tab]) => `<article class="cm-v520-leader"><div>${row ? photo(row.teamId, row.name, 'cm-v520-leader-photo') : '<span class="cm-v520-leader-photo cm-v520-placeholder">—</span>'}</div><span>${label}</span><b>${esc(row?.name || 'Sin registro')}</b><small>${esc(value)}</small><button type="button" data-cm-v520-tab-jump="${tab}">Ver clasificación</button></article>`).join('')}</div>
+    <button class="cm-v520-analysis-cta" type="button" data-cm-v520-tab-jump="analysis"><span><small>HISTORIA COMPLETA</small><b>Explorar análisis histórico</b><em>Récords, evolución, enfrentamientos, minutos y sedes.</em></span><strong>→</strong></button>
+    <article class="cm-v520-card cm-v520-coverage"><header><div><span class="cm-v520-kicker">CALIDAD DEL ARCHIVO</span><h2>Cobertura disponible</h2></div></header><div><span><b>${tournaments.length}</b>Torneos</span><span><b>${data.scorerTournaments}</b>Con goleadores</span><span><b>${data.assistTournaments}</b>Con asistencias</span><span><b>${data.tracked}</b>Con alineaciones</span></div><p>Los datos históricos ausentes se muestran como “sin registro”; nunca se convierten automáticamente en cero.</p></article>
+  </section>`;
+}
+
+function teamsPanel(tournaments, source) {
+  const rows = teamRows(tournaments, source);
+  return `<section class="cm-v520-panel" data-cm-v520-panel="teams"><article class="cm-v520-card"><header><div><span class="cm-v520-kicker">CLUBES</span><h2>Tabla histórica de equipos</h2><p>Resultados oficiales del periodo seleccionado.</p></div><span class="cm-v520-count">${rows.length}</span></header>${table(['#', 'Equipo', 'Títulos', 'Subc.', '3.º', 'PJ', 'PG', 'PE', 'PP', 'Pen.', 'GF', 'GC', 'DG', 'Rend.'], rows.map((row, index) => `<tr><td>${medal(index)}</td><td>${teamCell(row.teamId, source)}</td><td><strong>${row.titles}</strong></td><td>${row.runners}</td><td>${row.thirds}</td><td>${row.pj}</td><td>${row.pg}</td><td>${row.pe}</td><td>${row.pp}</td><td>${row.penWins}</td><td>${row.gf}</td><td>${row.gc}</td><td>${row.dg > 0 ? '+' : ''}${row.dg}</td><td><span class="cm-v520-percent">${Math.round(row.performance)}%</span></td></tr>`))}</article></section>`;
+}
+
+function rankingPanel(tournaments, source, kind) {
+  const rows = rankingRows(tournaments, kind, source);
+  const isGoals = kind === 'goals';
+  const tab = isGoals ? 'scorers' : 'assists';
+  const title = isGoals ? 'Goleadores' : 'Asistidores';
+  const valueText = (row) => `${row.value} ${isGoals ? 'goles' : 'asistencias'}`;
+  return `<section class="cm-v520-panel" data-cm-v520-panel="${tab}"><article class="cm-v520-card cm-v520-ranking-card"><header><div><span class="cm-v520-kicker">JUGADORES</span><h2>${title}</h2><p>Filtro global aplicado por era, torneo y equipo.</p></div><span class="cm-v520-count">${rows.length}</span></header>${podium(rows, valueText, source, `No hay ${isGoals ? 'goleadores' : 'asistencias'} registrados para este filtro.`)}${table(['#', 'Jugador', isGoals ? 'Goles' : 'Asistencias', 'Torneos con registro'], rows.map((row, index) => `<tr><td>${medal(index)}</td><td>${playerCell(row, source)}</td><td><strong class="cm-v520-value">${row.value}</strong></td><td>${row.tournaments.size}</td></tr>`), `No hay ${isGoals ? 'goleadores' : 'asistencias'} registrados para este filtro.`)}</article></section>`;
+}
+
+function keepersPanel(tournaments, source) {
+  const rows = goalkeeperRows(tournaments, source);
+  return `<section class="cm-v520-panel" data-cm-v520-panel="keepers"><article class="cm-v520-card cm-v520-ranking-card"><header><div><span class="cm-v520-kicker">PORTEROS</span><h2>Portería imbatida</h2><p>Solo considera partidos con alineación y participación registrada.</p></div><span class="cm-v520-count">${rows.length}</span></header>${podium(rows, (row) => `${row.cleanSheets} vallas invictas`, source, 'No hay porteros con participación registrada para este filtro.')}${table(['#', 'Portero', 'PJ', 'Vallas inv.', '% imbatida', 'GC', 'GC/PJ', 'G-E-P', 'Torneos'], rows.map((row, index) => `<tr><td>${medal(index)}</td><td>${playerCell(row, source)}</td><td>${row.appearances}</td><td><strong class="cm-v520-value">${row.cleanSheets}</strong></td><td>${Math.round(row.cleanSheetPct)}%</td><td>${row.goalsConceded}</td><td>${row.average.toFixed(2)}</td><td>${row.wins}-${row.draws}-${row.losses}</td><td>${row.tournaments.size}</td></tr>`), selectedEra === ERA_LEAGUES ? 'La Era de ligas no posee alineaciones suficientes para calcular portería imbatida.' : 'No hay porteros con participación registrada para este filtro.')}</article></section>`;
+}
+
+function tournamentsPanel(tournaments, source) {
+  const rows = [...tournaments].reverse();
+  return `<section class="cm-v520-panel" data-cm-v520-panel="tournaments"><article class="cm-v520-card"><header><div><span class="cm-v520-kicker">COMPETENCIAS</span><h2>Cobertura por torneo</h2><p>Qué información existe en cada competencia.</p></div><span class="cm-v520-count">${rows.length}</span></header>${table(['Torneo', 'Era', 'Estado', 'PJ', 'Goles', 'Campeón', 'Goleadores', 'Asistencias', 'Alineaciones'], rows.map((tournament) => {
+    const matches = matchRows([tournament]);
+    const goals = matches.reduce((sum, row) => sum + number(row.match.homeGoals) + number(row.match.awayGoals), 0);
+    const scorers = tournamentMetricRows(tournament, 'goals', source).length;
+    const assists = tournamentMetricRows(tournament, 'assists', source).length;
+    const tracked = (tournament.matches || []).filter((match) => matchPlayed(match) && match.participationTracked).length;
+    const era = eraOf(tournament, source);
+    return `<tr><td><b>${esc(tournament.name || 'Torneo')}</b></td><td><span class="cm-v520-era is-${era}">${era === ERA_DIVISIONS ? 'Divisiones' : 'Ligas'}</span></td><td>${esc(tournament.status || '—')}</td><td>${matches.length}</td><td>${goals}</td><td>${esc(tournament.champion ? teamName(tournament.champion, source) : '—')}</td><td>${scorers || '<span class="cm-v520-missing">Sin registro</span>'}</td><td>${assists || '<span class="cm-v520-missing">Sin registro</span>'}</td><td>${tracked}/${matches.length}</td></tr>`;
+  }))}</article></section>`;
+}
+
+function rankingEvolution(tournaments, source) {
+  const totals = new Map((source.teams || []).map((team) => [team.id, 0]));
+  const snapshots = [];
+  for (const tournament of tournaments) {
+    for (const row of matchRows([tournament])) {
+      const homeGoals = number(row.match.homeGoals);
+      const awayGoals = number(row.match.awayGoals);
+      totals.set(row.home, number(totals.get(row.home)) + (homeGoals > awayGoals ? 3 : homeGoals === awayGoals ? 1 : 0));
+      totals.set(row.away, number(totals.get(row.away)) + (awayGoals > homeGoals ? 3 : homeGoals === awayGoals ? 1 : 0));
+    }
+    if (tournament.champion && totals.has(tournament.champion)) totals.set(tournament.champion, totals.get(tournament.champion) + 8);
+    if (tournament.runnerUp && totals.has(tournament.runnerUp)) totals.set(tournament.runnerUp, totals.get(tournament.runnerUp) + 4);
+    snapshots.push({ tournament, rows: [...totals].map(([teamId, points]) => ({ teamId, points })).sort((left, right) => right.points - left.points) });
+  }
+  return snapshots;
+}
+
+function rankingChart(tournaments, source) {
+  const snapshots = rankingEvolution(tournaments, source);
+  if (!snapshots.length) return '<div class="cm-v520-empty">Sin evolución para este filtro.</div>';
+  let teams = (source.teams || []).filter((team) => snapshots.some((snapshot) => snapshot.rows.some((row) => row.teamId === team.id && row.points > 0)));
+  if (selectedTeam !== 'all') teams = teams.filter((team) => team.id === selectedTeam);
+  teams = teams.slice(0, 8);
+  if (!teams.length) return '<div class="cm-v520-empty">Sin evolución para el equipo seleccionado.</div>';
+
+  const width = 1040;
+  const height = 390;
+  const left = 58;
+  const right = 30;
+  const top = 26;
+  const bottom = 76;
+  const usableWidth = width - left - right;
+  const usableHeight = height - top - bottom;
+  const maximum = Math.max(1, ...snapshots.flatMap((snapshot) => snapshot.rows.map((row) => row.points)));
+  const x = (index) => snapshots.length === 1 ? left + usableWidth / 2 : left + index * (usableWidth / (snapshots.length - 1));
+  const y = (value) => top + usableHeight - value / maximum * usableHeight;

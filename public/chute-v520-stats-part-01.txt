@@ -1,0 +1,88 @@
+  const direct = match?.[side];
+  if (direct) return direct;
+  return side === 'home' ? core.resolveHome?.(tournament, match) : core.resolveAway?.(tournament, match);
+}
+
+function matchRows(tournaments) {
+  return tournaments.flatMap((tournament) => {
+    const matches = Array.isArray(tournament.matches) ? tournament.matches : [];
+    return matches.filter((match) => match?.stage !== 'bye' && matchPlayed(match)).map((match) => ({
+      tournament,
+      match,
+      home: resolveMatchTeam(tournament, match, 'home'),
+      away: resolveMatchTeam(tournament, match, 'away')
+    }));
+  }).filter((row) => row.home && row.away);
+}
+
+function scopedMatchRows(tournaments) {
+  const rows = matchRows(tournaments);
+  return selectedTeam === 'all' ? rows : rows.filter((row) => row.home === selectedTeam || row.away === selectedTeam);
+}
+
+function winnerId(row) {
+  const homeGoals = number(row.match.homeGoals);
+  const awayGoals = number(row.match.awayGoals);
+  if (homeGoals > awayGoals) return row.home;
+  if (awayGoals > homeGoals) return row.away;
+  if (number(row.match.homePens) > number(row.match.awayPens)) return row.home;
+  if (number(row.match.awayPens) > number(row.match.homePens)) return row.away;
+  return null;
+}
+
+function filteredTournaments(source = state()) {
+  let rows = orderedTournaments(source);
+  if (selectedEra !== 'all') rows = rows.filter((tournament) => eraOf(tournament, source) === selectedEra);
+  if (selectedTournament !== 'all') rows = rows.filter((tournament) => tournament.id === selectedTournament);
+  return rows;
+}
+
+function metricEntries(raw) {
+  if (Array.isArray(raw)) return raw.map((value) => ({ key: '', value }));
+  if (!raw || typeof raw !== 'object') return [];
+  return Object.entries(raw).map(([key, value]) => ({ key, value }));
+}
+
+function parseMetricEntry(entry, kind, source = state()) {
+  const sourceValue = entry.value;
+  let name = entry.key || '';
+  let teamId = '';
+  let appearances = 0;
+  let value = 0;
+
+  if (Array.isArray(sourceValue)) {
+    name = sourceValue[0] ?? name;
+    const second = sourceValue[1];
+    const third = sourceValue[2];
+    const fourth = sourceValue[3];
+    if (typeof second === 'string') {
+      teamId = second;
+      appearances = third ?? 0;
+      value = fourth ?? third ?? 0;
+    } else {
+      value = second ?? 0;
+      teamId = typeof third === 'string' ? third : '';
+      appearances = typeof third === 'number' ? third : fourth ?? 0;
+    }
+  } else if (sourceValue && typeof sourceValue === 'object') {
+    name = sourceValue.name ?? sourceValue.playerName ?? sourceValue.player ?? sourceValue.scorer ?? sourceValue.assist ?? name;
+    teamId = sourceValue.teamId ?? sourceValue.team ?? sourceValue.clubId ?? sourceValue.club ?? '';
+    appearances = sourceValue.appearances ?? sourceValue.matches ?? sourceValue.games ?? sourceValue.pj ?? 0;
+    value = kind === 'goals'
+      ? (sourceValue.goals ?? sourceValue.value ?? sourceValue.total ?? sourceValue.count ?? 0)
+      : (sourceValue.assists ?? sourceValue.value ?? sourceValue.total ?? sourceValue.count ?? 0);
+  } else if (typeof sourceValue === 'number' || typeof sourceValue === 'string') {
+    if (!name && typeof sourceValue === 'string') name = sourceValue;
+    else value = number(sourceValue);
+  }
+
+  name = String(name || '').trim();
+  teamId = resolveTeamId(teamId, name, source);
+  if (!name || !teamId) return null;
+  return { teamId, name, appearances: number(appearances), value: number(value) };
+}
+
+function tournamentMetricRows(tournament, kind, source = state()) {
+  const field = kind === 'goals' ? 'playerScorers' : 'playerAssists';
+  const rows = new Map();
+  for (const entry of metricEntries(tournament?.[field])) {

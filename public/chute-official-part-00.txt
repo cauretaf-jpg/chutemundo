@@ -132,6 +132,24 @@ function convertOldSource(source) {
   return null;
 }
 
+function normalizeMetricCollection(raw, kind) {
+  if (Array.isArray(raw)) return raw;
+  if (!raw || typeof raw !== 'object') return [];
+  return Object.entries(raw).map(([key, value]) => {
+    if (Array.isArray(value)) return value.length && typeof value[0] === 'string' ? value : [key, ...value];
+    if (value && typeof value === 'object') {
+      const name = value.name ?? value.playerName ?? value.player ?? value.scorer ?? value.assist ?? key;
+      const team = value.teamId ?? value.team ?? value.clubId ?? value.club ?? '';
+      const appearances = value.appearances ?? value.matches ?? value.games ?? value.pj ?? 0;
+      const metric = kind === 'goals'
+        ? (value.goals ?? value.value ?? value.total ?? value.count ?? 0)
+        : (value.assists ?? value.value ?? value.total ?? value.count ?? 0);
+      return [String(name || key), String(team || ''), Number(appearances) || 0, Number(metric) || 0];
+    }
+    return [String(key), '', 0, Number(value) || 0];
+  });
+}
+
 function normalizeTournament(tournament, separateMatches = []) {
   const source = tournament && typeof tournament === 'object' ? tournament : {};
   const typeMap = { groups: 'cup_groups', knockout: 'direct_knockout' };
@@ -156,8 +174,8 @@ function normalizeTournament(tournament, separateMatches = []) {
     groups,
     matches: embeddedMatches.map((match) => normalizeMatch(match, source.id)),
     manualStandings: Array.isArray(source.manualStandings) ? source.manualStandings : [],
-    playerScorers: Array.isArray(source.playerScorers) ? source.playerScorers : [],
-    playerAssists: Array.isArray(source.playerAssists) ? source.playerAssists : [],
+    playerScorers: normalizeMetricCollection(source.playerScorers, 'goals'),
+    playerAssists: normalizeMetricCollection(source.playerAssists, 'assists'),
     notes: Array.isArray(source.notes) ? source.notes : [],
     champion: source.champion || null,
     runnerUp: source.runnerUp || null,

@@ -1,0 +1,126 @@
+function installStyles() {
+  if (document.getElementById('cmV520Styles')) return;
+  const link = document.createElement('link');
+  link.id = 'cmV520Styles';
+  link.rel = 'stylesheet';
+  link.href = `/chute-v520-stats.css?v=${VERSION}`;
+  document.head.appendChild(link);
+}
+
+function migrateEras() {
+  if (migrateEras.running) return false;
+  const source = state();
+  const next = typeof structuredClone === 'function' ? structuredClone(source) : JSON.parse(JSON.stringify(source));
+  const expectedConfig = {
+    statsEraSchema: 'era-stats-v2',
+    statsEraCutoffName: CUTOFF_NAME,
+    defaultEraId: ERA_DIVISIONS,
+    statsCompleteFromEra: ERA_DIVISIONS
+  };
+  let changed = false;
+  next.config = { ...(next.config || {}) };
+  for (const [key, value] of Object.entries(expectedConfig)) {
+    if (next.config[key] !== value) {
+      next.config[key] = value;
+      changed = true;
+    }
+  }
+  for (const tournament of next.tournaments || []) {
+    const planned = eraOf(tournament, next);
+    if (tournament.eraId !== planned) {
+      tournament.eraId = planned;
+      changed = true;
+    }
+  }
+  const signature = JSON.stringify({
+    config: expectedConfig,
+    eras: (next.tournaments || []).map((tournament) => [tournament.id, tournament.eraId])
+  });
+  if (!changed || migrateEras.lastSignature === signature) return false;
+  migrateEras.running = true;
+  migrateEras.lastSignature = signature;
+  try {
+    core.setState(next);
+    core.persistLocal?.();
+    if (core.isAdmin?.() && core.cloudLoaded) void core.saveCloud?.();
+  } finally {
+    migrateEras.running = false;
+  }
+  return true;
+}
+migrateEras.running = false;
+migrateEras.lastSignature = '';
+
+function refresh() {
+  refreshQueued = false;
+  migrateEras();
+  renderShell();
+  document.title = 'Chute Mundo v5.20 · Estadísticas';
+  document.querySelector('.hero .eyebrow')?.replaceChildren('CHUTE MUNDO v5.20');
+}
+
+function scheduleRefresh() {
+  if (refreshQueued) return;
+  refreshQueued = true;
+  requestAnimationFrame(refresh);
+}
+
+function persistFilters() {
+  localStorage.setItem(storage.era, selectedEra);
+  localStorage.setItem(storage.tournament, selectedTournament);
+  localStorage.setItem(storage.team, selectedTeam);
+}
+
+document.addEventListener('click', (event) => {
+  const tab = event.target.closest?.('[data-cm-v520-tab],[data-cm-v520-tab-jump]');
+  if (tab) {
+    event.preventDefault();
+    activateTab(tab.dataset.cmV520Tab || tab.dataset.cmV520TabJump, { focus: Boolean(tab.dataset.cmV520TabJump) });
+    return;
+  }
+  if (event.target.closest?.('[data-cm-v520-reset]')) {
+    selectedEra = 'all';
+    selectedTournament = 'all';
+    selectedTeam = 'all';
+    persistFilters();
+    renderShell();
+    return;
+  }
+  const team = event.target.closest?.('[data-cm-v520-team]');
+  if (team) {
+    core.navigate?.('equipos');
+    window.ChuteV59?.openTeamProfile?.(team.dataset.cmV520Team);
+    return;
+  }
+  const player = event.target.closest?.('[data-cm-v520-player]');
+  if (player) {
+    core.navigate?.('equipos');
+    window.ChuteV59?.openPlayerProfile?.(player.dataset.cmV520Player);
+    return;
+  }
+  if (event.target.closest?.('[data-page="estadisticas"],[data-cm-page="estadisticas"],[data-cm-mobile-page="estadisticas"]')) setTimeout(scheduleRefresh, 0);
+}, true);
+
+document.addEventListener('change', (event) => {
+  const filter = event.target.closest?.('[data-cm-v520-filter]');
+  if (!filter) return;
+  if (filter.dataset.cmV520Filter === 'era') {
+    selectedEra = filter.value;
+    selectedTournament = 'all';
+  }
+  if (filter.dataset.cmV520Filter === 'tournament') selectedTournament = filter.value;
+  if (filter.dataset.cmV520Filter === 'team') selectedTeam = filter.value;
+  persistFilters();
+  renderShell();
+}, true);
+
+document.addEventListener('submit', () => setTimeout(scheduleRefresh, 350));
+const statisticsPage = document.getElementById('estadisticas');
+if (statisticsPage) new MutationObserver(() => { if (!statisticsPage.hidden) scheduleRefresh(); }).observe(statisticsPage, { attributes: true, attributeFilter: ['hidden'] });
+
+installStyles();
+scheduleRefresh();
+
+window.ChuteV520Stats = { version: VERSION, refresh, renderShell, activateTab, eraOf, migrateEras, rankingRows, goalkeeperRows, teamRows, tournamentMetricRows };
+window.ChuteV519Stats = window.ChuteV520Stats;
+window.ChuteV518EraStats = { version: VERSION, renderShell, activateTab, migrateEras };
