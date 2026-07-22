@@ -52,11 +52,12 @@ try {
   }, setup);
 
   await page.evaluate(() => window.ChuteMundoCore.navigate('estadisticas'));
-  await page.waitForFunction(() => window.ChuteV5182StatsLoader.currentStatsVisible());
+  await page.waitForFunction(() => window.ChuteV5182StatsLoader.currentStatsVisible() && document.title.includes('5.18.3'));
   await page.waitForSelector('[data-cm-v518-panel="summary"].active');
   const summary = await page.evaluate(({ scorer, assister }) => ({
     title: document.title,
     tabs: document.querySelectorAll('#cmV518Stats [data-cm-v518-tab]').length,
+    analysisTab: Boolean(document.querySelector('#cmV518Stats [data-cm-v5181-analysis]')),
     filters: document.querySelectorAll('#cmV518Stats [data-cm-v518-filter]').length,
     text: document.querySelector('#cmV518Stats')?.textContent || '',
     scorerVisible: document.querySelector('#cmV518Stats')?.textContent.includes(scorer),
@@ -64,7 +65,7 @@ try {
     report: window.ChuteV5183StatsPreflight.report,
     recovered: Boolean(window.ChuteV5183StatsRecovery)
   }), setup);
-  if (!summary.title.includes('5.18.3') || summary.tabs !== 7 || summary.filters !== 3 || !summary.scorerVisible || !summary.assisterVisible || summary.recovered) throw new Error(`Normalización tardía incompleta: ${JSON.stringify(summary)}`);
+  if (!summary.title.includes('5.18.3') || summary.tabs !== 6 || !summary.analysisTab || summary.filters !== 3 || !summary.scorerVisible || !summary.assisterVisible || summary.recovered) throw new Error(`Normalización tardía incompleta: ${JSON.stringify(summary)}`);
 
   await page.locator('[data-cm-v518-tab="players"]').click();
   await page.waitForSelector('[data-cm-v518-panel="players"].active');
