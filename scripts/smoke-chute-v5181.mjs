@@ -49,7 +49,11 @@ try {
   await page.waitForFunction(() => {
     const pageElement = document.getElementById('estadisticas');
     const root = document.getElementById('cmV58AnalysisRoot');
-    return !pageElement?.classList.contains('cm-v5181-analysis-open') && root?.hidden && document.querySelector('#cmV518Stats .cm-v518-content')?.hidden === false && window.ChuteV5182StatsLoader.currentStatsVisible();
+    return !pageElement?.classList.contains('cm-v5181-analysis-open')
+      && root?.hidden
+      && document.querySelector('#cmV518Stats .cm-v518-content')?.hidden === false
+      && window.ChuteV5182StatsLoader.currentStatsVisible()
+      && document.title.includes('5.18.2');
   });
 
   const mobile = await page.evaluate(() => ({ width: document.documentElement.scrollWidth, viewport: document.documentElement.clientWidth, title: document.title }));
