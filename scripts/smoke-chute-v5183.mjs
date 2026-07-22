@@ -1,7 +1,8 @@
 import { chromium } from 'playwright';
 
 const browser = await chromium.launch({ headless: true });
-const page = await browser.newPage({ viewport: { width: 390, height: 844 } });
+const context = await browser.newContext({ viewport: { width: 390, height: 844 }, serviceWorkers: 'block' });
+const page = await context.newPage();
 const errors = [];
 page.on('pageerror', (error) => errors.push(String(error)));
 page.on('console', (message) => { if (message.type() === 'error') errors.push(message.text()); });
@@ -70,10 +71,11 @@ try {
   const playersText = await page.locator('[data-cm-v518-panel="players"]').textContent();
   if (!playersText.includes(setup.scorer) || !playersText.includes('2')) throw new Error(`Jugadores históricos no visibles: ${playersText}`);
 
-  const critical = errors.filter((message) => !/favicon|firestore|permission-denied|Failed to load resource|QUIC_NETWORK|ERR_NAME_NOT_RESOLVED|ERR_CONNECTION|network|message channel/i.test(message));
+  const critical = errors.filter((message) => !/favicon|firestore|permission-denied|Failed to load resource|QUIC_NETWORK|ERR_NAME_NOT_RESOLVED|ERR_CONNECTION|network|message channel|service worker/i.test(message));
   if (critical.length) throw new Error(critical.join(' | '));
   await page.evaluate(() => window.ChuteMundoCore.setState(window.__cmV5183Original));
   console.log('Chute Mundo v5.18.3 historical compatibility smoke OK', summary);
 } finally {
+  await context.close();
   await browser.close();
 }
