@@ -23,5 +23,6 @@ await import('/chute-v517-finalization.mjs?v=5.17.0');
 await import('/chute-v5183-stats-preflight.mjs?v=5.18.3');
 const pageBeforeStatistics = document.querySelector('.page:not([hidden])')?.id || 'inicio';
 await import('/chute-v519-stats.mjs?v=5.19.0');
+await import('/chute-v519-stats-sync.mjs?v=5.19.0');
 await import('/chute-v519-stats-guard.mjs?v=5.19.0');
 if (pageBeforeStatistics !== 'estadisticas') requestAnimationFrame(() => window.ChuteMundoCore?.navigate?.(pageBeforeStatistics));
