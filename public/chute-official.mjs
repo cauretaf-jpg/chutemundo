@@ -1,8 +1,7 @@
 await import('/chute-v511-assets.mjs?v=5.11.0');
 await import('/chute-official-loader.mjs?v=5.16.0');
 await import('/password-reset.mjs?v=3.0.3');
-await import('/chute-detail.mjs?v=5.18.2');
-await import('/chute-v582-analysis-theme.mjs?v=5.8.2');
+await import('/chute-detail.mjs?v=5.19.0');
 await import('/chute-v510-safety.mjs?v=5.10.0');
 await import('/chute-v583-tournament-admin.mjs?v=5.8.3');
 await window.ChuteSplitLoader({ prefix: 'chute-v59-part', count: 8, version: '5.9.0', label: 'el centro v5.9' });
@@ -22,12 +21,4 @@ await import('/chute-v516-events-stats.mjs?v=5.16.1');
 await import('/chute-v5162-playoff-seeding.mjs?v=5.16.3');
 await import('/chute-v517-finalization.mjs?v=5.17.0');
 await import('/chute-v5183-stats-preflight.mjs?v=5.18.3');
-try {
-  await import('/chute-v518-era-stats.mjs?v=5.18.3');
-} catch (error) {
-  console.error('No se pudo iniciar el centro estadístico avanzado.', error);
-  window.__CM_V518_IMPORT_ERROR__ = error;
-  await import('/chute-v5183-stats-recovery.mjs?v=5.18.3');
-}
-await import('/chute-v5181-stats-polish.mjs?v=5.18.1');
-await import('/chute-v5182-stats-loader.mjs?v=5.18.3');
+await import('/chute-v519-stats.mjs?v=5.19.0');
