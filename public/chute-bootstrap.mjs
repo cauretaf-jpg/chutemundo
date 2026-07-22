@@ -23,13 +23,41 @@ function removeResetQuery() {
   history.replaceState(history.state, '', `${url.pathname}${url.search}${url.hash}`);
 }
 
+function workerVersion(registration) {
+  const scriptUrl = registration?.active?.scriptURL || registration?.waiting?.scriptURL || registration?.installing?.scriptURL || '';
+  if (!scriptUrl) return '';
+  try { return new URL(scriptUrl).searchParams.get('v') || ''; }
+  catch { return ''; }
+}
+
+function waitForActivation(registration, timeout = 8000) {
+  if (!registration || registration.active?.state === 'activated') return Promise.resolve();
+  const worker = registration.installing || registration.waiting || registration.active;
+  if (!worker) return Promise.resolve();
+  return new Promise((resolve) => {
+    const finish = () => {
+      clearTimeout(timer);
+      worker.removeEventListener('statechange', check);
+      resolve();
+    };
+    const check = () => {
+      if (worker.state === 'activated' || registration.active?.state === 'activated' || worker.state === 'redundant') finish();
+    };
+    const timer = setTimeout(finish, timeout);
+    worker.addEventListener('statechange', check);
+    check();
+  });
+}
+
 async function registerCurrentWorker() {
   if (!('serviceWorker' in navigator)) return null;
+  const existing = await navigator.serviceWorker.getRegistration('/');
+  if (existing && workerVersion(existing) === APP_VERSION) return existing;
   const registration = await navigator.serviceWorker.register(`/sw.js?v=${APP_VERSION}`, {
     scope: '/',
     updateViaCache: 'none'
   });
-  try { await registration.update(); } catch (error) { console.warn('No se pudo actualizar el service worker.', error); }
+  await waitForActivation(registration);
   return registration;
 }
 
