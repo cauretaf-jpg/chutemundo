@@ -21,4 +21,10 @@ await import('/chute-v516-events-stats.mjs?v=5.16.1');
 await import('/chute-v5162-playoff-seeding.mjs?v=5.16.3');
 await import('/chute-v517-finalization.mjs?v=5.17.0');
 await import('/chute-v5183-stats-preflight.mjs?v=5.18.3');
+const pageBeforeStatistics = document.querySelector('.page:not([hidden])')?.id || 'inicio';
 await import('/chute-v519-stats.mjs?v=5.19.0');
+await import('/chute-v519-stats-guard.mjs?v=5.19.0');
+if (pageBeforeStatistics !== 'estadisticas') {
+  requestAnimationFrame(() => window.ChuteMundoCore?.navigate?.(pageBeforeStatistics));
+  setTimeout(() => window.ChuteMundoCore?.navigate?.(pageBeforeStatistics), 80);
+}
