@@ -12,7 +12,7 @@ const CORE = [
   '/chute-v517-finalization.mjs?v=5.17.0', '/chute-v517-finalization.css?v=5.17.0',
   ...Array.from({ length: 8 }, (_, index) => `/chute-v517-finalization-part-${String(index).padStart(2, '0')}.txt?v=5.17.0`),
   '/chute-v5183-stats-preflight.mjs?v=5.18.3',
-  '/chute-v519-stats.mjs?v=5.19.0', '/chute-v519-stats.css?v=5.19.0', '/chute-v519-stats-guard.mjs?v=5.19.0',
+  '/chute-v519-stats.mjs?v=5.19.0', '/chute-v519-stats.css?v=5.19.0', '/chute-v519-stats-sync.mjs?v=5.19.0', '/chute-v519-stats-guard.mjs?v=5.19.0',
   '/manifest.webmanifest', '/chute-icon.svg', '/chute-icon-maskable.svg'
 ];
 
