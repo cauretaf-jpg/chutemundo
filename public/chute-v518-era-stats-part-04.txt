@@ -51,7 +51,11 @@ function renderShell() {
   if (selectedTeam !== 'all' && !source.teams.some((team) => team.id === selectedTeam)) selectedTeam = 'all';
 
   [...page.children].forEach((child) => {
-    if (child.id !== 'cmV518Stats' && !child.classList.contains('page-title')) child.classList.add('cm-v518-source-hidden');
+    if (child.id === 'cmV518Stats' || child.classList.contains('page-title')) return;
+    child.classList.add('cm-v518-source-hidden');
+    child.hidden = true;
+    child.setAttribute('aria-hidden', 'true');
+    child.style.setProperty('display', 'none', 'important');
   });
   const title = page.querySelector('.page-title');
   if (title) title.innerHTML = '<p class="eyebrow">RENDIMIENTO</p><h1>Centro estadístico</h1><p>Historia unificada con cobertura explícita y métricas completas desde la Era de divisiones.</p>';
@@ -62,4 +66,3 @@ function renderShell() {
     host.id = 'cmV518Stats';
     title?.insertAdjacentElement('afterend', host);
   }
-
