@@ -1,0 +1,32 @@
+name: Deploy ChuteMundo to Vercel Production
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - '.github/workflows/deploy-vercel-production.yml'
+      - 'public/**'
+      - 'package.json'
+      - 'vercel.json'
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    env:
+      VERCEL_ORG_ID: team_TzRtSoj8950ZXSkB3CmVHCWw
+      VERCEL_PROJECT_ID: prj_ntUlo3Dv6fdR11bLEJU7A7tevDMr
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Install Vercel CLI
+        run: npm install --global vercel@latest
+      - name: Pull production configuration
+        run: vercel pull --yes --environment=production --token="${{ secrets.VERCEL_TOKEN }}"
+      - name: Build production bundle
+        run: vercel build --prod --token="${{ secrets.VERCEL_TOKEN }}"
+      - name: Deploy production bundle
+        run: vercel deploy --prebuilt --prod --token="${{ secrets.VERCEL_TOKEN }}"
