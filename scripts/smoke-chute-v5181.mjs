@@ -17,7 +17,7 @@ try {
     title: document.querySelector('#estadisticas .page-title h1')?.textContent || '',
     subtitle: document.querySelector('#estadisticas .page-title p:last-child')?.textContent || '',
     labels: [...document.querySelectorAll('[data-cm-v518-panel="summary"] .cm-v518-metric span')].map((item) => item.textContent.trim()),
-    explanatory: document.querySelector('[data-cm-v518-panel="summary"]')?.textContent || '',
+    explanatory: document.querySelector('[data-cm-v518-panel="summary"]')?.innerText || '',
     infoCardsVisible: [...document.querySelectorAll('[data-cm-v518-panel="summary"] > .cm-v518-two')].some((item) => item.getClientRects().length),
     oldSwitcherVisible: Boolean(document.getElementById('cmV58ModeSwitch')?.getClientRects().length),
     version: window.ChuteV5181StatsPolish.version
