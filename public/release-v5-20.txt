@@ -1,0 +1,3 @@
+Chute Mundo v5.20
+Centro estadístico rediseñado, análisis histórico visible y rankings filtrables.
+Release commit: 8990a5028260613ecfe9a69b7e40c97ea2dd84ca
