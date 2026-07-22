@@ -1,4 +1,4 @@
-name: Validate Chute Mundo v5.20
+name: Validate Chute Mundo v5.20.1
 
 on:
   pull_request:
@@ -37,6 +37,7 @@ jobs:
           test -s public/index.html
           test -s public/manifest.webmanifest
           test -s public/sw.js
+          test -s public/chute-bootstrap.mjs
           test -s public/chute-official.mjs
           test -s public/chute-detail.mjs
           test -s public/chute-v513-lineups.mjs
@@ -57,21 +58,30 @@ jobs:
           for index in $(seq 0 11); do part=$(printf "%02d" "$index"); test -s "public/chute-v516-events-stats-part-${part}.txt"; done
           for index in $(seq 0 7); do part=$(printf "%02d" "$index"); test -s "public/chute-v517-finalization-part-${part}.txt"; done
           for index in $(seq 0 7); do part=$(printf "%02d" "$index"); test -s "public/chute-v520-stats-part-${part}.txt"; done
-          grep -q "chute-v520-stats.mjs?v=5.20.0" public/chute-official.mjs
-          grep -q "chute-v520-stats-sync.mjs?v=5.20.0" public/chute-official.mjs
-          grep -q "chute-v520-stats-guard.mjs?v=5.20.0" public/chute-official.mjs
+          head -n 1 public/chute-official.mjs | grep -q "chute-bootstrap.mjs?v=5.20.1"
+          grep -q "chute-v520-stats.mjs?v=5.20.1" public/chute-official.mjs
+          grep -q "chute-v520-stats-sync.mjs?v=5.20.1" public/chute-official.mjs
+          grep -q "chute-v520-stats-guard.mjs?v=5.20.1" public/chute-official.mjs
+          grep -q "chute:boot-complete" public/chute-official.mjs
+          ! grep -q "pageBeforeStatistics" public/chute-official.mjs
           ! grep -q "chute-v5183-stats-preflight.mjs" public/chute-official.mjs
           ! grep -q "chute-v519-stats.mjs" public/chute-official.mjs
           ! grep -q "chute-v58-analysis.mjs" public/chute-official.mjs
-          grep -q "const CACHE = 'chute-mundo-v5.20.0'" public/sw.js
-          grep -q "chute-v520-stats-part-" public/sw.js
-          grep -q "function networkFirst" public/sw.js
+          grep -q "const CACHE = 'chute-mundo-v5.20.1'" public/sw.js
+          grep -q "chute-bootstrap.mjs?v=5.20.1" public/sw.js
+          grep -q "self.clients.claim()" public/sw.js
+          grep -q "fetch(request, { cache: 'no-store' })" public/sw.js
           ! grep -q "chute-v5183-stats-preflight.mjs" public/sw.js
           ! grep -q "chute-v519-stats.mjs" public/sw.js
           ! grep -q "chute-v58-analysis.mjs" public/sw.js
-          grep -q "chute-official.mjs?v=5.20.0" public/index.html
+          grep -q "chute-official.mjs?v=5.20.1" public/index.html
+          grep -q "Chute Mundo v5.20.1 · Competición" public/index.html
+          grep -q "resetLegacyRuntimeOnce" public/chute-bootstrap.mjs
+          grep -q "registration.unregister()" public/chute-bootstrap.mjs
+          grep -q "core.navigate('inicio')" public/chute-bootstrap.mjs
           grep -q "Análisis histórico" public/chute-v520-stats-part-00.txt
           grep -q "Portería imbatida" public/chute-v520-stats-part-00.txt
+          ! grep -q "document.title = 'Chute Mundo" public/chute-v520-stats-part-*.txt
           grep -q "data-cm-v520-filter=\"era\"" public/chute-v520-stats-part-06.txt
           grep -q "data-cm-v520-filter=\"tournament\"" public/chute-v520-stats-part-06.txt
           grep -q "__cmV520StatsSync" public/chute-v520-stats-sync.mjs
@@ -94,7 +104,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: chute-v5-20-diagnostics
+          name: chute-v5-20-1-diagnostics
           path: |
             /tmp/chute-v516-syntax.log
             /tmp/chute-v517-syntax.log

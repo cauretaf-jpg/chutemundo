@@ -1,7 +1,7 @@
 const core = window.ChuteMundoCore;
 if (!core) throw new Error('Chute Mundo no está listo para validar la Era de divisiones.');
 
-const VERSION = '5.20.0';
+const VERSION = window.ChuteVersion?.version || '5.20.1';
 const esc = window.ChuteDetailModel?.esc || ((value = '') => String(value).replace(/[&<>"']/g, (character) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[character])));
 const numeric = (value) => Number.isFinite(Number(value)) ? Number(value) : 0;
 const played = (match) => core.matchPlayed?.(match) ?? (match?.homeGoals !== null && match?.awayGoals !== null);

@@ -1,8 +1,9 @@
-const CACHE = 'chute-mundo-v5.20.0';
+const CACHE = 'chute-mundo-v5.20.1';
 const CORE = [
   '/', '/index.html',
-  '/chute-official.css?v=5.16.0', '/chute-official.mjs?v=5.20.0', '/chute-official-loader.mjs?v=5.16.0',
-  '/chute-detail.mjs?v=5.20.0',
+  '/chute-bootstrap.mjs?v=5.20.1',
+  '/chute-official.css?v=5.16.0', '/chute-official.mjs?v=5.20.1', '/chute-official-loader.mjs?v=5.20.1',
+  '/chute-detail.mjs?v=5.20.1',
   '/chute-v513-lineups.mjs?v=5.13.0', '/chute-v513-lineups.css?v=5.13.0',
   '/chute-v514-unified-match.mjs?v=5.14.0', '/chute-v514-unified-match.css?v=5.14.0',
   '/chute-v515-match-center.mjs?v=5.15.0', '/chute-v515-match-center.css?v=5.15.0',
@@ -11,8 +12,8 @@ const CORE = [
   '/chute-v5162-playoff-seeding.mjs?v=5.16.3',
   '/chute-v517-finalization.mjs?v=5.17.0', '/chute-v517-finalization.css?v=5.17.0',
   ...Array.from({ length: 8 }, (_, index) => `/chute-v517-finalization-part-${String(index).padStart(2, '0')}.txt?v=5.17.0`),
-  '/chute-v520-stats.mjs?v=5.20.0', '/chute-v520-stats.css?v=5.20.0', '/chute-v520-stats-sync.mjs?v=5.20.0', '/chute-v520-stats-guard.mjs?v=5.20.0',
-  ...Array.from({ length: 8 }, (_, index) => `/chute-v520-stats-part-${String(index).padStart(2, '0')}.txt?v=5.20.0`),
+  '/chute-v520-stats.mjs?v=5.20.1', '/chute-v520-stats.css?v=5.20.1', '/chute-v520-stats-sync.mjs?v=5.20.1', '/chute-v520-stats-guard.mjs?v=5.20.1',
+  ...Array.from({ length: 8 }, (_, index) => `/chute-v520-stats-part-${String(index).padStart(2, '0')}.txt?v=5.20.1`),
   '/manifest.webmanifest', '/chute-icon.svg', '/chute-icon-maskable.svg'
 ];
 
@@ -21,7 +22,10 @@ self.addEventListener('install', (event) => {
 });
 
 self.addEventListener('activate', (event) => {
-  event.waitUntil(caches.keys().then((keys) => Promise.all(keys.filter((key) => key !== CACHE).map((key) => caches.delete(key)))));
+  event.waitUntil(Promise.all([
+    caches.keys().then((keys) => Promise.all(keys.filter((key) => key !== CACHE).map((key) => caches.delete(key)))),
+    self.clients.claim()
+  ]));
 });
 
 self.addEventListener('message', (event) => {
@@ -29,10 +33,10 @@ self.addEventListener('message', (event) => {
 });
 
 function networkFirst(request, fallback) {
-  return fetch(request).then((response) => {
+  return fetch(request, { cache: 'no-store' }).then((response) => {
     if (response.ok) caches.open(CACHE).then((cache) => cache.put(request, response.clone()));
     return response;
-  }).catch(() => caches.match(request).then((cached) => cached || fallback && caches.match(fallback)));
+  }).catch(() => caches.match(request).then((cached) => cached || fallback && caches.match(fallback, { ignoreSearch: true })));
 }
 
 self.addEventListener('fetch', (event) => {

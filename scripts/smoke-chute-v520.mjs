@@ -9,8 +9,10 @@ page.on('console', (message) => { if (message.type() === 'error') errors.push(me
 
 try {
   await page.goto('http://127.0.0.1:4173/', { waitUntil: 'domcontentloaded' });
-  await page.waitForFunction(() => window.ChuteMundoCore && window.ChuteV520Stats && window.ChuteV520StatsGuard);
+  await page.waitForFunction(() => window.ChuteVersion?.version === '5.20.1' && window.ChuteMundoCore && window.ChuteV520Stats && window.ChuteV520StatsGuard);
   await page.waitForFunction(() => !document.getElementById('inicio')?.hidden && document.getElementById('estadisticas')?.hidden);
+  await page.evaluate(() => { document.title = 'Chute Mundo v5.8.2 · Competición'; });
+  await page.waitForFunction(() => document.title === 'Chute Mundo v5.20.1 · Competición');
 
   await page.evaluate(() => {
     const core = window.ChuteMundoCore;
@@ -58,13 +60,14 @@ try {
 
   const shell = await page.evaluate(() => ({
     version: window.ChuteV520Stats.version,
+    globalVersion: window.ChuteVersion.version,
     title: document.title,
     tabs: [...document.querySelectorAll('[data-cm-v520-tab]')].map((button) => ({ label: button.textContent.trim(), visible: Boolean(button.getClientRects().length) })),
     filters: document.querySelectorAll('[data-cm-v520-filter]').length,
     oldRootsVisible: ['cmV519Stats', 'cmV518Stats', 'cmV516Stats', 'cmStatsCenter', 'cmV58AnalysisRoot', 'cmV58ModeSwitch'].filter((id) => document.getElementById(id)?.getClientRects().length),
     oldRequests: performance.getEntriesByType('resource').map((entry) => entry.name).filter((name) => /chute-v5183-stats-preflight|chute-v519-stats|chute-v58-analysis/.test(name))
   }));
-  if (shell.version !== '5.20.0' || !shell.title.includes('5.20') || shell.tabs.length !== 7 || !shell.tabs.every((tab) => tab.visible) || !shell.tabs.some((tab) => tab.label.includes('Análisis histórico')) || shell.filters !== 3 || shell.oldRootsVisible.length || shell.oldRequests.length) throw new Error(`Arquitectura estadística inválida: ${JSON.stringify(shell)}`);
+  if (shell.version !== '5.20.1' || shell.globalVersion !== '5.20.1' || shell.title !== 'Chute Mundo v5.20.1 · Competición' || shell.tabs.length !== 7 || !shell.tabs.every((tab) => tab.visible) || !shell.tabs.some((tab) => tab.label.includes('Análisis histórico')) || shell.filters !== 3 || shell.oldRootsVisible.length || shell.oldRequests.length) throw new Error(`Arquitectura estadística inválida: ${JSON.stringify(shell)}`);
 
   await page.locator('[data-cm-v520-tab="scorers"]').click();
   let scorerValue = await page.locator('[data-cm-v520-panel="scorers"] tr', { hasText: 'Goleador A' }).locator('.cm-v520-value').textContent();
@@ -114,7 +117,7 @@ try {
   const critical = errors.filter((message) => !/favicon|firestore|permission-denied|Failed to load resource|QUIC_NETWORK|ERR_NAME_NOT_RESOLVED|ERR_CONNECTION|network|message channel|service worker/i.test(message));
   if (critical.length) throw new Error(critical.join(' | '));
   await page.evaluate(() => window.ChuteMundoCore.setState(window.__cmV520Original));
-  console.log('Chute Mundo v5.20 statistics smoke OK', { shell, analysis, mobile });
+  console.log('Chute Mundo v5.20.1 statistics smoke OK', { shell, analysis, mobile });
 } finally {
   await context.close();
   await browser.close();
