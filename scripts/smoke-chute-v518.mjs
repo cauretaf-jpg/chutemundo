@@ -46,7 +46,6 @@ try {
     incomplete.matches[0].lineups = null;
     const issues = api.divisionsCriticalIssues(incomplete);
     core.setState(migrated);
-    core.navigate('estadisticas');
     return { eras, coverage, issues, scorer: names[0][1] };
   });
   if (setup.error) throw new Error(setup.error);
@@ -55,7 +54,9 @@ try {
   if (setup.coverage['era-division'].scorers !== 'complete' || setup.coverage['era-division'].assists !== 'complete' || setup.coverage['era-division'].lineups !== 'complete') throw new Error(`Cobertura moderna incompleta: ${JSON.stringify(setup.coverage['era-division'])}`);
   if (!setup.issues.some((issue) => /alineación|participación/i.test(issue))) throw new Error(`No se bloquea el cierre incompleto: ${JSON.stringify(setup.issues)}`);
 
-  await page.waitForSelector('#cmV518Stats');
+  await page.waitForTimeout(300);
+  await page.evaluate(() => window.ChuteMundoCore.navigate('estadisticas'));
+  await page.waitForFunction(() => document.getElementById('estadisticas')?.hidden === false && document.getElementById('cmV518Stats')?.getClientRects().length > 0);
   await page.waitForSelector('[data-cm-v518-panel="summary"].active');
   const initial = await page.evaluate(() => ({
     tabs: document.querySelectorAll('[data-cm-v518-tab]').length,
