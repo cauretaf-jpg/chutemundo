@@ -32,6 +32,7 @@ function hideElement(element) {
   element.hidden = true;
   element.setAttribute('aria-hidden', 'true');
   element.classList.add('cm-v5181-copy-hidden');
+  element.style.setProperty('display', 'none', 'important');
 }
 
 function simplifyTableHeaders(panel, replacements) {
