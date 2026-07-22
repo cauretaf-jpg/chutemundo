@@ -53,14 +53,14 @@ try {
       && root?.hidden
       && document.querySelector('#cmV518Stats .cm-v518-content')?.hidden === false
       && window.ChuteV5182StatsLoader.currentStatsVisible()
-      && document.title.includes('5.18.2');
+      && document.title.includes('5.18.3');
   });
 
   const mobile = await page.evaluate(() => ({ width: document.documentElement.scrollWidth, viewport: document.documentElement.clientWidth, title: document.title }));
-  if (mobile.width > mobile.viewport + 3 || !mobile.title.includes('5.18.2')) throw new Error(`Vista móvil o versión incorrecta: ${JSON.stringify(mobile)}`);
+  if (mobile.width > mobile.viewport + 3 || !mobile.title.includes('5.18.3')) throw new Error(`Vista móvil o versión incorrecta: ${JSON.stringify(mobile)}`);
   const critical = errors.filter((message) => !/favicon|firestore|permission-denied|Failed to load resource|QUIC_NETWORK|ERR_NAME_NOT_RESOLVED|ERR_CONNECTION|network|message channel/i.test(message));
   if (critical.length) throw new Error(critical.join(' | '));
-  console.log('Chute Mundo v5.18.2 stats polish smoke OK', { summary, analysis, mobile });
+  console.log('Chute Mundo v5.18.3 stats polish smoke OK', { summary, analysis, mobile });
 } finally {
   await browser.close();
 }
