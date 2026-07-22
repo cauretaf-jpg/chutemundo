@@ -19,21 +19,24 @@ const v518Loader = await readFile(path.join(publicDir, 'chute-v518-era-stats.mjs
 const v518 = (await Promise.all(Array.from({ length: 6 }, (_, index) => readFile(path.join(publicDir, `chute-v518-era-stats-part-${String(index).padStart(2, '0')}.txt`), 'utf8')))).join('');
 const v5181 = await readFile(path.join(publicDir, 'chute-v5181-stats-polish.mjs'), 'utf8');
 const v5181Css = await readFile(path.join(publicDir, 'chute-v5181-stats-polish.css'), 'utf8');
+const v5182 = await readFile(path.join(publicDir, 'chute-v5182-stats-loader.mjs'), 'utf8');
 const packageJson = JSON.parse(await readFile(path.join(root, 'package.json'), 'utf8'));
 
 const failures = [];
 const notes = [];
 const requireCheck = (condition, message) => { if (!condition) failures.push(message); };
 
-requireCheck(packageJson.version === '5.18.1', 'package.json no esta en v5.18.1.');
+requireCheck(packageJson.version === '5.18.2', 'package.json no esta en v5.18.2.');
 requireCheck(detail.indexOf('chute-runtime-v58.mjs') < detail.indexOf('chute-mutation-guard.mjs'), 'El runtime optimizado debe cargarse antes de los modulos periodicos.');
 requireCheck(!detail.includes('chute-v56-card-metadata.mjs'), 'El parche redundante de metadatos sigue importandose.');
-requireCheck(detail.includes('function loadStatistics()'), 'No existe carga diferida del centro estadistico.');
-requireCheck(detail.includes('chute-v58-analysis.mjs'), 'No se carga el analisis historico v5.8.');
+requireCheck(detail.includes('function loadStatistics()') && detail.includes('function loadHistoricalAnalysis()'), 'No existe separacion entre estadisticas actuales y analisis historico.');
+requireCheck(detail.includes("import('/chute-v58-analysis.mjs?v=5.18.2')"), 'El analisis historico no se carga bajo demanda.');
+requireCheck(!detail.includes("import('/chute-stats-v52.mjs") && !detail.includes("import('/chute-game-minute-stats.mjs") && !detail.includes("import('/chute-v57-controllers.mjs") && !detail.includes("import('/chute-v58-visibility.mjs"), 'La vista normal sigue importando centros estadisticos heredados.');
 requireCheck(detail.includes('[data-cm-mobile-page="estadisticas"]'), 'La navegacion movil no activa la carga estadistica.');
 requireCheck(detail.includes('cm-v581-bracket-tabs'), 'No existe la navegacion movil por etapas de la llave.');
 requireCheck(detail.includes('MutationObserver(() => {\n    if (!statisticsPage.hidden)'), 'No existe respaldo automatico al mostrar Estadisticas.');
 requireCheck(official.includes("chute-official-loader.mjs?v=5.16.0"), 'No se conserva el cargador principal estable v5.16.');
+requireCheck(official.includes("chute-detail.mjs?v=5.18.2"), 'La entrada no renueva el cargador estadistico.');
 requireCheck(loader.includes("prefix: 'chute-official-part', count: 6, version: '5.16.0'"), 'El cargador principal no solicita las partes v5.16.');
 requireCheck(mainPart.includes('const converted = {\n    ...source,'), 'El normalizador sigue descartando campos extendidos del partido.');
 requireCheck(mainPart.includes('specialEvents: Array.isArray(source.specialEvents)') && mainPart.includes("lineups: source.lineups && typeof source.lineups === 'object'"), 'El normalizador no conserva eventos especiales o alineaciones.');
@@ -49,7 +52,8 @@ requireCheck(official.includes('chute-v5162-playoff-seeding.mjs?v=5.16.3'), 'No 
 requireCheck(official.includes('chute-v517-finalization.mjs?v=5.17.0'), 'No se carga la capa de finalizacion v5.17.');
 requireCheck(official.includes('chute-v518-era-stats.mjs?v=5.18.0'), 'No se carga la capa de eras y estadisticas v5.18.');
 requireCheck(official.includes('chute-v5181-stats-polish.mjs?v=5.18.1'), 'No se carga la correccion de analisis y textos v5.18.1.');
-requireCheck(official.indexOf('chute-v517-finalization.mjs') < official.indexOf('chute-v518-era-stats.mjs') && official.indexOf('chute-v518-era-stats.mjs') < official.indexOf('chute-v5181-stats-polish.mjs'), 'El orden de las capas estadisticas finales es incorrecto.');
+requireCheck(official.includes('chute-v5182-stats-loader.mjs?v=5.18.2'), 'No se carga el coordinador estadistico v5.18.2.');
+requireCheck(official.indexOf('chute-v517-finalization.mjs') < official.indexOf('chute-v518-era-stats.mjs') && official.indexOf('chute-v518-era-stats.mjs') < official.indexOf('chute-v5181-stats-polish.mjs') && official.indexOf('chute-v5181-stats-polish.mjs') < official.indexOf('chute-v5182-stats-loader.mjs'), 'El orden de las capas estadisticas finales es incorrecto.');
 requireCheck(lineups.includes("const VERSION = '5.13.0'"), 'El modulo de alineaciones no declara v5.13.0.');
 requireCheck(lineups.includes("'Davis Bronson', 'MED', 45") && lineups.includes("'Jackie Sánchez', 'MED', 45"), 'Las posiciones oficiales corregidas no estan presentes.');
 requireCheck(unified.includes('eligiblePlayers') && !unified.includes('usedPlayers(lineup)'), 'El reingreso de jugadores no se conserva.');
@@ -68,6 +72,8 @@ requireCheck(v5181.includes("const VERSION = '5.18.1'") && v5181.includes('data-
 requireCheck(v5181.includes("setText(pageTitle, 'h1', 'Estadísticas')") && v5181.includes("label.textContent = 'Goleador'") && v5181.includes("hideElement(summary?.querySelector(':scope > .cm-v518-two'))"), 'La limpieza del resumen estadistico no esta completa.');
 requireCheck(v5181.includes("tournament.eraId === 'divisions'") && v5181.includes("tournament.era = 'division'"), 'El analisis historico no reconoce las eras v5.18.');
 requireCheck(v5181Css.includes('#cmV58ModeSwitch{display:none!important}') && v5181Css.includes('cm-v5181-analysis-open #cmV58AnalysisRoot'), 'Los estilos no reemplazan correctamente el selector historico antiguo.');
+requireCheck(v5182.includes("const VERSION = '5.18.2'") && v5182.includes('loadHistoricalAnalysis') && v5182.includes('loadedLegacyStatistics'), 'El coordinador v5.18.2 esta incompleto.');
+requireCheck(v5182.includes("document.getElementById('cmStatsCenter')") && v5182.includes("document.getElementById('cmV58ModeSwitch')"), 'No se aislan las capas estadisticas antiguas.');
 
 async function walk(directory) {
   const result = [];
@@ -101,9 +107,9 @@ const duplicates = [...imports, ...officialImports].filter((item, index, list) =
 requireCheck(duplicates.length === 0, `Importaciones duplicadas: ${duplicates.join(', ')}`);
 
 if (failures.length) {
-  console.error('Auditoria v5.18.1 fallida:');
+  console.error('Auditoria v5.18.2 fallida:');
   failures.forEach((failure) => console.error(`- ${failure}`));
   process.exit(1);
 }
-console.log('Auditoria v5.18.1 OK');
+console.log('Auditoria v5.18.2 OK');
 notes.forEach((note) => console.log(`- ${note}`));
