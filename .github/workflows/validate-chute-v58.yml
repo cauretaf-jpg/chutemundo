@@ -89,22 +89,13 @@ jobs:
           npm install --no-save serve@14.2.4 playwright@1.52.0
           npx playwright install --with-deps chromium
 
-      - name: Run browser smoke
+      - name: Run affected browser smoke
         run: |
           npx serve public -l 4173 --no-clipboard > /tmp/chute-server.log 2>&1 &
           sleep 3
           node scripts/smoke-chute-v5181.mjs > /tmp/chute-smoke-v5181.log 2>&1
           node scripts/smoke-chute-v518.mjs > /tmp/chute-smoke-v518.log 2>&1
           node scripts/smoke-chute-v58.mjs > /tmp/chute-smoke-v58.log 2>&1
-          node scripts/smoke-chute-v59.mjs > /tmp/chute-smoke-v59.log 2>&1
-          node scripts/smoke-chute-v591.mjs > /tmp/chute-smoke-v591.log 2>&1
-          node scripts/smoke-chute-v510.mjs > /tmp/chute-smoke-v510.log 2>&1
-          node scripts/smoke-chute-v512.mjs > /tmp/chute-smoke-v512.log 2>&1
-          node scripts/smoke-chute-v5121.mjs > /tmp/chute-smoke-v5121.log 2>&1
-          node scripts/smoke-chute-v513.mjs > /tmp/chute-smoke-v513.log 2>&1
-          node scripts/smoke-chute-v514.mjs > /tmp/chute-smoke-v514.log 2>&1
-          node scripts/smoke-chute-v515.mjs > /tmp/chute-smoke-v515.log 2>&1
-          node scripts/smoke-chute-v516.mjs > /tmp/chute-smoke-v516.log 2>&1
 
       - name: Upload diagnostics
         if: always()
