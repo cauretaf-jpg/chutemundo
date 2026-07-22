@@ -5,6 +5,8 @@ const VERSION = '5.18.1';
 let analysisOpen = false;
 let analysisApplied = false;
 let refreshQueued = false;
+let observedOldSwitcher = null;
+let oldSwitcherObserver = null;
 
 function installStyles() {
   if (document.getElementById('cmV5181Styles')) return;
@@ -33,6 +35,27 @@ function hideElement(element) {
   element.setAttribute('aria-hidden', 'true');
   element.classList.add('cm-v5181-copy-hidden');
   element.style.setProperty('display', 'none', 'important');
+}
+
+function forceHideOldSwitcher(element) {
+  if (!element) return;
+  const alreadyHidden = element.hidden
+    && element.getAttribute('aria-hidden') === 'true'
+    && element.classList.contains('cm-v5181-copy-hidden')
+    && element.style.getPropertyValue('display') === 'none'
+    && element.style.getPropertyPriority('display') === 'important';
+  if (!alreadyHidden) hideElement(element);
+}
+
+function watchOldSwitcher(element) {
+  if (!element) return;
+  if (observedOldSwitcher !== element) {
+    oldSwitcherObserver?.disconnect();
+    observedOldSwitcher = element;
+    oldSwitcherObserver = new MutationObserver(() => forceHideOldSwitcher(element));
+    oldSwitcherObserver.observe(element, { attributes: true, attributeFilter: ['style', 'hidden', 'class', 'aria-hidden'] });
+  }
+  forceHideOldSwitcher(element);
 }
 
 function simplifyTableHeaders(panel, replacements) {
@@ -126,7 +149,7 @@ function applyAnalysisVisibility() {
   const analysisButton = ensureAnalysisTab();
   if (!page || !host) return;
 
-  hideElement(oldSwitcher);
+  watchOldSwitcher(oldSwitcher);
   page.classList.toggle('cm-v5181-analysis-open', analysisOpen);
   analysisButton?.classList.toggle('active', analysisOpen);
 
