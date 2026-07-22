@@ -99,7 +99,7 @@ try {
       viewport: document.documentElement.clientWidth
     };
   });
-  if (!/5\.(16|17)/.test(visual.title) || visual.venueTag !== 'SELECT' || !visual.venues.includes("Wladi's House") || !visual.venues.includes("Carlo's House") || !visual.addVenue || visual.goalMinutes !== 2 || visual.cardMinutes !== 2 || visual.subMinutes !== 2 || !visual.groups.includes('EN CANCHA') || visual.onFieldOptions < 4 || !visual.globalMinuteHidden || !visual.legacyPenaltyHidden || !visual.undoUnified || visual.width > visual.viewport + 3) throw new Error(`Interfaz v5.16 inválida: ${JSON.stringify(visual)}`);
+  if (!/5\.(16|17|18)/.test(visual.title) || visual.venueTag !== 'SELECT' || !visual.venues.includes("Wladi's House") || !visual.venues.includes("Carlo's House") || !visual.addVenue || visual.goalMinutes !== 2 || visual.cardMinutes !== 2 || visual.subMinutes !== 2 || !visual.groups.includes('EN CANCHA') || visual.onFieldOptions < 4 || !visual.globalMinuteHidden || !visual.legacyPenaltyHidden || !visual.undoUnified || visual.width > visual.viewport + 3) throw new Error(`Interfaz v5.16 inválida: ${JSON.stringify(visual)}`);
 
   const playerKey = await page.evaluate(() => {
     const core = window.ChuteMundoCore;
@@ -115,17 +115,16 @@ try {
   const profile = await page.evaluate(() => ({ text: document.querySelector('.cm-v59-profile-modal')?.textContent || '', metrics: document.querySelectorAll('.cm-v59-profile-metrics article').length }));
   if (profile.text.includes('Titularidades') || !profile.text.includes('Partidos jugados') || profile.metrics < 7) throw new Error(`Perfil estadístico inválido: ${JSON.stringify(profile)}`);
 
-  await page.locator('[data-close-modal]').click();
+  await page.locator('[data-close-modal]').first().click();
   await page.waitForFunction(() => document.getElementById('modal')?.hidden === true);
   await page.evaluate(() => window.ChuteMundoCore.navigate('estadisticas'));
-  await page.waitForFunction(() => document.getElementById('estadisticas')?.hidden === false);
-  await page.waitForSelector('#cmV516Stats', { state: 'visible' });
-  const statsPage = await page.evaluate(() => ({ text: document.getElementById('cmV516Stats')?.textContent || '', width: document.documentElement.scrollWidth, viewport: document.documentElement.clientWidth }));
-  if (!statsPage.text.includes('Minutos y cambios') || !statsPage.text.includes('Rendimiento registrado') || !statsPage.text.includes('Penales de tanda') || statsPage.width > statsPage.viewport + 3) throw new Error(`Panel estadístico inválido: ${JSON.stringify(statsPage)}`);
+  await page.waitForSelector('#cmV518Stats');
+  const statsPage = await page.evaluate(() => ({ text: document.getElementById('cmV518Stats')?.textContent || '', width: document.documentElement.scrollWidth, viewport: document.documentElement.clientWidth }));
+  if (!statsPage.text.includes('Cobertura del periodo') || !statsPage.text.includes('Era de divisiones') || statsPage.width > statsPage.viewport + 3) throw new Error(`Centro estadístico superior inválido: ${JSON.stringify(statsPage)}`);
 
   const critical = errors.filter((message) => !/favicon|firestore|permission-denied|Failed to load resource|QUIC_NETWORK|ERR_NAME_NOT_RESOLVED|ERR_CONNECTION|network/i.test(message));
   if (critical.length) throw new Error(critical.join(' | '));
-  console.log('Chute Mundo v5.16.1 smoke OK', { pure, visual, profile, statsPage });
+  console.log('Chute Mundo v5.16.1 regression smoke OK', { pure, visual, profile, statsPage });
 } finally {
   await browser.close();
 }
