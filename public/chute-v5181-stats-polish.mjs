@@ -190,10 +190,9 @@ function refresh() {
   polishMainStatistics();
   polishAnalysis();
   applyAnalysisVisibility();
-  if (!window.ChuteV5182StatsLoader) {
-    document.title = 'Chute Mundo v5.18.1 · Estadísticas corregidas';
-    document.querySelector('.hero .eyebrow')?.replaceChildren('CHUTE MUNDO v5.18.1');
-  }
+  const coordinated = Boolean(window.ChuteV5182StatsLoader);
+  document.title = coordinated ? 'Chute Mundo v5.18.2 · Estadísticas estables' : 'Chute Mundo v5.18.1 · Estadísticas corregidas';
+  document.querySelector('.hero .eyebrow')?.replaceChildren(coordinated ? 'CHUTE MUNDO v5.18.2' : 'CHUTE MUNDO v5.18.1');
 }
 
 function scheduleRefresh() {
