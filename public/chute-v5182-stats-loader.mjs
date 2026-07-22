@@ -1,10 +1,11 @@
-const VERSION = '5.18.2';
+const VERSION = '5.18.3';
 let analysisRequest = null;
 let refreshQueued = false;
+let recoveryRequest = null;
 
-function stampVersion() {
-  document.title = 'Chute Mundo v5.18.2 · Estadísticas estables';
-  document.querySelector('.hero .eyebrow')?.replaceChildren('CHUTE MUNDO v5.18.2');
+function stampVersion(recovered = false) {
+  document.title = recovered ? 'Chute Mundo v5.18.3 · Estadísticas recuperadas' : 'Chute Mundo v5.18.3 · Estadísticas estables';
+  document.querySelector('.hero .eyebrow')?.replaceChildren('CHUTE MUNDO v5.18.3');
 }
 
 function currentStatsVisible() {
@@ -29,14 +30,30 @@ function removeLegacyStatisticsShells() {
   }
 }
 
+async function activateRecovery(error) {
+  console.error('El centro estadístico avanzado falló; se activará la vista compatible.', error);
+  window.__CM_V518_IMPORT_ERROR__ = error;
+  if (!recoveryRequest) recoveryRequest = import('/chute-v5183-stats-recovery.mjs?v=5.18.3');
+  const module = await recoveryRequest;
+  const recovery = window.ChuteV5183StatsRecovery || module;
+  recovery.activate?.(error);
+  removeLegacyStatisticsShells();
+  stampVersion(true);
+  return true;
+}
+
 function refreshCurrentStatistics() {
   refreshQueued = false;
-  removeLegacyStatisticsShells();
-  window.ChuteLazyV58?.refreshCurrentStatistics?.();
-  window.ChuteV518EraStats?.renderShell?.();
-  window.ChuteV5181StatsPolish?.refresh?.();
-  removeLegacyStatisticsShells();
-  stampVersion();
+  try {
+    removeLegacyStatisticsShells();
+    window.ChuteLazyV58?.refreshCurrentStatistics?.();
+    window.ChuteV518EraStats?.renderShell?.();
+    window.ChuteV5181StatsPolish?.refresh?.();
+    removeLegacyStatisticsShells();
+    stampVersion(Boolean(window.ChuteV5183StatsRecovery && window.ChuteV518EraStats?.version === VERSION));
+  } catch (error) {
+    void activateRecovery(error);
+  }
 }
 
 function scheduleCurrentRefresh() {
@@ -49,7 +66,7 @@ async function loadHistoricalAnalysis() {
   if (window.ChuteAnalysisV58) {
     window.ChuteAnalysisV58.setMode?.('analysis');
     window.ChuteV5181StatsPolish?.refresh?.();
-    stampVersion();
+    stampVersion(Boolean(window.ChuteV5183StatsRecovery));
     return true;
   }
   if (!analysisRequest) {
@@ -58,13 +75,13 @@ async function loadHistoricalAnalysis() {
         window.ChuteAnalysisV58?.setMode?.('analysis');
         window.ChuteV5181StatsPolish?.refresh?.();
         removeLegacyStatisticsShells();
-        stampVersion();
+        stampVersion(Boolean(window.ChuteV5183StatsRecovery));
         return true;
       })
       .catch((error) => {
         analysisRequest = null;
         window.ChuteV5181StatsPolish?.closeAnalysis?.();
-        stampVersion();
+        stampVersion(Boolean(window.ChuteV5183StatsRecovery));
         throw error;
       });
   }
@@ -80,9 +97,22 @@ document.addEventListener('click', (event) => {
     setTimeout(scheduleCurrentRefresh, 0);
     setTimeout(() => {
       if (!currentStatsVisible() && !document.getElementById('estadisticas')?.classList.contains('cm-v5181-analysis-open')) refreshCurrentStatistics();
-      else stampVersion();
+      else stampVersion(Boolean(window.ChuteV5183StatsRecovery));
     }, 120);
   }
+}, true);
+
+window.addEventListener('error', (event) => {
+  if (!/chute-v518|legacyMetricMap|row is not iterable|estadíst/i.test(`${event.filename || ''} ${event.message || ''}`)) return;
+  event.preventDefault?.();
+  void activateRecovery(event.error || new Error(event.message || 'Error estadístico desconocido.'));
+}, true);
+
+window.addEventListener('unhandledrejection', (event) => {
+  const text = String(event.reason?.stack || event.reason || '');
+  if (!/chute-v518|legacyMetricMap|row is not iterable|estadíst/i.test(text)) return;
+  event.preventDefault?.();
+  void activateRecovery(event.reason instanceof Error ? event.reason : new Error(text));
 }, true);
 
 const statisticsPage = document.getElementById('estadisticas');
@@ -100,6 +130,7 @@ window.ChuteV5182StatsLoader = {
   version: VERSION,
   loadHistoricalAnalysis,
   refreshCurrentStatistics,
+  activateRecovery,
   currentStatsVisible,
   loadedLegacyStatistics() {
     return Boolean(window.ChuteStatsV52 || window.ChuteGameMinuteStats || window.ChuteControllersV57 || window.ChuteVisibilityV58);
