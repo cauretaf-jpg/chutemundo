@@ -1,0 +1,34 @@
+name: Package ChuteMundo production
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - '.github/workflows/package-production.yml'
+      - 'public/**'
+      - 'package.json'
+      - 'vercel.json'
+  workflow_dispatch:
+
+jobs:
+  package:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Prepare production bundle
+        run: |
+          rm -rf production-bundle
+          mkdir -p production-bundle
+          cp -R public/. production-bundle/
+          if [ -f vercel.json ]; then cp vercel.json production-bundle/; fi
+          find production-bundle -type f | sort > production-bundle-files.txt
+      - name: Upload production bundle
+        uses: actions/upload-artifact@v4
+        with:
+          name: chutemundo-production-bundle
+          path: |
+            production-bundle/**
+            production-bundle-files.txt
+          include-hidden-files: true
+          retention-days: 2
