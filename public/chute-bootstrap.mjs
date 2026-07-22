@@ -3,6 +3,7 @@ const APP_TITLE = `Chute Mundo v${APP_VERSION} · Competición`;
 const CACHE_NAME = `chute-mundo-v${APP_VERSION}`;
 const RESET_KEY = `cm_runtime_reset_${APP_VERSION.replaceAll('.', '_')}`;
 const RESET_QUERY = 'cmfresh';
+const LOCAL_HOSTS = new Set(['localhost', '127.0.0.1', '::1']);
 
 let userNavigated = false;
 let bootCompleted = false;
@@ -62,6 +63,11 @@ async function registerCurrentWorker() {
 }
 
 async function resetLegacyRuntimeOnce() {
+  if (LOCAL_HOSTS.has(window.location.hostname)) {
+    removeResetQuery();
+    return;
+  }
+
   let alreadyReset = false;
   try { alreadyReset = localStorage.getItem(RESET_KEY) === 'done'; } catch {}
 
