@@ -1,0 +1,17 @@
+#cmV58ModeSwitch{display:none!important}
+.cm-v5181-copy-hidden{display:none!important}
+#estadisticas.cm-v5181-analysis-open #cmV518Stats .cm-v518-filter-grid,
+#estadisticas.cm-v5181-analysis-open #cmV518Stats .cm-v518-content{display:none!important}
+#estadisticas.cm-v5181-analysis-open #cmV58AnalysisRoot{display:grid!important;visibility:visible!important;opacity:1!important;width:100%;min-height:1px;margin-top:18px}
+#cmV518Stats [data-cm-v5181-analysis]{flex:0 0 auto;border:0;border-radius:13px;background:#eaf3ef;color:#3f5d52;padding:11px 16px;font-weight:900;cursor:pointer}
+#cmV518Stats [data-cm-v5181-analysis].active{background:#078767;color:#fff;box-shadow:0 8px 18px rgba(7,135,103,.22)}
+#cmV518Stats [data-cm-v518-panel="summary"]>.cm-v518-two{display:none!important}
+#cmV518Stats .cm-v518-coverage-card>p,
+#cmV518Stats [data-cm-v518-panel="players"] .cm-v518-note,
+#cmV518Stats [data-cm-v518-panel="keepers"] .cm-v518-note,
+#cmV518Stats [data-cm-v518-panel="players"] .cm-v518-badge{display:none!important}
+#cmV58AnalysisRoot .cm-v58-filters>div>p:not(.eyebrow),
+#cmV58AnalysisRoot .cm-v58-panel>header p:not(.eyebrow){display:none!important}
+#cmV518Stats .cm-v518-card>header{margin-bottom:10px}
+#cmV518Stats .cm-v518-coverage-card{padding-bottom:18px}
+@media(max-width:760px){#cmV518Stats [data-cm-v5181-analysis]{padding:10px 13px}#estadisticas.cm-v5181-analysis-open #cmV58AnalysisRoot{margin-top:12px}}
