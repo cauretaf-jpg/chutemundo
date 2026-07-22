@@ -2,7 +2,7 @@ const core = window.ChuteMundoCore;
 if (!core) throw new Error('Chute Mundo no está listo para normalizar estadísticas.');
 
 const VERSION = '5.18.3';
-const report = { normalizedRows: 0, inferredTeams: 0, skippedRows: 0, normalizedRosters: 0, passes: 0 };
+const report = { normalizedRows: 0, inferredTeams: 0, skippedRows: 0, normalizedRosters: 0, passes: 0, guardedStates: 0 };
 const norm = (value = '') => String(value).normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
 const number = (value) => Number.isFinite(Number(value)) ? Number(value) : 0;
 let queued = false;
@@ -116,16 +116,32 @@ function normalizeState(target = core.getState?.()) {
   return changed;
 }
 
+function installSetStateGuard() {
+  if (typeof core.setState !== 'function' || core.setState.__cmV5183Guard) return false;
+  const originalSetState = core.setState.bind(core);
+  const guardedSetState = (next, ...args) => {
+    normalizeState(next);
+    report.guardedStates += 1;
+    return originalSetState(next, ...args);
+  };
+  Object.defineProperty(guardedSetState, '__cmV5183Guard', { value: true });
+  Object.defineProperty(guardedSetState, 'original', { value: originalSetState });
+  core.setState = guardedSetState;
+  return true;
+}
+
 function scheduleNormalization() {
   if (queued) return;
   queued = true;
   queueMicrotask(() => {
     queued = false;
     normalizeState();
+    installSetStateGuard();
   });
 }
 
 normalizeState();
+installSetStateGuard();
 new MutationObserver(scheduleNormalization).observe(document.body, { childList: true, subtree: true });
 document.addEventListener('chute:ready', scheduleNormalization);
 document.addEventListener('chute:state', scheduleNormalization);
@@ -135,5 +151,6 @@ window.ChuteV5183StatsPreflight = {
   report,
   normalizeMetricRows,
   normalizeState,
+  installSetStateGuard,
   scheduleNormalization
 };
