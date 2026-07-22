@@ -1,4 +1,4 @@
-const APP_VERSION = '5.20.1';
+const APP_VERSION = '5.20.2';
 const APP_TITLE = `Chute Mundo v${APP_VERSION} · Competición`;
 const CACHE_NAME = `chute-mundo-v${APP_VERSION}`;
 const RESET_KEY = `cm_runtime_reset_${APP_VERSION.replaceAll('.', '_')}`;
@@ -7,6 +7,72 @@ const LOCAL_HOSTS = new Set(['localhost', '127.0.0.1', '::1']);
 const nativeServiceWorkerRegister = 'serviceWorker' in navigator
   ? navigator.serviceWorker.register.bind(navigator.serviceWorker)
   : null;
+
+const titleDescriptor = Object.getOwnPropertyDescriptor(Document.prototype, 'title');
+const nodeTextDescriptor = Object.getOwnPropertyDescriptor(Node.prototype, 'textContent');
+const nativeServiceWorkerAddEventListener = 'serviceWorker' in navigator
+  ? navigator.serviceWorker.addEventListener.bind(navigator.serviceWorker)
+  : null;
+
+function installCanonicalVersionLock() {
+  titleDescriptor?.set?.call(document, APP_TITLE);
+  try {
+    Object.defineProperty(document, 'title', {
+      configurable: true,
+      get: () => APP_TITLE,
+      set: (value) => {
+        if (value === APP_TITLE) titleDescriptor?.set?.call(document, APP_TITLE);
+        else console.info(`Se ignoró un título heredado: ${String(value)}`);
+      }
+    });
+  } catch (error) {
+    console.warn('No se pudo bloquear el título global.', error);
+  }
+
+  const heroVersion = document.querySelector('.hero .eyebrow');
+  if (heroVersion && nodeTextDescriptor) {
+    const canonicalHero = `CHUTE MUNDO v${APP_VERSION}`;
+    const nativeReplaceChildren = heroVersion.replaceChildren.bind(heroVersion);
+    nodeTextDescriptor.set.call(heroVersion, canonicalHero);
+    try {
+      Object.defineProperty(heroVersion, 'textContent', {
+        configurable: true,
+        get: () => canonicalHero,
+        set: (value) => {
+          const text = String(value ?? '');
+          if (!/^CHUTE MUNDO v\d/i.test(text) || text === canonicalHero) {
+            nodeTextDescriptor.set.call(heroVersion, text === canonicalHero ? canonicalHero : text);
+          } else {
+            console.info(`Se ignoró un encabezado heredado: ${text}`);
+          }
+        }
+      });
+      heroVersion.replaceChildren = (...nodes) => {
+        const text = nodes.map((node) => typeof node === 'string' ? node : node?.textContent || '').join('');
+        if (/^CHUTE MUNDO v\d/i.test(text) && text !== canonicalHero) {
+          console.info(`Se ignoró un encabezado heredado: ${text}`);
+          return;
+        }
+        nativeReplaceChildren(...nodes);
+      };
+    } catch (error) {
+      console.warn('No se pudo bloquear el encabezado de versión.', error);
+    }
+  }
+}
+
+function installServiceWorkerListenerGuard() {
+  if (!nativeServiceWorkerAddEventListener || navigator.serviceWorker.addEventListener.__cmStableListenerGuard) return;
+  const guardedAddEventListener = (type, listener, options) => {
+    if (type === 'controllerchange') {
+      console.info('Se ignoró una recarga heredada por cambio de service worker.');
+      return;
+    }
+    return nativeServiceWorkerAddEventListener(type, listener, options);
+  };
+  Object.defineProperty(guardedAddEventListener, '__cmStableListenerGuard', { value: true });
+  navigator.serviceWorker.addEventListener = guardedAddEventListener;
+}
 
 let userNavigated = false;
 let bootCompleted = false;
@@ -160,5 +226,7 @@ window.ChuteVersion = Object.freeze({
 });
 
 installServiceWorkerRegistrationGuard();
+installServiceWorkerListenerGuard();
+installCanonicalVersionLock();
 applyVersion();
 await resetLegacyRuntimeOnce();
