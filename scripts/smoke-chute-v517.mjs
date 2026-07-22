@@ -19,7 +19,7 @@ async function clickCurrent(selector) {
 
 try {
   await page.goto('http://127.0.0.1:4173/', { waitUntil: 'domcontentloaded' });
-  await page.waitForFunction(() => window.ChuteV517Finalization && window.ChuteMundoCore && window.ChuteTournamentHub && window.ChuteV519StatsGuard);
+  await page.waitForFunction(() => window.ChuteV517Finalization && window.ChuteMundoCore && window.ChuteTournamentHub && window.ChuteV520StatsGuard);
   const setup = await page.evaluate(() => {
     const core = window.ChuteMundoCore;
     const original = structuredClone(core.getState());
@@ -127,7 +127,7 @@ try {
   }, setup.tournamentId);
 
   const title = await page.title();
-  if (!/5\.(17|18|19)/.test(title)) throw new Error(`Título incorrecto: ${title}`);
+  if (!/5\.(17|18|19|20)/.test(title)) throw new Error(`Título incorrecto: ${title}`);
   const critical = errors.filter((message) => !/favicon|firestore|permission-denied|Failed to load resource|QUIC_NETWORK|ERR_NAME_NOT_RESOLVED|ERR_CONNECTION|network/i.test(message));
   if (critical.length) throw new Error(critical.join(' | '));
   await page.evaluate(() => window.ChuteMundoCore.setState(window.__cmV517Original));
