@@ -4,6 +4,9 @@ const CACHE_NAME = `chute-mundo-v${APP_VERSION}`;
 const RESET_KEY = `cm_runtime_reset_${APP_VERSION.replaceAll('.', '_')}`;
 const RESET_QUERY = 'cmfresh';
 const LOCAL_HOSTS = new Set(['localhost', '127.0.0.1', '::1']);
+const nativeServiceWorkerRegister = 'serviceWorker' in navigator
+  ? navigator.serviceWorker.register.bind(navigator.serviceWorker)
+  : null;
 
 let userNavigated = false;
 let bootCompleted = false;
@@ -51,15 +54,35 @@ function waitForActivation(registration, timeout = 8000) {
 }
 
 async function registerCurrentWorker() {
-  if (!('serviceWorker' in navigator)) return null;
+  if (!nativeServiceWorkerRegister) return null;
   const existing = await navigator.serviceWorker.getRegistration('/');
   if (existing && workerVersion(existing) === APP_VERSION) return existing;
-  const registration = await navigator.serviceWorker.register(`/sw.js?v=${APP_VERSION}`, {
+  const registration = await nativeServiceWorkerRegister(`/sw.js?v=${APP_VERSION}`, {
     scope: '/',
     updateViaCache: 'none'
   });
   await waitForActivation(registration);
   return registration;
+}
+
+function installServiceWorkerRegistrationGuard() {
+  if (!nativeServiceWorkerRegister || navigator.serviceWorker.register.__cmStableBootstrap) return;
+  const guardedRegister = (scriptURL, options = {}) => {
+    let requestedVersion = '';
+    let requestedPath = '';
+    try {
+      const requested = new URL(String(scriptURL), window.location.href);
+      requestedVersion = requested.searchParams.get('v') || '';
+      requestedPath = requested.pathname;
+    } catch {}
+    if (requestedPath.endsWith('/sw.js') && requestedVersion !== APP_VERSION) {
+      console.info(`Se ignoró un registro PWA heredado (${requestedVersion || 'sin versión'}).`);
+      return registerCurrentWorker();
+    }
+    return nativeServiceWorkerRegister(scriptURL, options);
+  };
+  Object.defineProperty(guardedRegister, '__cmStableBootstrap', { value: true });
+  navigator.serviceWorker.register = guardedRegister;
 }
 
 async function resetLegacyRuntimeOnce() {
@@ -132,8 +155,10 @@ window.ChuteVersion = Object.freeze({
   title: APP_TITLE,
   cacheName: CACHE_NAME,
   apply: applyVersion,
+  registerCurrentWorker,
   get bootCompleted() { return bootCompleted; }
 });
 
+installServiceWorkerRegistrationGuard();
 applyVersion();
 await resetLegacyRuntimeOnce();
