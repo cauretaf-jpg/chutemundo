@@ -1,0 +1,88 @@
+  return values.map((value) => typeof value === 'string' ? value : playerName(value)).filter(Boolean);
+}
+
+function goalkeeperAppeared(name, lineup) {
+  const key = norm(name);
+  if (lineupNames(lineup, 'starters').some((item) => norm(item) === key)) return true;
+  return (lineup?.changes || []).some((change) => norm(change?.playerIn) === key);
+}
+
+function goalkeeperRows(tournaments, source = state()) {
+  const rows = [];
+  const matches = matchRows(tournaments);
+  for (const team of source.teams || []) {
+    if (selectedTeam !== 'all' && team.id !== selectedTeam) continue;
+    const roster = Array.isArray(team.players) ? team.players : team.players && typeof team.players === 'object' ? Object.values(team.players) : [];
+    for (const entry of roster) {
+      const name = playerName(entry);
+      if (!name || !isGoalkeeper(entry)) continue;
+      const result = { teamId: team.id, name, appearances: 0, cleanSheets: 0, goalsConceded: 0, wins: 0, draws: 0, losses: 0, tournaments: new Set() };
+      for (const row of matches) {
+        const side = row.home === team.id ? 'home' : row.away === team.id ? 'away' : null;
+        if (!side || !row.match.participationTracked) continue;
+        const lineup = row.match.lineups?.[side];
+        if (!goalkeeperAppeared(name, lineup)) continue;
+        const conceded = side === 'home' ? number(row.match.awayGoals) : number(row.match.homeGoals);
+        result.appearances += 1;
+        result.goalsConceded += conceded;
+        result.tournaments.add(row.tournament.id);
+        if (conceded === 0) result.cleanSheets += 1;
+        const winner = winnerId(row);
+        if (winner === team.id) result.wins += 1;
+        else if (winner) result.losses += 1;
+        else result.draws += 1;
+      }
+      if (!result.appearances) continue;
+      result.average = result.goalsConceded / result.appearances;
+      result.cleanSheetPct = result.cleanSheets / result.appearances * 100;
+      rows.push(result);
+    }
+  }
+  return rows.sort((left, right) => right.cleanSheets - left.cleanSheets || right.cleanSheetPct - left.cleanSheetPct || left.average - right.average || right.appearances - left.appearances || left.name.localeCompare(right.name, 'es'));
+}
+
+function coverage(tournaments, source = state()) {
+  const played = matchRows(tournaments).length;
+  const tracked = tournaments.reduce((sum, tournament) => sum + (tournament.matches || []).filter((match) => matchPlayed(match) && match.participationTracked).length, 0);
+  const scorerTournaments = tournaments.filter((tournament) => tournamentMetricRows(tournament, 'goals', source).length).length;
+  const assistTournaments = tournaments.filter((tournament) => tournamentMetricRows(tournament, 'assists', source).length).length;
+  return { played, tracked, scorerTournaments, assistTournaments };
+}
+
+function medal(index) {
+  return index < 3 ? `<span class="cm-v520-rank is-${index + 1}">${index + 1}</span>` : `<span class="cm-v520-rank">${index + 1}</span>`;
+}
+
+function teamCell(teamId, source) {
+  const logo = logoUrl(teamId);
+  return `<button class="cm-v520-person" type="button" data-cm-v520-team="${esc(teamId)}">${logo ? `<img class="cm-v520-logo" src="${esc(logo)}" alt="">` : `<span class="cm-v520-avatar">${esc(teamName(teamId, source).slice(0, 1))}</span>`}<span><b>${esc(teamName(teamId, source))}</b></span></button>`;
+}
+
+function playerCell(row, source) {
+  return `<button class="cm-v520-person" type="button" data-cm-v520-player="${esc(row.teamId)}__${encodeURIComponent(row.name)}">${photo(row.teamId, row.name, 'cm-v520-photo')}<span><b>${esc(row.name)}</b><small>${esc(teamName(row.teamId, source))}</small></span></button>`;
+}
+
+function table(headers, rows, empty = 'Sin datos para este filtro.') {
+  return `<div class="cm-v520-table"><table><thead><tr>${headers.map((header) => `<th>${esc(header)}</th>`).join('')}</tr></thead><tbody>${rows.length ? rows.join('') : `<tr><td colspan="${headers.length}" class="cm-v520-empty-cell">${esc(empty)}</td></tr>`}</tbody></table></div>`;
+}
+
+function filterLabel(source, tournaments) {
+  const parts = [];
+  parts.push(selectedEra === 'all' ? 'Toda la historia' : selectedEra === ERA_DIVISIONS ? 'Era de divisiones' : 'Era de ligas');
+  if (selectedTournament !== 'all') parts.push(tournaments[0]?.name || 'Torneo seleccionado');
+  if (selectedTeam !== 'all') parts.push(teamName(selectedTeam, source));
+  return parts.join(' · ');
+}
+
+function podium(rows, valueLabel, source, emptyText) {
+  if (!rows.length) return `<div class="cm-v520-empty cm-v520-podium-empty">${esc(emptyText)}</div>`;
+  return `<div class="cm-v520-podium">${rows.slice(0, 3).map((row, index) => `<article class="cm-v520-podium-card is-${index + 1}"><div class="cm-v520-podium-position">${index + 1}</div>${photo(row.teamId, row.name, 'cm-v520-podium-photo')}<b>${esc(row.name)}</b><span>${esc(teamName(row.teamId, source))}</span><strong>${esc(valueLabel(row))}</strong></article>`).join('')}</div>`;
+}
+
+function summaryPanel(tournaments, source) {
+  const matches = scopedMatchRows(tournaments);
+  const goals = matches.reduce((sum, row) => sum + number(row.match.homeGoals) + number(row.match.awayGoals), 0);
+  const teams = teamRows(tournaments, source);
+  const scorers = rankingRows(tournaments, 'goals', source);
+  const assists = rankingRows(tournaments, 'assists', source);
+  const keepers = goalkeeperRows(tournaments, source);
