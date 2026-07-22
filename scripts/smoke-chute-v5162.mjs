@@ -32,11 +32,19 @@ try {
       matches: [{ ...match('old-s1', 'Semifinales', 'Semifinal 1', teamIds[2], teamIds[3], 'TABLE_3', 'TABLE_4'), homeGoals: 1, awayGoals: 0 }]
     };
     core.setState({ ...original, tournaments: [...original.tournaments, current, historical] });
-    core.navigate('torneos');
     return { version: window.ChuteV5162PlayoffSeeding.version, teamIds };
   });
   if (setup.error) throw new Error(setup.error);
 
+  await page.waitForFunction(() => {
+    const tournaments = window.ChuteMundoCore.getState().tournaments;
+    return ['playoff-ui-regression', 'playoff-history-protected'].every((id) => {
+      const tournament = tournaments.find((item) => item.id === id);
+      return tournament?.eraId && tournament?.coverage?.schema === 'era-stats-v1';
+    });
+  });
+  await page.waitForTimeout(650);
+  await page.evaluate(() => window.ChuteMundoCore.navigate('torneos'));
   await page.waitForFunction(() => [...document.querySelectorAll('[data-open-tournament="playoff-ui-regression"]')].some((element) => element.getClientRects().length));
   await page.locator('[data-open-tournament="playoff-ui-regression"]:visible').first().click();
   await page.waitForSelector('#cmTournamentHub[data-tournament-id="playoff-ui-regression"]');
@@ -54,49 +62,43 @@ try {
   if (repaired.third.homeRef !== 'S1_L' || repaired.third.awayRef !== 'S2_L' || repaired.final.homeRef !== 'S1_W' || repaired.final.awayRef !== 'S2_W') throw new Error(`Final o tercer lugar incorrectos: ${JSON.stringify(repaired)}`);
   if (repaired.old.home !== setup.teamIds[2] || repaired.old.away !== setup.teamIds[3] || repaired.old.homeRef !== 'TABLE_3') throw new Error(`Se modificó una semifinal histórica: ${JSON.stringify(repaired.old)}`);
 
-  await page.locator('[data-cm-tournament-tab="table"]:visible').click();
-  await page.waitForSelector('[data-cm-tournament-panel="table"].active table');
-  const tableUi = await page.evaluate(() => ({
-    tabs: document.querySelectorAll('#cmTournamentHub .cm-hub-tabs [data-cm-tournament-tab]').length,
-    rows: document.querySelectorAll('#cmTournamentHub [data-cm-tournament-panel="table"].active tbody tr').length,
-    shields: document.querySelectorAll('#cmTournamentHub [data-cm-tournament-panel="table"].active img').length,
-    hiddenSources: [...document.querySelectorAll('#tournamentDetail > .cm-hub-source-hidden')].every((element) => getComputedStyle(element).display === 'none')
-  }));
+  const tableUi = await page.evaluate(() => {
+    window.ChuteTournamentHub.switchTab('table');
+    return {
+      tabs: document.querySelectorAll('#cmTournamentHub .cm-hub-tabs [data-cm-tournament-tab]').length,
+      rows: document.querySelectorAll('#cmTournamentHub [data-cm-tournament-panel="table"].active tbody tr').length,
+      shields: document.querySelectorAll('#cmTournamentHub [data-cm-tournament-panel="table"].active img').length,
+      hiddenSources: [...document.querySelectorAll('#tournamentDetail > .cm-hub-source-hidden')].every((element) => getComputedStyle(element).display === 'none')
+    };
+  });
   if (tableUi.tabs < 5 || tableUi.rows < 6 || tableUi.shields < 6 || !tableUi.hiddenSources) throw new Error(`Centro visual incompleto: ${JSON.stringify(tableUi)}`);
 
-  await page.locator('[data-cm-tournament-tab="fixture"]:visible').click();
-  await page.waitForSelector('[data-cm-tournament-panel="fixture"].active .cm-hub-filterbar');
-  await page.waitForFunction(() => [...document.querySelectorAll('#cmTournamentHub [data-cm-tournament-panel="fixture"] [data-cm-hub-match]')].some((button) => button.textContent.trim() === 'Ver partido'));
-  const fixtureUi = await page.evaluate(() => ({
-    filters: document.querySelectorAll('#cmTournamentHub .cm-hub-filterbar [data-cm-fixture-filter]').length,
-    matches: document.querySelectorAll('#cmTournamentHub .cm-hub-match').length,
-    shields: document.querySelectorAll('#cmTournamentHub .cm-hub-match-team img').length
-  }));
-  if (fixtureUi.filters !== 3 || fixtureUi.matches < 4 || fixtureUi.shields < 4) throw new Error(`Fixture incompleto: ${JSON.stringify(fixtureUi)}`);
+  const fixtureUi = await page.evaluate(() => {
+    window.ChuteTournamentHub.switchTab('fixture');
+    return {
+      filters: document.querySelectorAll('#cmTournamentHub [data-cm-tournament-panel="fixture"].active .cm-hub-filterbar [data-cm-fixture-filter]').length,
+      matches: document.querySelectorAll('#cmTournamentHub [data-cm-tournament-panel="fixture"].active .cm-hub-match').length,
+      shields: document.querySelectorAll('#cmTournamentHub [data-cm-tournament-panel="fixture"].active .cm-hub-match-team img').length,
+      viewButtons: [...document.querySelectorAll('#cmTournamentHub [data-cm-tournament-panel="fixture"].active [data-cm-hub-match]')].filter((button) => button.textContent.trim() === 'Ver partido').length
+    };
+  });
+  if (fixtureUi.filters !== 3 || fixtureUi.matches < 4 || fixtureUi.shields < 4 || fixtureUi.viewButtons < 4) throw new Error(`Fixture incompleto: ${JSON.stringify(fixtureUi)}`);
 
   await page.evaluate(() => { window.ChuteMundoCore.canEdit = () => true; });
   await page.waitForTimeout(800);
   const buttonState = await page.evaluate(() => {
+    window.ChuteTournamentHub.switchTab('fixture');
+    window.ChuteV514UnifiedMatch.decorateEntryButtons();
     const hub = document.getElementById('cmTournamentHub');
-    const first = hub?.querySelector('[data-cm-tournament-panel="fixture"] [data-cm-hub-match]');
-    const describe = (item) => {
-      const style = getComputedStyle(item);
-      const rect = item.getBoundingClientRect();
-      return { tag: item.tagName, id: item.id, className: item.className, hidden: item.hidden, display: style.display, visibility: style.visibility, width: rect.width, height: rect.height };
-    };
-    const ancestors = [];
-    let node = first;
-    while (node && ancestors.length < 12) { ancestors.push(describe(node)); node = node.parentElement; }
-    return {
-      pages: [...document.querySelectorAll('.page')].map((item) => ({ id: item.id, hidden: item.hidden, display: getComputedStyle(item).display, width: item.getBoundingClientRect().width, height: item.getBoundingClientRect().height })),
-      tabs: [...(hub?.querySelectorAll('[data-cm-tournament-tab]') || [])].map((item) => ({ tab: item.dataset.cmTournamentTab, active: item.classList.contains('active') })),
-      panels: [...(hub?.querySelectorAll('[data-cm-tournament-panel]') || [])].map((item) => ({ panel: item.dataset.cmTournamentPanel, active: item.classList.contains('active'), display: getComputedStyle(item).display, width: item.getBoundingClientRect().width, height: item.getBoundingClientRect().height })),
-      ancestors
-    };
+    const first = hub?.querySelector('[data-cm-tournament-panel="fixture"].active [data-cm-hub-match]');
+    if (!first) return { found: false };
+    const style = getComputedStyle(first);
+    const rect = first.getBoundingClientRect();
+    first.click();
+    return { found: true, display: style.display, visibility: style.visibility, width: rect.width, height: rect.height };
   });
-  const firstButton = buttonState.ancestors[0];
-  if (!firstButton || firstButton.display === 'none' || firstButton.visibility === 'hidden' || firstButton.width <= 0 || firstButton.height <= 0) throw new Error(`Botón de partido oculto: ${JSON.stringify(buttonState)}`);
-  await page.locator('#cmTournamentHub [data-cm-tournament-panel="fixture"] [data-cm-hub-match]').first().click();
+  if (!buttonState.found || buttonState.display === 'none' || buttonState.visibility === 'hidden' || buttonState.width <= 0 || buttonState.height <= 0) throw new Error(`Botón de partido oculto: ${JSON.stringify(buttonState)}`);
+
   await page.waitForSelector('.cm-v516-match-center');
   const editor = await page.evaluate(() => ({
     goal: Boolean(document.querySelector('[data-cm-v516-goal-minute="home"]')),

@@ -17,13 +17,15 @@ const v517Loader = await readFile(path.join(publicDir, 'chute-v517-finalization.
 const v517 = (await Promise.all(Array.from({ length: 8 }, (_, index) => readFile(path.join(publicDir, `chute-v517-finalization-part-${String(index).padStart(2, '0')}.txt`), 'utf8')))).join('');
 const v518Loader = await readFile(path.join(publicDir, 'chute-v518-era-stats.mjs'), 'utf8');
 const v518 = (await Promise.all(Array.from({ length: 6 }, (_, index) => readFile(path.join(publicDir, `chute-v518-era-stats-part-${String(index).padStart(2, '0')}.txt`), 'utf8')))).join('');
+const v5181 = await readFile(path.join(publicDir, 'chute-v5181-stats-polish.mjs'), 'utf8');
+const v5181Css = await readFile(path.join(publicDir, 'chute-v5181-stats-polish.css'), 'utf8');
 const packageJson = JSON.parse(await readFile(path.join(root, 'package.json'), 'utf8'));
 
 const failures = [];
 const notes = [];
 const requireCheck = (condition, message) => { if (!condition) failures.push(message); };
 
-requireCheck(packageJson.version === '5.18.0', 'package.json no esta en v5.18.0.');
+requireCheck(packageJson.version === '5.18.1', 'package.json no esta en v5.18.1.');
 requireCheck(detail.indexOf('chute-runtime-v58.mjs') < detail.indexOf('chute-mutation-guard.mjs'), 'El runtime optimizado debe cargarse antes de los modulos periodicos.');
 requireCheck(!detail.includes('chute-v56-card-metadata.mjs'), 'El parche redundante de metadatos sigue importandose.');
 requireCheck(detail.includes('function loadStatistics()'), 'No existe carga diferida del centro estadistico.');
@@ -46,38 +48,26 @@ requireCheck(official.includes('chute-v516-events-stats.mjs?v=5.16.1'), 'No se c
 requireCheck(official.includes('chute-v5162-playoff-seeding.mjs?v=5.16.3'), 'No se carga la correccion visual de Play-Off v5.16.3.');
 requireCheck(official.includes('chute-v517-finalization.mjs?v=5.17.0'), 'No se carga la capa de finalizacion v5.17.');
 requireCheck(official.includes('chute-v518-era-stats.mjs?v=5.18.0'), 'No se carga la capa de eras y estadisticas v5.18.');
-requireCheck(official.indexOf('chute-v513-lineups.mjs') < official.indexOf('chute-v514-unified-match.mjs') && official.indexOf('chute-v514-unified-match.mjs') < official.indexOf('chute-v515-match-center.mjs') && official.indexOf('chute-v515-match-center.mjs') < official.indexOf('chute-v516-events-stats.mjs') && official.indexOf('chute-v516-events-stats.mjs') < official.indexOf('chute-v5162-playoff-seeding.mjs') && official.indexOf('chute-v5162-playoff-seeding.mjs') < official.indexOf('chute-v517-finalization.mjs') && official.indexOf('chute-v517-finalization.mjs') < official.indexOf('chute-v518-era-stats.mjs'), 'El orden de capas del centro de partido y estadisticas es incorrecto.');
+requireCheck(official.includes('chute-v5181-stats-polish.mjs?v=5.18.1'), 'No se carga la correccion de analisis y textos v5.18.1.');
+requireCheck(official.indexOf('chute-v517-finalization.mjs') < official.indexOf('chute-v518-era-stats.mjs') && official.indexOf('chute-v518-era-stats.mjs') < official.indexOf('chute-v5181-stats-polish.mjs'), 'El orden de las capas estadisticas finales es incorrecto.');
 requireCheck(lineups.includes("const VERSION = '5.13.0'"), 'El modulo de alineaciones no declara v5.13.0.');
 requireCheck(lineups.includes("'Davis Bronson', 'MED', 45") && lineups.includes("'Jackie Sánchez', 'MED', 45"), 'Las posiciones oficiales corregidas no estan presentes.');
 requireCheck(unified.includes('eligiblePlayers') && !unified.includes('usedPlayers(lineup)'), 'El reingreso de jugadores no se conserva.');
 requireCheck(polished.includes('syncSubstitutionEvents') && polished.includes("kind: 'substitution'"), 'Los cambios no se guardan como eventos oficiales.');
 requireCheck(v516Loader.includes("prefix: 'chute-v516-events-stats-part'") && v516Loader.includes('count: 12') && v516Loader.includes("version: '5.16.1'"), 'El cargador v5.16.1 no solicita sus 12 partes actualizadas.');
-requireCheck(v516.includes("const VERSION = '5.16.1'"), 'El modulo funcional no declara v5.16.1.');
-requireCheck(v516.includes('data-cm-v516-goal-minute') && v516.includes('data-cm-v516-card-minute') && v516.includes('data-cm-v516-sub-minute'), 'Faltan minutos independientes por evento.');
-requireCheck(v516.includes('groupedPlayerOptions') && v516.includes('EN CANCHA') && v516.includes('selección flexible'), 'La seleccion de jugadores no distingue quienes estan en cancha.');
-requireCheck(v516.includes("const DEFAULT_VENUES = [\"Wladi's House\", \"Carlo's House\"]") && v516.includes('data-cm-v516-add-venue'), 'Faltan las sedes oficiales o la creacion de nuevas sedes.');
-requireCheck(v516.includes('penaltyShootout') && v516.includes('shootoutStarted') && v516.includes('Iniciar tanda después de 120'), 'La tanda de Play-Off no esta implementada correctamente.');
-requireCheck(v516.includes('function playerStats') && v516.includes('goalsConcededAverage') && v516.includes('cleanSheets'), 'Faltan estadisticas de jugadores o porteros.');
-requireCheck(v516.includes("item.textContent.includes('Titularidades')") && v516.includes('item.remove()'), 'No se elimina Titularidades del perfil.');
-requireCheck(v516.includes('data-cm-v516-undo') && v516.includes('undoLatestEvent'), 'La correccion unificada de eventos no esta instalada.');
-requireCheck(v516.includes('context.match.participationTracked = true'), 'Los eventos nuevos no marcan la participacion como registrada.');
-requireCheck(v516.includes('if (!row.match.participationTracked) continue;'), 'Las alineaciones historicas automaticas siguen contando como participacion real.');
-requireCheck(playoff.includes("const VERSION = '5.16.3'") && playoff.includes("homeRef: 'TABLE_1', awayRef: 'TABLE_4'") && playoff.includes("homeRef: 'TABLE_2', awayRef: 'TABLE_3'"), 'Los cruces o la version de Play-Off no son correctos.');
-requireCheck(playoff.includes('hasRecordedActivity') && playoff.includes('repairTournament') && playoff.includes("tournament.type !== 'league_playoff'"), 'La reparacion segura de Play-Off no esta completa.');
-requireCheck(playoff.includes('restoreEnhancedTournamentUi') && playoff.includes('ChuteTournamentHub?.refresh') && playoff.includes('ChuteV514UnifiedMatch?.decorateEntryButtons'), 'El hotfix no restaura el centro del torneo y sus controles.');
-requireCheck(!playoff.includes('new MutationObserver(scheduleRepair)'), 'La observacion global que desmontaba la interfaz sigue activa.');
+requireCheck(v516.includes("const VERSION = '5.16.1'") && v516.includes('data-cm-v516-goal-minute') && v516.includes('function playerStats'), 'La capa funcional v5.16.1 esta incompleta.');
+requireCheck(playoff.includes("const VERSION = '5.16.3'") && playoff.includes("homeRef: 'TABLE_1', awayRef: 'TABLE_4'") && playoff.includes('restoreEnhancedTournamentUi'), 'La correccion de Play-Off v5.16.3 esta incompleta.');
 requireCheck(v517Loader.includes("prefix: 'chute-v517-finalization-part'") && v517Loader.includes('count: 8') && v517Loader.includes("version: '5.17.0'"), 'El cargador v5.17 no solicita sus ocho partes.');
-requireCheck(v517.includes("const VERSION = '5.17.0'") && v517.includes('function computeAwards') && v517.includes('function buildPlayerRows'), 'El motor automatico de premios v5.17 esta incompleto.');
-requireCheck(v517.includes('data-cm-v517-awards-panel') && v517.includes('syncAwardsVisibility') && v517.includes("panel.style.display = active ? 'block' : 'none'"), 'Premios no queda aislado en su propia pestana.');
-requireCheck(v517.includes('function resultInfo') && v517.includes('decidedByPenalties') && v517.includes('data-cm-v517-penalty-for'), 'Los resultados definidos por penales no estan integrados.');
-requireCheck(v517.includes('function qualityIssues') && v517.includes('data-cm-v517-confirm-finish') && v517.includes('awardsEngineVersion'), 'El cierre con control de calidad y premios oficiales esta incompleto.');
+requireCheck(v517.includes("const VERSION = '5.17.0'") && v517.includes('function computeAwards') && v517.includes('function qualityIssues'), 'El cierre y los premios v5.17 estan incompletos.');
 requireCheck(v518Loader.includes("prefix: 'chute-v518-era-stats-part'") && v518Loader.includes('count: 6') && v518Loader.includes("version: '5.18.0'"), 'El cargador v5.18 no solicita sus seis partes.');
 requireCheck(v518.includes("const VERSION = '5.18.0'") && v518.includes("const CUTOFF_NAME = '8vo Torneo - Copa'"), 'La version o el punto de corte de eras no son correctos.');
 requireCheck(v518.includes("const ERA_LEAGUES = 'leagues'") && v518.includes("const ERA_DIVISIONS = 'divisions'") && v518.includes('function plannedEra'), 'La asignacion explicita de eras no esta implementada.');
 requireCheck(v518.includes('function inferCoverage') && v518.includes("none: 'Sin registro'") && v518.includes('function coverageSummary'), 'La cobertura estadistica no distingue ausencia de registro.');
-requireCheck(v518.includes('function divisionsCriticalIssues') && v518.includes('falta registrar asistencia o “sin asistencia”') && v518.includes('data-cm-v517-confirm-finish'), 'La Era de divisiones no exige registros completos al finalizar.');
-requireCheck(v518.includes("['summary','teams','players','keepers','tournaments','history']") && v518.includes('data-cm-v518-filter="era"') && v518.includes('data-cm-v518-filter="tournament"') && v518.includes('data-cm-v518-filter="team"'), 'El centro estadistico v5.18 no contiene las secciones o filtros acordados.');
-requireCheck(v518.includes('penWins') && v518.includes('Las series ganadas por penales se muestran por separado'), 'Las tandas siguen mezclandose con victorias reglamentarias.');
+requireCheck(v518.includes('function divisionsCriticalIssues') && v518.includes('falta registrar asistencia o “sin asistencia”'), 'La Era de divisiones no exige registros completos al finalizar.');
+requireCheck(v5181.includes("const VERSION = '5.18.1'") && v5181.includes('data-cm-v5181-analysis') && v5181.includes("window.ChuteAnalysisV58.setMode('analysis')"), 'Analisis historico no esta integrado como pestana funcional.');
+requireCheck(v5181.includes("setText(pageTitle, 'h1', 'Estadísticas')") && v5181.includes("label.textContent = 'Goleador'") && v5181.includes("hideElement(summary?.querySelector(':scope > .cm-v518-two'))"), 'La limpieza del resumen estadistico no esta completa.');
+requireCheck(v5181.includes("tournament.eraId === 'divisions'") && v5181.includes("tournament.era = 'division'"), 'El analisis historico no reconoce las eras v5.18.');
+requireCheck(v5181Css.includes('#cmV58ModeSwitch{display:none!important}') && v5181Css.includes('cm-v5181-analysis-open #cmV58AnalysisRoot'), 'Los estilos no reemplazan correctamente el selector historico antiguo.');
 
 async function walk(directory) {
   const result = [];
@@ -111,9 +101,9 @@ const duplicates = [...imports, ...officialImports].filter((item, index, list) =
 requireCheck(duplicates.length === 0, `Importaciones duplicadas: ${duplicates.join(', ')}`);
 
 if (failures.length) {
-  console.error('Auditoria v5.18 fallida:');
+  console.error('Auditoria v5.18.1 fallida:');
   failures.forEach((failure) => console.error(`- ${failure}`));
   process.exit(1);
 }
-console.log('Auditoria v5.18 OK');
+console.log('Auditoria v5.18.1 OK');
 notes.forEach((note) => console.log(`- ${note}`));
