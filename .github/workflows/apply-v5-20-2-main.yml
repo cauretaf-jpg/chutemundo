@@ -1,0 +1,175 @@
+name: Apply Chute Mundo v5.20.2 to main
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - '.github/workflows/apply-v5-20-2-main.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Remove legacy version and PWA side effects
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import re, json
+
+          root = Path('.')
+          public = root / 'public'
+
+          for name in ['index.html', 'chute-bootstrap.mjs', 'chute-official.mjs', 'chute-official-loader.mjs', 'sw.js', 'chute-v520-stats.mjs', 'chute-v520-stats-sync.mjs', 'chute-v520-stats-guard.mjs']:
+              path = public / name
+              path.write_text(path.read_text().replace('5.20.1', '5.20.2'))
+
+          for path in public.glob('chute-v520-stats-part-*.txt'):
+              path.write_text(path.read_text().replace("'5.20.1'", "'5.20.2'"))
+
+          package = root / 'package.json'
+          data = json.loads(package.read_text())
+          data['name'] = 'chutemundo'
+          data['version'] = '5.20.2'
+          data['description'] = 'Chute Mundo con arranque único, caché estable y centro estadístico v5.20.'
+          package.write_text(json.dumps(data, ensure_ascii=False, separators=(',', ':')) + '\n')
+
+          (public / 'release-v5-20-2.txt').write_text(
+              'Chute Mundo v5.20.2\n'
+              'Arranque único: sin cambios heredados de versión, sin registros PWA múltiples y sin navegación automática a Estadísticas.\n'
+          )
+
+          detail = public / 'chute-detail.mjs'
+          source = detail.read_text()
+          source = re.sub(
+              r"^document\.title = 'Chute Mundo v5\.8\.1 · Competición oficial';\n"
+              r"const heroVersion = document\.querySelector\('\.hero \.eyebrow'\);\n"
+              r"if \(heroVersion\) heroVersion\.textContent = 'CHUTE MUNDO v5\.8\.1';\n",
+              '', source
+          )
+          source = re.sub(
+              r"function refreshCurrentStatistics\(\) \{.*?\n\}",
+              """function refreshCurrentStatistics() {
+            const statsPage = document.getElementById('estadisticas');
+            if (!statsPage || statsPage.hidden) return false;
+            window.ChuteV520Stats?.renderShell?.();
+            window.ChuteRuntimeV58?.invalidate('statistics-current-loaded');
+            return true;
+          }""",
+              source,
+              flags=re.S
+          )
+          source = re.sub(
+              r"function loadHistoricalAnalysis\(\) \{.*?\n\}",
+              """function loadHistoricalAnalysis() {
+            if (analysisPromise) return analysisPromise;
+            analysisPromise = Promise.resolve().then(() => {
+              const statsPage = document.getElementById('estadisticas');
+              if (!statsPage || statsPage.hidden) return false;
+              window.ChuteV520Stats?.activateTab?.('analysis', { focus: true });
+              clearStatisticsStatus();
+              return true;
+            }).catch((error) => {
+              analysisPromise = null;
+              statisticsStatus('error', 'analysis');
+              console.error('No se pudo abrir el análisis histórico actual de Chute Mundo.', error);
+              throw error;
+            });
+            return analysisPromise;
+          }""",
+              source,
+              flags=re.S
+          )
+          detail.write_text(source)
+
+          core = public / 'chute-v511-core.mjs'
+          source = core.read_text()
+          match = re.search(r"function pwa\(\)\{.*?\}\nfunction banner", source, re.S)
+          if not match:
+              raise RuntimeError('No se encontró la función PWA heredada.')
+          replacement = """function pwa(){addEventListener('beforeinstallprompt',e=>{e.preventDefault();installEvent=e;banner('Instala Chute Mundo como aplicación','Instalar',async()=>{installEvent.prompt();await installEvent.userChoice;installEvent=null;});});}
+          function banner"""
+          source = source[:match.start()] + replacement + source[match.end():]
+          source = source.replace(
+              ";document.title='Chute Mundo v5.13 · Competición oficial';document.querySelector('.hero .eyebrow')?.replaceChildren('CHUTE MUNDO v5.13');window.ChuteV511Core",
+              ';window.ChuteV511Core'
+          )
+          core.write_text(source)
+
+          active_files = [
+              'chute-v583-tournament-admin.mjs', 'chute-v59-part-07.txt', 'chute-v510-dashboard.mjs',
+              'chute-v513-lineups.mjs', 'chute-v514-unified-match.mjs', 'chute-v515-match-center.mjs',
+              'chute-v516-events-stats-part-11.txt', 'chute-v5162-playoff-seeding.mjs',
+              'chute-v517-finalization-part-07.txt'
+          ]
+          for name in active_files:
+              path = public / name
+              source = path.read_text()
+              source = re.sub(r"^if \('serviceWorker' in navigator\) navigator\.serviceWorker\.register\([^\n]+\n", '', source, flags=re.M)
+              source = re.sub(r"^document\.title\s*=\s*['\"][^\n;]+['\"];\n", '', source, flags=re.M)
+              source = re.sub(
+                  r"^const heroVersion = document\.querySelector\('\.hero \.eyebrow'\);\n"
+                  r"if \(heroVersion\) heroVersion\.textContent = ['\"]CHUTE MUNDO v[^'\"]+['\"];\n",
+                  '', source, flags=re.M
+              )
+              source = re.sub(
+                  r"^document\.querySelector\('\.hero \.eyebrow'\)\?\.replaceChildren\(['\"]CHUTE MUNDO v[^'\"]+['\"]\);\n",
+                  '', source, flags=re.M
+              )
+              path.write_text(source)
+
+          validation_files = [
+              root / '.github/workflows/validate-chute-v58.yml',
+              root / 'scripts/audit-chute-v520.mjs',
+              root / 'scripts/smoke-chute-v520.mjs',
+              root / 'scripts/smoke-chute-v516.mjs',
+              root / 'scripts/smoke-chute-v517.mjs',
+              root / 'scripts/smoke-chute-v520-bootstrap.mjs'
+          ]
+          for path in validation_files:
+              if path.exists():
+                  path.write_text(path.read_text().replace('5.20.1', '5.20.2'))
+          PY
+
+      - name: Validate syntax and runtime ownership
+        run: |
+          node --check public/chute-bootstrap.mjs
+          node --check public/chute-official.mjs
+          node --check public/chute-detail.mjs
+          node --check public/chute-v511-core.mjs
+          node --check public/chute-v514-unified-match.mjs
+          node --check public/chute-v515-match-center.mjs
+          node --check public/chute-v5162-playoff-seeding.mjs
+          node --check public/sw.js
+          cat public/chute-v59-part-*.txt > /tmp/v59.mjs
+          cat public/chute-v516-events-stats-part-*.txt > /tmp/v516.mjs
+          cat public/chute-v517-finalization-part-*.txt > /tmp/v517.mjs
+          cat public/chute-v520-stats-part-*.txt > /tmp/v520.mjs
+          node --check /tmp/v59.mjs
+          node --check /tmp/v516.mjs
+          node --check /tmp/v517.mjs
+          node --check /tmp/v520.mjs
+          ! grep -E "document\.title|serviceWorker\.register|CHUTE MUNDO v5\.(8|9|10|11|12|13|14|15|16|17|18|19)" \
+            public/chute-detail.mjs public/chute-v583-tournament-admin.mjs public/chute-v59-part-07.txt \
+            public/chute-v510-dashboard.mjs public/chute-v511-core.mjs public/chute-v513-lineups.mjs \
+            public/chute-v514-unified-match.mjs public/chute-v515-match-center.mjs \
+            public/chute-v516-events-stats-part-11.txt public/chute-v5162-playoff-seeding.mjs \
+            public/chute-v517-finalization-part-07.txt
+          grep -q "Chute Mundo v5.20.2" public/index.html
+          grep -q "chute-mundo-v5.20.2" public/sw.js
+
+      - name: Commit v5.20.2
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add public package.json scripts .github/workflows/validate-chute-v58.yml
+          git commit -m "Chute Mundo v5.20.2: eliminar ciclos de versiones y recargas"
+          git push origin HEAD:main
