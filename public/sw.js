@@ -1,4 +1,4 @@
-const CACHE = 'chute-mundo-v5.18.2';
+const CACHE = 'chute-mundo-v5.18.3';
 const CORE = [
   '/', '/index.html',
   '/chute-official.css?v=5.16.0', '/chute-official.mjs?v=5.18.2', '/chute-official-loader.mjs?v=5.16.0',
@@ -11,10 +11,11 @@ const CORE = [
   '/chute-v5162-playoff-seeding.mjs?v=5.16.3',
   '/chute-v517-finalization.mjs?v=5.17.0', '/chute-v517-finalization.css?v=5.17.0',
   ...Array.from({ length: 8 }, (_, index) => `/chute-v517-finalization-part-${String(index).padStart(2, '0')}.txt?v=5.17.0`),
-  '/chute-v518-era-stats.mjs?v=5.18.0', '/chute-v518-era-stats.css?v=5.18.0',
-  ...Array.from({ length: 6 }, (_, index) => `/chute-v518-era-stats-part-${String(index).padStart(2, '0')}.txt?v=5.18.0`),
+  '/chute-v5183-stats-preflight.mjs?v=5.18.3',
+  '/chute-v518-era-stats.mjs?v=5.18.3', '/chute-v518-era-stats.css?v=5.18.0',
+  ...Array.from({ length: 6 }, (_, index) => `/chute-v518-era-stats-part-${String(index).padStart(2, '0')}.txt?v=5.18.3`),
   '/chute-v5181-stats-polish.mjs?v=5.18.1', '/chute-v5181-stats-polish.css?v=5.18.1',
-  '/chute-v5182-stats-loader.mjs?v=5.18.2',
+  '/chute-v5182-stats-loader.mjs?v=5.18.3', '/chute-v5183-stats-recovery.mjs?v=5.18.3',
   '/manifest.webmanifest', '/chute-icon.svg', '/chute-icon-maskable.svg'
 ];
 self.addEventListener('install', (event) => {

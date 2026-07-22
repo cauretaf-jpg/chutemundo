@@ -18,19 +18,69 @@ function parseGoalLog(text) {
   });
 }
 
+function metricToken(value = '') {
+  return String(value).normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
+}
+
+function metricTeamId(value, name = '') {
+  const token = String(value || '').trim();
+  const normalized = metricToken(token);
+  const direct = state.teams.find((team) => team.id === token || metricToken(team.id) === normalized || metricToken(team.name) === normalized);
+  if (direct) return direct.id;
+  const candidates = state.teams.filter((team) => {
+    const players = Array.isArray(team.players) ? team.players : team.players && typeof team.players === 'object' ? Object.values(team.players) : [];
+    return players.some((entry) => metricToken(Array.isArray(entry) ? entry[0] : entry?.name) === metricToken(name));
+  });
+  return candidates.length === 1 ? candidates[0].id : token;
+}
+
+function metricRow(row, kind) {
+  let name = '';
+  let team = '';
+  let appearances = 0;
+  let value = 0;
+  if (Array.isArray(row)) {
+    name = row[0] ?? '';
+    team = row[1] ?? '';
+    appearances = row[2] ?? 0;
+    value = row[3] ?? row[2] ?? 0;
+  } else if (row && typeof row === 'object') {
+    name = row.name ?? row.playerName ?? row.player ?? row.scorer ?? row.assist ?? '';
+    team = row.teamId ?? row.team ?? row.clubId ?? row.club ?? '';
+    appearances = row.appearances ?? row.matches ?? row.games ?? row.pj ?? 0;
+    value = kind === 'goals'
+      ? (row.goals ?? row.value ?? row.total ?? row.count ?? 0)
+      : (row.assists ?? row.value ?? row.total ?? row.count ?? 0);
+  }
+  name = String(name || '').trim();
+  const teamId = metricTeamId(team, name);
+  return {
+    name,
+    teamId,
+    appearances: Number.isFinite(Number(appearances)) ? Number(appearances) : 0,
+    value: Number.isFinite(Number(value)) ? Number(value) : 0
+  };
+}
+
+function tournamentMetricRows(tournament, field, kind) {
+  const raw = tournament?.[field];
+  const source = Array.isArray(raw) ? raw : raw && typeof raw === 'object' ? Object.values(raw) : [];
+  return source.map((row) => metricRow(row, kind)).filter((row) => row.name && row.teamId);
+}
+
 function playerRows(kind, tournaments = state.tournaments) {
   const map = new Map();
   const field = kind === 'goals' ? 'playerScorers' : 'playerAssists';
   tournaments.forEach((tournament) => {
-    (tournament[field] || []).forEach((row) => {
-      const [name, teamId, appearances, value] = row;
+    const manualRows = tournamentMetricRows(tournament, field, kind);
+    manualRows.forEach(({ name, teamId, appearances, value }) => {
       const key = `${name}__${teamId}`;
       const current = map.get(key) || { name, teamId, appearances: 0, value: 0 };
-      current.appearances += Number(appearances || 0);
-      current.value += Number(value || 0);
+      current.appearances += appearances;
+      current.value += value;
       map.set(key, current);
     });
-    tournament.matches.filter(matchPlayed).forEach((match) => {
+    (tournament.matches || []).filter(matchPlayed).forEach((match) => {
       const home = resolveHome(tournament, match);
       const away = resolveAway(tournament, match);
       [
@@ -40,7 +90,7 @@ function playerRows(kind, tournaments = state.tournaments) {
         const name = kind === 'goals' ? entry.scorer : entry.assist;
         if (!name || !teamId || (kind === 'assists' && name.toLowerCase() === 'sin asistencia')) return;
         const key = `${name}__${teamId}`;
-        if ((tournament[field] || []).some((row) => row[0] === name && row[1] === teamId)) return;
+        if (manualRows.some((row) => row.name === name && row.teamId === teamId)) return;
         const current = map.get(key) || { name, teamId, appearances: 0, value: 0 };
         current.value += 1;
         map.set(key, current);

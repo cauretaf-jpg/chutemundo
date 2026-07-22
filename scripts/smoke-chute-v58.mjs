@@ -15,7 +15,7 @@ const legacyRequests = () => performance.getEntriesByType('resource').map((entry
 
 try {
   await page.goto('http://127.0.0.1:4173/', { waitUntil: 'domcontentloaded' });
-  await page.waitForFunction(() => window.ChuteMundoCore && window.ChuteV5182StatsLoader && /5\.18\.2/.test(document.title));
+  await page.waitForFunction(() => window.ChuteMundoCore && window.ChuteV5182StatsLoader && /5\.18\.3/.test(document.title));
 
   const initial = await page.evaluate((source) => ({
     analysis: Boolean(window.ChuteAnalysisV58),
@@ -37,7 +37,7 @@ try {
     legacyRequests: Function(`return (${source})`)()(),
     title: document.title
   }), legacyRequests.toString());
-  if (!standard.hostVisible || standard.tabs < 7 || standard.analysis || standard.legacyGlobals || standard.legacyRequests.length || !standard.title.includes('5.18.2')) throw new Error(`Centro estadístico actual inválido: ${JSON.stringify(standard)}`);
+  if (!standard.hostVisible || standard.tabs < 7 || standard.analysis || standard.legacyGlobals || standard.legacyRequests.length || !standard.title.includes('5.18.3')) throw new Error(`Centro estadístico actual inválido: ${JSON.stringify(standard)}`);
 
   await page.click('[data-cm-v5181-analysis]');
   await page.waitForFunction(() => window.ChuteAnalysisV58 && document.getElementById('cmV58AnalysisRoot')?.hidden === false && document.getElementById('cmV58AnalysisRoot')?.getClientRects().length > 0);
@@ -77,7 +77,7 @@ try {
 
   const critical = errors.filter((message) => !/favicon|firestore|permission-denied|Failed to load resource|QUIC_NETWORK|ERR_NAME_NOT_RESOLVED|ERR_CONNECTION|network|message channel/i.test(message));
   if (critical.length) throw new Error(critical.join(' | '));
-  console.log('Chute Mundo v5.18.2 lazy stats smoke OK', { initial, standard, desktop, teamFilter, mobile });
+  console.log('Chute Mundo v5.18.3 lazy stats smoke OK', { initial, standard, desktop, teamFilter, mobile });
 } finally {
   await browser.close();
 }
