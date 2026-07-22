@@ -32,11 +32,18 @@ try {
       matches: [{ ...match('old-s1', 'Semifinales', 'Semifinal 1', teamIds[2], teamIds[3], 'TABLE_3', 'TABLE_4'), homeGoals: 1, awayGoals: 0 }]
     };
     core.setState({ ...original, tournaments: [...original.tournaments, current, historical] });
-    core.navigate('torneos');
     return { version: window.ChuteV5162PlayoffSeeding.version, teamIds };
   });
   if (setup.error) throw new Error(setup.error);
 
+  await page.waitForFunction(() => {
+    const tournaments = window.ChuteMundoCore.getState().tournaments;
+    return ['playoff-ui-regression', 'playoff-history-protected'].every((id) => {
+      const tournament = tournaments.find((item) => item.id === id);
+      return tournament?.eraId && tournament?.coverage?.schema === 'era-stats-v1';
+    });
+  });
+  await page.evaluate(() => window.ChuteMundoCore.navigate('torneos'));
   await page.waitForFunction(() => [...document.querySelectorAll('[data-open-tournament="playoff-ui-regression"]')].some((element) => element.getClientRects().length));
   await page.locator('[data-open-tournament="playoff-ui-regression"]:visible').first().click();
   await page.waitForSelector('#cmTournamentHub[data-tournament-id="playoff-ui-regression"]');
