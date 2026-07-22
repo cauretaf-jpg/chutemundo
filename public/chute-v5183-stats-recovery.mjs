@@ -91,7 +91,7 @@ function renderShell(error = lastError) {
   host.innerHTML = `<section class="cm-v518-toolbar">
       <div class="notice info" style="margin:0"><b>Modo de compatibilidad estadística</b><span>Se recuperó la vista usando un normalizador para registros históricos.</span></div>
       <nav class="cm-v518-tabs" aria-label="Secciones estadísticas">
-        <button data-cm-v518-tab="summary">Resumen</button><button data-cm-v518-tab="teams">Equipos</button><button data-cm-v518-tab="players">Jugadores</button><button data-cm-v518-tab="tournaments">Torneos</button>
+        <button data-cm-v518-tab="summary">Resumen</button><button data-cm-v518-tab="teams">Equipos</button><button data-cm-v518-tab="players">Jugadores</button><button data-cm-v518-tab="tournaments">Torneos</button><button type="button" data-cm-v5181-analysis>Análisis histórico</button>
       </nav>
     </section>
     <div class="cm-v518-content">
