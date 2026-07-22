@@ -1,7 +1,7 @@
 const core = window.ChuteMundoCore;
 if (!core) throw new Error('Chute Mundo no está listo para sincronizar Estadísticas v5.20.');
 
-const VERSION = '5.20.0';
+const VERSION = window.ChuteVersion?.version || '5.20.1';
 let refreshQueued = false;
 
 function queueStatisticsRefresh() {
