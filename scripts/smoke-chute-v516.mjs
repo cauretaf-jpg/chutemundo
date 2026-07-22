@@ -119,8 +119,8 @@ try {
   await page.waitForFunction(() => document.getElementById('modal')?.hidden === true);
   await page.evaluate(() => window.ChuteMundoCore.navigate('estadisticas'));
   await page.waitForSelector('#cmV518Stats');
-  const statsPage = await page.evaluate(() => ({ text: document.getElementById('cmV518Stats')?.textContent || '', width: document.documentElement.scrollWidth, viewport: document.documentElement.clientWidth }));
-  if (!statsPage.text.includes('Cobertura del periodo') || !statsPage.text.includes('Era de divisiones') || statsPage.width > statsPage.viewport + 3) throw new Error(`Centro estadístico superior inválido: ${JSON.stringify(statsPage)}`);
+  const statsPage = await page.evaluate(() => ({ text: document.getElementById('cmV518Stats')?.innerText || '', width: document.documentElement.scrollWidth, viewport: document.documentElement.clientWidth }));
+  if (!statsPage.text.includes('Datos disponibles') || !statsPage.text.includes('Era de divisiones') || statsPage.width > statsPage.viewport + 3) throw new Error(`Centro estadístico superior inválido: ${JSON.stringify(statsPage)}`);
 
   const critical = errors.filter((message) => !/favicon|firestore|permission-denied|Failed to load resource|QUIC_NETWORK|ERR_NAME_NOT_RESOLVED|ERR_CONNECTION|network/i.test(message));
   if (critical.length) throw new Error(critical.join(' | '));
