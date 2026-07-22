@@ -57,14 +57,21 @@ try {
     };
     next.tournaments.push(tournament);
     core.setState(next);
-    core.navigate('torneos');
     return { tournamentId: tournament.id };
   });
   if (setup.error) throw new Error(setup.error);
 
+  await page.waitForFunction((id) => {
+    const tournament = window.ChuteMundoCore.getState().tournaments.find((item) => item.id === id);
+    return tournament?.eraId && tournament?.coverage?.schema === 'era-stats-v1';
+  }, setup.tournamentId);
+  await page.waitForTimeout(520);
+  await page.evaluate(() => window.ChuteMundoCore.navigate('torneos'));
   await clickCurrent(`[data-open-tournament="${setup.tournamentId}"]`);
-  await page.waitForSelector(`#cmTournamentHub[data-tournament-id="${setup.tournamentId}"]`);
-  await page.waitForSelector('[data-cm-v517-awards-tab]');
+  await page.waitForFunction((id) => {
+    const hub = document.querySelector(`#cmTournamentHub[data-tournament-id="${id}"]`);
+    return hub && hub.getClientRects().length > 0 && [...hub.querySelectorAll('[data-cm-v517-awards-tab]')].some((item) => item.getClientRects().length > 0);
+  }, setup.tournamentId);
   await page.waitForSelector('[data-cm-v517-awards-panel]', { state: 'attached' });
 
   const initialAwards = await page.evaluate(() => {

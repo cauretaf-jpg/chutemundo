@@ -191,8 +191,9 @@ function installMobileBracketControls() {
 installMobileBracketControls();
 
 let statsPromise = null;
+let analysisPromise = null;
 
-function statisticsStatus(type = 'loading') {
+function statisticsStatus(type = 'loading', scope = 'statistics') {
   const statsPage = document.getElementById('estadisticas');
   if (!statsPage) return null;
   let status = document.getElementById('cmV581StatsStatus');
@@ -201,18 +202,24 @@ function statisticsStatus(type = 'loading') {
     status.id = 'cmV581StatsStatus';
     statsPage.querySelector('.page-title')?.insertAdjacentElement('afterend', status);
   }
+  status.dataset.scope = scope;
   status.className = `cm-v581-stats-status${type === 'error' ? ' is-error' : ''}`;
   status.style.setProperty('display', 'block', 'important');
   status.replaceChildren();
   const title = document.createElement('strong');
-  title.textContent = type === 'error' ? 'No se pudieron cargar las estadísticas' : 'Cargando estadísticas…';
+  const loadingAnalysis = scope === 'analysis';
+  title.textContent = type === 'error'
+    ? loadingAnalysis ? 'No se pudo cargar el análisis histórico' : 'No se pudieron cargar las estadísticas'
+    : loadingAnalysis ? 'Cargando análisis histórico…' : 'Cargando estadísticas…';
   const text = document.createElement('p');
-  text.textContent = type === 'error' ? 'Revisa la conexión e inténtalo nuevamente.' : 'Preparando tablas, rankings y análisis histórico.';
+  text.textContent = type === 'error'
+    ? 'Revisa la conexión e inténtalo nuevamente.'
+    : loadingAnalysis ? 'Preparando comparaciones, sedes y evolución histórica.' : 'Preparando el centro estadístico actual.';
   status.append(title, text);
   if (type === 'error') {
     const retry = document.createElement('button');
     retry.type = 'button';
-    retry.dataset.cmRetryStats = '';
+    retry.dataset.cmRetryStats = scope;
     retry.textContent = 'Reintentar';
     status.appendChild(retry);
   }
@@ -223,34 +230,50 @@ function clearStatisticsStatus() {
   document.getElementById('cmV581StatsStatus')?.remove();
 }
 
+function refreshCurrentStatistics() {
+  const statsPage = document.getElementById('estadisticas');
+  if (statsPage?.hidden) window.ChuteMundoCore?.navigate?.('estadisticas');
+  window.ChuteV518EraStats?.renderShell?.();
+  window.ChuteV5181StatsPolish?.refresh?.();
+  window.ChuteRuntimeV58?.invalidate('statistics-current-loaded');
+}
+
 function loadStatistics() {
   if (statsPromise) return statsPromise;
-  statisticsStatus('loading');
-  loadStyle('/chute-stats-v52.css?v=5.8.1', 'chute-stats-v52.css');
-  loadStyle('/chute-v57.css?v=5.8.1', 'chute-v57.css');
-  loadStyle('/chute-v58.css?v=5.8.1', 'chute-v58.css');
-  statsPromise = Promise.all([
-    import('/chute-stats-v52.mjs?v=5.8.1'),
-    import('/chute-game-minute-stats.mjs?v=5.8.1')
-  ]).then(async () => {
-    await import('/chute-v57-controllers.mjs?v=5.8.1');
-    await import('/chute-v58-analysis.mjs?v=5.8.1');
-    await import('/chute-v58-visibility.mjs?v=5.8.1');
-    const statsPage = document.getElementById('estadisticas');
-    if (statsPage?.hidden) window.ChuteMundoCore?.navigate?.('estadisticas');
-    window.ChuteAnalysisV58?.refresh?.();
-    window.ChuteVisibilityV58?.sync?.();
-    window.ChuteRuntimeV58?.invalidate('statistics-loaded');
+  statisticsStatus('loading', 'statistics');
+  statsPromise = Promise.resolve().then(() => {
+    refreshCurrentStatistics();
     clearStatisticsStatus();
     return true;
   }).catch((error) => {
     statsPromise = null;
-    statisticsStatus('error');
-    console.error('No se pudo cargar el centro estadístico de Chute Mundo.', error);
+    statisticsStatus('error', 'statistics');
+    console.error('No se pudo cargar el centro estadístico actual de Chute Mundo.', error);
     window.ChuteMundoCore?.showToast?.('No se pudieron cargar las estadísticas. Intenta nuevamente.');
     throw error;
   });
   return statsPromise;
+}
+
+function loadHistoricalAnalysis() {
+  if (analysisPromise) return analysisPromise;
+  statisticsStatus('loading', 'analysis');
+  loadStyle('/chute-v58.css?v=5.18.2', 'chute-v58.css');
+  analysisPromise = import('/chute-v58-analysis.mjs?v=5.18.2').then(() => {
+    const statsPage = document.getElementById('estadisticas');
+    if (statsPage?.hidden) window.ChuteMundoCore?.navigate?.('estadisticas');
+    window.ChuteAnalysisV58?.refresh?.();
+    window.ChuteRuntimeV58?.invalidate('historical-analysis-loaded');
+    clearStatisticsStatus();
+    return true;
+  }).catch((error) => {
+    analysisPromise = null;
+    statisticsStatus('error', 'analysis');
+    console.error('No se pudo cargar el análisis histórico de Chute Mundo.', error);
+    window.ChuteMundoCore?.showToast?.('No se pudo cargar el análisis histórico. Intenta nuevamente.');
+    throw error;
+  });
+  return analysisPromise;
 }
 
 function requestStatisticsLoad() {
@@ -258,6 +281,11 @@ function requestStatisticsLoad() {
 }
 
 document.addEventListener('click', (event) => {
+  const retry = event.target.closest('[data-cm-retry-stats]');
+  if (retry?.dataset.cmRetryStats === 'analysis') {
+    void loadHistoricalAnalysis().catch(() => {});
+    return;
+  }
   if (event.target.closest('[data-page="estadisticas"],[data-cm-page="estadisticas"],[data-cm-mobile-page="estadisticas"],[data-cm-retry-stats]')) requestStatisticsLoad();
 }, true);
 
@@ -273,5 +301,8 @@ if (!statisticsPage?.hidden) requestStatisticsLoad();
 
 window.ChuteLazyV58 = {
   loadStatistics,
-  get statisticsLoaded() { return Boolean(statsPromise); }
+  loadHistoricalAnalysis,
+  refreshCurrentStatistics,
+  get statisticsLoaded() { return Boolean(statsPromise); },
+  get analysisLoaded() { return Boolean(analysisPromise); }
 };

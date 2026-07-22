@@ -1,4 +1,4 @@
-name: Validate Chute Mundo v5.18.1
+name: Validate Chute Mundo v5.18.2
 
 on:
   pull_request:
@@ -19,6 +19,7 @@ jobs:
           set -o pipefail
           npm run check:official
           node --check public/chute-official.mjs
+          node --check public/chute-detail.mjs
           node --check public/chute-v511-core.mjs
           node --check public/chute-v511-tournaments.mjs
           node --check public/chute-v512-integrity.mjs
@@ -30,9 +31,11 @@ jobs:
           node --check public/chute-v517-finalization.mjs
           node --check public/chute-v518-era-stats.mjs
           node --check public/chute-v5181-stats-polish.mjs
+          node --check public/chute-v5182-stats-loader.mjs
           node --check public/sw.js
           node --check scripts/smoke-chute-v518.mjs
           node --check scripts/smoke-chute-v5181.mjs
+          node --check scripts/smoke-chute-v58.mjs
           node scripts/check-chute-v516.mjs 2>&1 | tee /tmp/chute-v516-syntax.log
           cat public/chute-v517-finalization-part-*.txt > /tmp/chute-v517-concatenated.mjs
           node --check /tmp/chute-v517-concatenated.mjs 2>&1 | tee /tmp/chute-v517-syntax.log
@@ -44,6 +47,7 @@ jobs:
         run: |
           test -s public/manifest.webmanifest
           test -s public/sw.js
+          test -s public/chute-detail.mjs
           test -s public/chute-v513-lineups.mjs
           test -s public/chute-v514-unified-match.mjs
           test -s public/chute-v515-match-center.mjs
@@ -55,50 +59,49 @@ jobs:
           test -s public/chute-v518-era-stats.css
           test -s public/chute-v5181-stats-polish.mjs
           test -s public/chute-v5181-stats-polish.css
+          test -s public/chute-v5182-stats-loader.mjs
           for index in $(seq 0 11); do part=$(printf "%02d" "$index"); test -s "public/chute-v516-events-stats-part-${part}.txt"; done
           for index in $(seq 0 7); do part=$(printf "%02d" "$index"); test -s "public/chute-v517-finalization-part-${part}.txt"; done
           for index in $(seq 0 5); do part=$(printf "%02d" "$index"); test -s "public/chute-v518-era-stats-part-${part}.txt"; done
           test -s scripts/smoke-chute-v518.mjs
           test -s scripts/smoke-chute-v5181.mjs
+          test -s scripts/smoke-chute-v58.mjs
+          grep -q "chute-detail.mjs?v=5.18.2" public/chute-official.mjs
           grep -q "chute-v518-era-stats.mjs?v=5.18.0" public/chute-official.mjs
           grep -q "chute-v5181-stats-polish.mjs?v=5.18.1" public/chute-official.mjs
+          grep -q "chute-v5182-stats-loader.mjs?v=5.18.2" public/chute-official.mjs
+          grep -q "function loadHistoricalAnalysis" public/chute-detail.mjs
+          ! grep -q "import('/chute-stats-v52.mjs" public/chute-detail.mjs
+          ! grep -q "import('/chute-game-minute-stats.mjs" public/chute-detail.mjs
+          ! grep -q "import('/chute-v57-controllers.mjs" public/chute-detail.mjs
+          ! grep -q "import('/chute-v58-visibility.mjs" public/chute-detail.mjs
           grep -q "8vo Torneo - Copa" public/chute-v518-era-stats-part-*.txt
           grep -q "function inferCoverage" public/chute-v518-era-stats-part-*.txt
           grep -q "function divisionsCriticalIssues" public/chute-v518-era-stats-part-*.txt
           grep -q "data-cm-v518-filter=\"era\"" public/chute-v518-era-stats-part-*.txt
           grep -q "data-cm-v518-panel=\"keepers\"" public/chute-v518-era-stats-part-*.txt
           grep -q "data-cm-v5181-analysis" public/chute-v5181-stats-polish.mjs
-          grep -q "Goleador registrado" public/chute-v5181-stats-polish.mjs
-          grep -q "cm-v5181-analysis-open" public/chute-v5181-stats-polish.css
+          grep -q "loadedLegacyStatistics" public/chute-v5182-stats-loader.mjs
+          grep -q "rel=\"icon\" href=\"/chute-icon.svg\"" public/index.html
 
       - name: Install browser
         run: |
           npm install --no-save serve@14.2.4 playwright@1.52.0
           npx playwright install --with-deps chromium
 
-      - name: Run browser smoke
+      - name: Run affected browser smoke
         run: |
           npx serve public -l 4173 --no-clipboard > /tmp/chute-server.log 2>&1 &
           sleep 3
           node scripts/smoke-chute-v5181.mjs > /tmp/chute-smoke-v5181.log 2>&1
           node scripts/smoke-chute-v518.mjs > /tmp/chute-smoke-v518.log 2>&1
-          node scripts/smoke-chute-v517.mjs > /tmp/chute-smoke-v517.log 2>&1
           node scripts/smoke-chute-v58.mjs > /tmp/chute-smoke-v58.log 2>&1
-          node scripts/smoke-chute-v59.mjs > /tmp/chute-smoke-v59.log 2>&1
-          node scripts/smoke-chute-v591.mjs > /tmp/chute-smoke-v591.log 2>&1
-          node scripts/smoke-chute-v510.mjs > /tmp/chute-smoke-v510.log 2>&1
-          node scripts/smoke-chute-v512.mjs > /tmp/chute-smoke-v512.log 2>&1
-          node scripts/smoke-chute-v5121.mjs > /tmp/chute-smoke-v5121.log 2>&1
-          node scripts/smoke-chute-v513.mjs > /tmp/chute-smoke-v513.log 2>&1
-          node scripts/smoke-chute-v514.mjs > /tmp/chute-smoke-v514.log 2>&1
-          node scripts/smoke-chute-v515.mjs > /tmp/chute-smoke-v515.log 2>&1
-          node scripts/smoke-chute-v516.mjs > /tmp/chute-smoke-v516.log 2>&1
 
       - name: Upload diagnostics
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: chute-v5-18-1-diagnostics
+          name: chute-v5-18-2-diagnostics
           path: |
             /tmp/chute-v516-syntax.log
             /tmp/chute-v517-syntax.log

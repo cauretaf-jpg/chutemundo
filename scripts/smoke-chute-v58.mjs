@@ -6,18 +6,43 @@ const errors = [];
 page.on('pageerror', (error) => errors.push(String(error)));
 page.on('console', (message) => { if (message.type() === 'error') errors.push(message.text()); });
 
+const legacyRequests = () => performance.getEntriesByType('resource').map((entry) => entry.name).filter((name) => [
+  'chute-stats-v52.mjs',
+  'chute-game-minute-stats.mjs',
+  'chute-v57-controllers.mjs',
+  'chute-v58-visibility.mjs'
+].some((fragment) => name.includes(fragment)));
+
 try {
   await page.goto('http://127.0.0.1:4173/', { waitUntil: 'domcontentloaded' });
-  await page.waitForFunction(() => window.ChuteMundoCore && /v5\.(8|9|18)/.test(document.title));
-  const lazy = await page.evaluate(() => ({ analysis: Boolean(window.ChuteAnalysisV58), statsCss: performance.getEntriesByType('resource').some((entry) => entry.name.includes('chute-stats-v52.css')), runtime: window.ChuteRuntimeV58?.stats?.() }));
-  if (lazy.analysis || lazy.statsCss || !lazy.runtime) throw new Error(`Carga diferida incorrecta: ${JSON.stringify(lazy)}`);
+  await page.waitForFunction(() => window.ChuteMundoCore && window.ChuteV5182StatsLoader && /5\.18\.2/.test(document.title));
 
-  await page.click('.nav [data-page="estadisticas"]');
-  await page.waitForFunction(() => window.ChuteAnalysisV58 && window.ChuteControllersV57 && document.querySelector('[data-cm-v5181-analysis]'));
+  const initial = await page.evaluate((source) => ({
+    analysis: Boolean(window.ChuteAnalysisV58),
+    legacyGlobals: Boolean(window.ChuteStatsV52 || window.ChuteGameMinuteStats || window.ChuteControllersV57 || window.ChuteVisibilityV58),
+    legacyRequests: Function(`return (${source})`)()(),
+    runtime: window.ChuteRuntimeV58?.stats?.()
+  }), legacyRequests.toString());
+  if (initial.analysis || initial.legacyGlobals || initial.legacyRequests.length || !initial.runtime) throw new Error(`Carga inicial incorrecta: ${JSON.stringify(initial)}`);
+
+  await page.evaluate(() => window.ChuteMundoCore.navigate('estadisticas'));
+  await page.waitForFunction(() => document.getElementById('estadisticas')?.hidden === false && window.ChuteV5182StatsLoader.currentStatsVisible());
+  await page.waitForSelector('[data-cm-v518-panel="summary"].active');
+
+  const standard = await page.evaluate((source) => ({
+    hostVisible: window.ChuteV5182StatsLoader.currentStatsVisible(),
+    tabs: document.querySelectorAll('#cmV518Stats [data-cm-v518-tab],[data-cm-v5181-analysis]').length,
+    analysis: Boolean(window.ChuteAnalysisV58),
+    legacyGlobals: window.ChuteV5182StatsLoader.loadedLegacyStatistics(),
+    legacyRequests: Function(`return (${source})`)()(),
+    title: document.title
+  }), legacyRequests.toString());
+  if (!standard.hostVisible || standard.tabs < 7 || standard.analysis || standard.legacyGlobals || standard.legacyRequests.length || !standard.title.includes('5.18.2')) throw new Error(`Centro estadístico actual inválido: ${JSON.stringify(standard)}`);
+
   await page.click('[data-cm-v5181-analysis]');
-  await page.waitForFunction(() => document.getElementById('cmV58AnalysisRoot')?.hidden === false && document.getElementById('cmV58AnalysisRoot')?.getClientRects().length > 0);
+  await page.waitForFunction(() => window.ChuteAnalysisV58 && document.getElementById('cmV58AnalysisRoot')?.hidden === false && document.getElementById('cmV58AnalysisRoot')?.getClientRects().length > 0);
 
-  const desktop = await page.evaluate(() => {
+  const desktop = await page.evaluate((source) => {
     const statsPage = document.getElementById('estadisticas');
     const root = document.getElementById('cmV58AnalysisRoot');
     const switcher = document.getElementById('cmV58ModeSwitch');
@@ -29,12 +54,15 @@ try {
       decisive: document.querySelectorAll('.cm-v58-decisive .cm-v58-kpis article').length,
       venuePanel: Boolean(document.querySelector('.cm-v58-venues')),
       minutes: document.querySelectorAll('.cm-v58-minute-bars > div').length,
+      legacyGlobals: window.ChuteV5182StatsLoader.loadedLegacyStatistics(),
+      legacyRequests: Function(`return (${source})`)()(),
+      analysisRequested: performance.getEntriesByType('resource').some((entry) => entry.name.includes('chute-v58-analysis.mjs')),
       runtime: window.ChuteRuntimeV58.stats(),
       visibility: { pageHidden: statsPage?.hidden, pageDisplay: statsPage ? getComputedStyle(statsPage).display : '', rootDisplay: root ? getComputedStyle(root).display : '', switchDisplay: switcher ? getComputedStyle(switcher).display : '', rootRect: root ? [root.offsetWidth, root.offsetHeight] : [] }
     };
-  });
+  }, legacyRequests.toString());
   if (desktop.visibility.pageDisplay === 'none' || desktop.visibility.rootDisplay === 'none' || desktop.visibility.rootRect[0] === 0 || desktop.visibility.switchDisplay !== 'none') throw new Error(`Visibilidad incorrecta: ${JSON.stringify(desktop.visibility)}`);
-  if (desktop.filters !== 6 || desktop.ranking < 2 || desktop.compare < 12 || desktop.matrix < 4 || desktop.decisive !== 6 || !desktop.venuePanel || desktop.minutes !== 13 || desktop.runtime.managedIntervals < 3) throw new Error(`Análisis incompleto: ${JSON.stringify(desktop)}`);
+  if (desktop.filters !== 6 || desktop.ranking < 2 || desktop.compare < 12 || desktop.matrix < 4 || desktop.decisive !== 6 || !desktop.venuePanel || desktop.minutes !== 13 || !desktop.analysisRequested || desktop.legacyGlobals || desktop.legacyRequests.length || desktop.runtime.managedIntervals < 3) throw new Error(`Análisis incompleto o carga heredada detectada: ${JSON.stringify(desktop)}`);
 
   const team = await page.evaluate(() => window.ChuteMundoCore.getState().teams[0]?.id);
   await page.selectOption('[data-cm-v58-filter="team"]', team);
@@ -47,9 +75,9 @@ try {
   const mobile = await page.evaluate(() => ({ viewport: document.documentElement.clientWidth, width: document.documentElement.scrollWidth, visible: !document.getElementById('cmV58AnalysisRoot').hidden && document.getElementById('cmV58AnalysisRoot').getClientRects().length > 0 }));
   if (!mobile.visible || mobile.width > mobile.viewport + 3) throw new Error(`Desborde móvil: ${JSON.stringify(mobile)}`);
 
-  const critical = errors.filter((message) => !/favicon|firestore|permission-denied|Failed to load resource|QUIC_NETWORK|ERR_NAME_NOT_RESOLVED/i.test(message));
+  const critical = errors.filter((message) => !/favicon|firestore|permission-denied|Failed to load resource|QUIC_NETWORK|ERR_NAME_NOT_RESOLVED|ERR_CONNECTION|network|message channel/i.test(message));
   if (critical.length) throw new Error(critical.join(' | '));
-  console.log('Chute Mundo v5.8 smoke OK', { lazy, desktop, teamFilter, mobile });
+  console.log('Chute Mundo v5.18.2 lazy stats smoke OK', { initial, standard, desktop, teamFilter, mobile });
 } finally {
   await browser.close();
 }
