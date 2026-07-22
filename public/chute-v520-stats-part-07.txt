@@ -55,8 +55,6 @@ function refresh() {
   refreshQueued = false;
   migrateEras();
   renderShell();
-  document.title = 'Chute Mundo v5.20 · Estadísticas';
-  document.querySelector('.hero .eyebrow')?.replaceChildren('CHUTE MUNDO v5.20');
 }
 
 function scheduleRefresh() {
