@@ -107,7 +107,7 @@ try {
 
   await page.evaluate(() => window.ChuteMundoCore.setState(window.__cmV5163Original));
   const title = await page.title();
-  if (!/5\.(16\.3|17)/.test(title)) throw new Error(`Título sin actualizar: ${title}`);
+  if (!/5\.(16\.3|17|18)/.test(title)) throw new Error(`Título sin actualizar: ${title}`);
   const critical = errors.filter((message) => !/favicon|firestore|permission-denied|Failed to load resource|QUIC_NETWORK|ERR_NAME_NOT_RESOLVED|ERR_CONNECTION|network/i.test(message));
   if (critical.length) throw new Error(critical.join(' | '));
   console.log('Chute Mundo v5.16.3 playoff UI smoke OK', { repaired, tableUi, fixtureUi, buttonState, editor });
