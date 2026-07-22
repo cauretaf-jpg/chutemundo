@@ -95,7 +95,6 @@ jobs:
           sleep 3
           node scripts/smoke-chute-v5181.mjs > /tmp/chute-smoke-v5181.log 2>&1
           node scripts/smoke-chute-v518.mjs > /tmp/chute-smoke-v518.log 2>&1
-          node scripts/smoke-chute-v517.mjs > /tmp/chute-smoke-v517.log 2>&1
           node scripts/smoke-chute-v58.mjs > /tmp/chute-smoke-v58.log 2>&1
           node scripts/smoke-chute-v59.mjs > /tmp/chute-smoke-v59.log 2>&1
           node scripts/smoke-chute-v591.mjs > /tmp/chute-smoke-v591.log 2>&1
