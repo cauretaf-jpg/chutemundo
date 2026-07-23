@@ -112,7 +112,8 @@ try {
   await page.selectOption('[data-cm-v521-filter="tournament"]', 'all');
   await page.locator('[data-cm-v521-tab="records"]').click();
   const recordsText = await page.locator('[data-cm-v521-panel="records"]').innerText();
-  if (!recordsText.includes('Más puntos históricos') || !recordsText.includes('Mayor goleada') || !recordsText.includes('Jugador más premiado')) throw new Error(`Libro de Récords incompleto: ${recordsText}`);
+  const recordsNormalized = recordsText.toLocaleLowerCase('es');
+  if (!recordsNormalized.includes('más puntos históricos') || !recordsNormalized.includes('mayor goleada') || !recordsNormalized.includes('jugador más premiado')) throw new Error(`Libro de Récords incompleto: ${recordsText}`);
 
   await page.locator('[data-cm-v521-tab="h2h"]').click();
   await page.selectOption('[data-cm-v521-h2h="a"]', 'a');
