@@ -1,0 +1,44 @@
+function honoursPanel(tournaments, source = state()) {
+  const teams = teamHonoursRows(tournaments, source);
+  const players = playerHonoursRows(tournaments, source);
+  const awardHistory = [...playerAwardRecords(tournaments, source)].reverse();
+  const collective = [...collectiveAwardRecords(tournaments, source)].reverse();
+
+  return `<section class="cm-v521-panel" data-cm-v521-panel="honours">
+    <div class="cm-v521-panel-intro is-gold"><div><span>PALMARÉS OFICIAL</span><h2>Salón de la Gloria</h2><p>Todos los campeonatos, podios y premios individuales registrados en ChuteMundo.</p></div><strong>${teams.reduce((sum, row) => sum + row.titles, 0)} títulos</strong></div>
+    <article class="cm-v521-card">${sectionHeader('GLORIA DE LOS EQUIPOS', 'Clubes más laureados', 'Campeonatos, finales, podios y premios obtenidos por sus jugadores.', teams.length)}
+      ${table(['#', 'Equipo', 'Campeón', 'Subcampeón', '3.º', 'Finales', 'Podios', 'Premios de jugadores', 'Premios colectivos', 'Distinciones'], teams.map((row, index) => `<tr>
+        <td>${medal(index)}</td><td>${teamCell(row.teamId, source)}</td><td><strong class="cm-v521-stat-value">${row.titles}</strong></td><td>${row.runners}</td>
+        <td>${row.thirds}</td><td>${row.finals}</td><td>${row.podiums}</td><td>${row.playerAwards}</td><td>${row.collectiveAwards}</td><td><strong>${row.distinctions}</strong></td>
+      </tr>`), 'No hay equipos con distinciones para este filtro.')}</article>
+    <article class="cm-v521-card">${sectionHeader('GLORIA DE LOS JUGADORES', 'Los Más Laureados', 'Premios acumulados durante toda la carrera.', players.length)}
+      ${podium(players, (row) => `${row.total} premios`, source, 'No existen premios individuales registrados.')}
+      ${table(['#', 'Jugador', 'Premios', 'Torneos premiado', 'Detalle'], players.map((row, index) => `<tr>
+        <td>${medal(index)}</td><td>${playerCell(row, source)}</td><td><strong class="cm-v521-stat-value">${row.total}</strong></td><td>${row.tournaments.size}</td><td>${awardPills(row)}</td>
+      </tr>`), 'No existen premios individuales registrados.')}</article>
+    <article class="cm-v521-card">${sectionHeader('LIBRO DE PREMIACIONES', 'Historial de premios individuales', 'Cada reconocimiento asociado al torneo en que fue entregado.', awardHistory.length)}
+      ${table(['Torneo', 'Premio', 'Ganador', 'Equipo', 'Estado'], awardHistory.map((record) => `<tr>
+        <td><b>${esc(record.tournament.name)}</b></td><td>${esc(record.title)}</td><td>${simplePlayer(record.name, record.teamId, source)}</td>
+        <td>${esc(teamName(record.teamId, source))}</td><td><span class="cm-v521-status ${record.official ? 'is-official' : ''}">${record.official ? 'Oficial' : 'Provisional'}</span></td>
+      </tr>`), 'No hay premios individuales registrados.')}</article>
+    ${collective.length ? `<article class="cm-v521-card">${sectionHeader('DISTINCIONES COLECTIVAS', 'Premios especiales de equipos', '', collective.length)}
+      ${table(['Torneo', 'Premio', 'Equipo'], collective.map((record) => `<tr><td>${esc(record.tournament.name)}</td><td>${esc(record.title)}</td><td>${teamCell(record.teamId, source)}</td></tr>`))}</article>` : ''}
+  </section>`;
+}
+
+function archivePanel(tournaments, source = state()) {
+  const rows = archiveRows(tournaments, source);
+  return `<section class="cm-v521-panel" data-cm-v521-panel="archive">
+    <div class="cm-v521-panel-intro"><div><span>REGISTRO OFICIAL</span><h2>Archivo de Campeones</h2><p>La cronología completa de torneos, campeones, subcampeones, terceros lugares y premios principales.</p></div><strong>${rows.filter((row) => row.champion).length} campeones</strong></div>
+    <article class="cm-v521-card">${sectionHeader('HISTORIA DE LAS COMPETENCIAS', 'Torneos disputados', filterLabel(source, tournaments), rows.length)}
+      ${table(['Torneo', 'Era', 'Formato', 'Estado', 'Equipos', 'PJ', 'Goles', 'Campeón', 'Subcampeón', '3.º', 'Goleador', 'MVP', 'Mejor arquero'], rows.map((row) => `<tr>
+        <td><b>${esc(row.tournament.name)}</b></td><td>${eraBadge(row.era)}</td><td>${formatBadge(row.format)}</td><td>${esc(formatStatus(row.tournament))}</td>
+        <td>${row.teams}</td><td>${row.matches}</td><td>${row.goals}</td><td>${row.champion ? teamCell(row.champion, source) : '<span class="cm-v521-missing">Sin definir</span>'}</td>
+        <td>${row.runnerUp ? esc(teamName(row.runnerUp, source)) : '<span class="cm-v521-missing">Sin registro</span>'}</td>
+        <td>${row.third ? esc(teamName(row.third, source)) : '<span class="cm-v521-missing">Sin registro</span>'}</td>
+        <td>${row.scorer ? esc(row.scorer) : '<span class="cm-v521-missing">Sin registro</span>'}</td>
+        <td>${row.mvp ? esc(row.mvp) : '<span class="cm-v521-missing">Sin registro</span>'}</td>
+        <td>${row.goalkeeper ? esc(row.goalkeeper) : '<span class="cm-v521-missing">Sin registro</span>'}</td>
+      </tr>`), 'No existen torneos para los filtros seleccionados.', 'is-archive')}</article>
+  </section>`;
+}
