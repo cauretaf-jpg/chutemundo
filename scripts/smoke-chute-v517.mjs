@@ -127,7 +127,7 @@ try {
   }, setup.tournamentId);
 
   const title = await page.title();
-  if (!/5\.(17|18|19|20)/.test(title)) throw new Error(`Título incorrecto: ${title}`);
+  if (!/5\.(17|18|19|20|21)/.test(title)) throw new Error(`Título incorrecto: ${title}`);
   const critical = errors.filter((message) => !/favicon|firestore|permission-denied|Failed to load resource|QUIC_NETWORK|ERR_NAME_NOT_RESOLVED|ERR_CONNECTION|network/i.test(message));
   if (critical.length) throw new Error(critical.join(' | '));
   await page.evaluate(() => window.ChuteMundoCore.setState(window.__cmV517Original));
