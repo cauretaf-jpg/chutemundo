@@ -1,9 +1,9 @@
-const CACHE = 'chute-mundo-v5.20.2';
+const CACHE = 'chute-mundo-v5.21.0';
 const CORE = [
   '/', '/index.html',
-  '/chute-bootstrap.mjs?v=5.20.2',
-  '/chute-official.css?v=5.16.0', '/chute-official.mjs?v=5.20.2', '/chute-official-loader.mjs?v=5.20.2',
-  '/chute-detail.mjs?v=5.20.2',
+  '/chute-bootstrap.mjs?v=5.21.0',
+  '/chute-official.css?v=5.16.0', '/chute-official.mjs?v=5.21.0', '/chute-official-loader.mjs?v=5.21.0',
+  '/chute-detail.mjs?v=5.21.0',
   '/chute-v513-lineups.mjs?v=5.13.0', '/chute-v513-lineups.css?v=5.13.0',
   '/chute-v514-unified-match.mjs?v=5.14.0', '/chute-v514-unified-match.css?v=5.14.0',
   '/chute-v515-match-center.mjs?v=5.15.0', '/chute-v515-match-center.css?v=5.15.0',
@@ -12,8 +12,9 @@ const CORE = [
   '/chute-v5162-playoff-seeding.mjs?v=5.16.3',
   '/chute-v517-finalization.mjs?v=5.17.0', '/chute-v517-finalization.css?v=5.17.0',
   ...Array.from({ length: 8 }, (_, index) => `/chute-v517-finalization-part-${String(index).padStart(2, '0')}.txt?v=5.17.0`),
-  '/chute-v520-stats.mjs?v=5.20.2', '/chute-v520-stats.css?v=5.20.2', '/chute-v520-stats-sync.mjs?v=5.20.2', '/chute-v520-stats-guard.mjs?v=5.20.2',
-  ...Array.from({ length: 8 }, (_, index) => `/chute-v520-stats-part-${String(index).padStart(2, '0')}.txt?v=5.20.2`),
+  '/chute-v521-history.mjs?v=5.21.0', '/chute-v521-history.css?v=5.21.0', '/chute-v521-history-sync.mjs?v=5.21.0',
+  ...Array.from({ length: 10 }, (_, index) => `/chute-v521-history-part-${String(index).padStart(2, '0')}.txt?v=5.21.0`),
+  '/chute-v520-stats-guard.mjs?v=5.21.0',
   '/manifest.webmanifest', '/chute-icon.svg', '/chute-icon-maskable.svg'
 ];
 
