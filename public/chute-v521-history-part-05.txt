@@ -1,0 +1,72 @@
+function medal(index) {
+  return index < 3 ? `<span class="cm-v521-rank is-${index + 1}">${index + 1}</span>` : `<span class="cm-v521-rank">${index + 1}</span>`;
+}
+
+function teamCell(teamId, source = state()) {
+  const logo = logoUrl(teamId);
+  return `<button class="cm-v521-person" type="button" data-cm-v521-team="${esc(teamId)}">${logo ? `<img class="cm-v521-logo" src="${esc(logo)}" alt="">` : `<span class="cm-v521-avatar">${esc(teamName(teamId, source).slice(0, 1))}</span>`}<span><b>${esc(teamName(teamId, source))}</b></span></button>`;
+}
+
+function playerCell(row, source = state()) {
+  const teamId = row.teamId || [...(row.teams || [])][0] || '';
+  return `<button class="cm-v521-person" type="button" data-cm-v521-player="${esc(teamId)}__${encodeURIComponent(row.name)}">${photo(teamId, row.name, 'cm-v521-photo')}<span><b>${esc(row.name)}</b><small>${esc(playerTeamsLabel(row, source))}</small></span></button>`;
+}
+
+function simplePlayer(name, teamId, source = state()) {
+  if (!name) return '<span class="cm-v521-missing">Sin registro</span>';
+  return `<span class="cm-v521-inline-person">${photo(teamId, name, 'cm-v521-mini-photo')}<span><b>${esc(name)}</b><small>${esc(teamName(teamId, source))}</small></span></span>`;
+}
+
+function table(headers, rows, empty = 'Sin datos para este filtro.', className = '') {
+  return `<div class="cm-v521-table ${className}"><table><thead><tr>${headers.map((header) => `<th>${esc(header)}</th>`).join('')}</tr></thead><tbody>${rows.length ? rows.join('') : `<tr><td colspan="${headers.length}" class="cm-v521-empty-cell">${esc(empty)}</td></tr>`}</tbody></table></div>`;
+}
+
+function sectionHeader(kicker, title, description = '', count = null) {
+  return `<header class="cm-v521-section-head"><div><span>${esc(kicker)}</span><h2>${esc(title)}</h2>${description ? `<p>${esc(description)}</p>` : ''}</div>${count === null ? '' : `<b>${count}</b>`}</header>`;
+}
+
+function filterLabel(source, tournaments) {
+  const parts = [];
+  parts.push(selectedEra === 'all' ? 'Toda la historia' : selectedEra === ERA_DIVISIONS ? 'Era de divisiones' : 'Era de ligas');
+  if (selectedTournament !== 'all') parts.push(tournaments[0]?.name || 'Torneo seleccionado');
+  if (selectedFormat !== 'all') parts.push(FORMAT_LABELS[selectedFormat]);
+  if (selectedStatus !== 'all') parts.push(STATUS_LABELS[selectedStatus]);
+  if (selectedTeam !== 'all') parts.push(teamName(selectedTeam, source));
+  return parts.join(' · ');
+}
+
+function heroMetrics(tournaments, source = state()) {
+  const matches = matchRows(tournaments);
+  const goals = matches.reduce((sum, row) => sum + number(row.match.homeGoals) + number(row.match.awayGoals), 0);
+  const teams = new Set(matches.flatMap((row) => [row.home, row.away]));
+  const awards = playerAwardRecords(tournaments, source).length;
+  return { tournaments: tournaments.length, matches: matches.length, goals, teams: teams.size, awards };
+}
+
+function metricStrip(metrics) {
+  return `<div class="cm-v521-metric-strip">
+    <span><b>${metrics.tournaments}</b><small>Torneos</small></span>
+    <span><b>${metrics.matches}</b><small>Partidos</small></span>
+    <span><b>${metrics.goals}</b><small>Goles</small></span>
+    <span><b>${metrics.teams}</b><small>Equipos</small></span>
+    <span><b>${metrics.awards}</b><small>Premios</small></span>
+  </div>`;
+}
+
+function podium(rows, valueText, source = state(), emptyText = 'Sin registros.') {
+  if (!rows.length) return `<div class="cm-v521-empty">${esc(emptyText)}</div>`;
+  return `<div class="cm-v521-podium">${rows.slice(0, 3).map((row, index) => `<article class="is-${index + 1}"><span>${index + 1}</span>${photo(row.teamId, row.name, 'cm-v521-podium-photo')}<b>${esc(row.name)}</b><small>${esc(playerTeamsLabel(row, source))}</small><strong>${esc(valueText(row))}</strong></article>`).join('')}</div>`;
+}
+
+function awardPills(row) {
+  const entries = [...(row.categories || new Map())].sort((left, right) => right[1] - left[1]);
+  return entries.length ? `<div class="cm-v521-pills">${entries.map(([category, count]) => `<span>${esc(AWARD_LABELS[category] || category)} <b>${count}</b></span>`).join('')}</div>` : '<span class="cm-v521-missing">Sin premios</span>';
+}
+
+function eraBadge(era) {
+  return `<span class="cm-v521-badge is-${era}">${era === ERA_DIVISIONS ? 'Divisiones' : 'Ligas'}</span>`;
+}
+
+function formatBadge(format) {
+  return `<span class="cm-v521-badge is-format">${esc(FORMAT_LABELS[format] || 'Otro')}</span>`;
+}
