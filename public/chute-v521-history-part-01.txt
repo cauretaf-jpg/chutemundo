@@ -1,0 +1,153 @@
+function resolveMatchTeam(tournament, match, side) {
+  const direct = match?.[side];
+  if (direct) return direct;
+  return side === 'home' ? core.resolveHome?.(tournament, match) : core.resolveAway?.(tournament, match);
+}
+
+function matchRows(tournaments) {
+  return tournaments.flatMap((tournament) => {
+    const matches = Array.isArray(tournament.matches) ? tournament.matches : [];
+    return matches.filter((match) => match?.stage !== 'bye' && matchPlayed(match)).map((match, matchIndex) => ({
+      tournament,
+      match,
+      matchIndex,
+      home: resolveMatchTeam(tournament, match, 'home'),
+      away: resolveMatchTeam(tournament, match, 'away')
+    }));
+  }).filter((row) => row.home && row.away);
+}
+
+function regulationResult(row, teamId) {
+  const homeGoals = number(row.match.homeGoals);
+  const awayGoals = number(row.match.awayGoals);
+  if (homeGoals === awayGoals) return 'draw';
+  const winner = homeGoals > awayGoals ? row.home : row.away;
+  return winner === teamId ? 'win' : 'loss';
+}
+
+function winnerId(row) {
+  const homeGoals = number(row.match.homeGoals);
+  const awayGoals = number(row.match.awayGoals);
+  if (homeGoals > awayGoals) return row.home;
+  if (awayGoals > homeGoals) return row.away;
+  if (number(row.match.homePens) > number(row.match.awayPens)) return row.home;
+  if (number(row.match.awayPens) > number(row.match.homePens)) return row.away;
+  const shootout = Array.isArray(row.match.penaltyShootout) ? row.match.penaltyShootout : [];
+  if (shootout.length) {
+    const homePens = shootout.filter((item) => item.side === 'home' && item.result === 'scored').length;
+    const awayPens = shootout.filter((item) => item.side === 'away' && item.result === 'scored').length;
+    if (homePens !== awayPens) return homePens > awayPens ? row.home : row.away;
+  }
+  return null;
+}
+
+function tournamentParticipants(tournament) {
+  const ids = new Set([...(tournament?.teamIds || tournament?.teams || [])]);
+  for (const row of matchRows([tournament])) {
+    ids.add(row.home);
+    ids.add(row.away);
+  }
+  [tournament?.champion, tournament?.runnerUp, tournament?.third].filter(Boolean).forEach((id) => ids.add(id));
+  return ids;
+}
+
+function teamStandings(tournaments, source = state(), { respectTeam = true } = {}) {
+  const map = new Map((source.teams || []).map((team) => [team.id, {
+    teamId: team.id,
+    tournaments: new Set(),
+    titles: 0,
+    runners: 0,
+    thirds: 0,
+    finals: 0,
+    pj: 0,
+    pg: 0,
+    pe: 0,
+    pp: 0,
+    gf: 0,
+    gc: 0,
+    penWins: 0,
+    cleanSheets: 0
+  }]));
+
+  for (const tournament of tournaments) {
+    const participants = tournamentParticipants(tournament);
+    participants.forEach((teamId) => map.get(teamId)?.tournaments.add(tournament.id));
+    if (map.has(tournament.champion)) map.get(tournament.champion).titles += 1;
+    if (map.has(tournament.runnerUp)) map.get(tournament.runnerUp).runners += 1;
+    if (map.has(tournament.third)) map.get(tournament.third).thirds += 1;
+    if (map.has(tournament.champion)) map.get(tournament.champion).finals += 1;
+    if (map.has(tournament.runnerUp)) map.get(tournament.runnerUp).finals += 1;
+
+    for (const row of matchRows([tournament])) {
+      const home = map.get(row.home);
+      const away = map.get(row.away);
+      if (!home || !away) continue;
+      const homeGoals = number(row.match.homeGoals);
+      const awayGoals = number(row.match.awayGoals);
+      home.pj += 1;
+      away.pj += 1;
+      home.gf += homeGoals;
+      home.gc += awayGoals;
+      away.gf += awayGoals;
+      away.gc += homeGoals;
+      if (awayGoals === 0) home.cleanSheets += 1;
+      if (homeGoals === 0) away.cleanSheets += 1;
+
+      if (homeGoals > awayGoals) {
+        home.pg += 1;
+        away.pp += 1;
+      } else if (awayGoals > homeGoals) {
+        away.pg += 1;
+        home.pp += 1;
+      } else {
+        home.pe += 1;
+        away.pe += 1;
+        const winner = winnerId(row);
+        if (winner && map.has(winner)) map.get(winner).penWins += 1;
+      }
+    }
+  }
+
+  return [...map.values()]
+    .filter((row) => row.pj || row.titles || row.runners || row.thirds)
+    .map((row) => ({
+      ...row,
+      points: row.pg * 3 + row.pe,
+      dg: row.gf - row.gc,
+      performance: row.pj ? ((row.pg * 3 + row.pe) / (row.pj * 3)) * 100 : 0,
+      cleanSheetPct: row.pj ? row.cleanSheets / row.pj * 100 : 0
+    }))
+    .filter((row) => !respectTeam || selectedTeam === 'all' || row.teamId === selectedTeam)
+    .sort((left, right) =>
+      right.points - left.points ||
+      right.dg - left.dg ||
+      right.gf - left.gf ||
+      right.titles - left.titles ||
+      teamName(left.teamId, source).localeCompare(teamName(right.teamId, source), 'es')
+    );
+}
+
+function tournamentTeamRow(tournament, teamId, source = state()) {
+  return teamStandings([tournament], source, { respectTeam: false }).find((row) => row.teamId === teamId) || null;
+}
+
+function matchTimestamp(row, tournamentOrder) {
+  return parseChronology(row.match.date) ??
+    parseChronology(row.match.updatedAt) ??
+    parseChronology(row.match.registrationStartedAt) ??
+    ((tournamentOrder.get(row.tournament.id) || 0) * 100000 + row.matchIndex);
+}
+
+function chronologicalMatches(tournaments) {
+  const order = new Map(tournaments.map((tournament, index) => [tournament.id, index + 1]));
+  return matchRows(tournaments).sort((left, right) => matchTimestamp(left, order) - matchTimestamp(right, order));
+}
+
+function formatTournamentName(tournament) {
+  return String(tournament?.name || 'Torneo sin nombre');
+}
+
+function formatStatus(tournament) {
+  const status = statusGroup(tournament);
+  return status === 'historical' ? 'Finalizado' : status === 'active' ? 'En juego' : 'Próximo';
+}
