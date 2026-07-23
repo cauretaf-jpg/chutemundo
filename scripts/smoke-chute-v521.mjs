@@ -9,7 +9,7 @@ page.on('console', (message) => { if (message.type() === 'error') errors.push(me
 
 try {
   await page.goto('http://127.0.0.1:4173/', { waitUntil: 'domcontentloaded' });
-  await page.waitForFunction(() => window.ChuteMundoCore && window.ChuteV521History && window.ChuteV517Finalization);
+  await page.waitForFunction(() => window.ChuteMundoCore && window.ChuteV521History && window.ChuteV517Finalization && window.ChuteVersion?.bootCompleted);
 
   await page.evaluate(() => {
     const core = window.ChuteMundoCore;
@@ -82,7 +82,7 @@ try {
 
   await page.locator('[data-cm-v521-tab="rankings"]').click();
   await page.waitForSelector('[data-cm-v521-panel="rankings"].active');
-  let scorerRow = page.locator('[data-cm-v521-ranking-panel="goals"] tr', { hasText: 'Goleador A' });
+  const scorerRow = page.locator('[data-cm-v521-ranking-panel="goals"] tr', { hasText: 'Goleador A' });
   if ((await scorerRow.count()) !== 1 || !(await scorerRow.innerText()).includes('4')) throw new Error(`Goleadores acumulados incorrectos: ${await scorerRow.innerText()}`);
   await page.locator('[data-cm-v521-ranking="assists"]').click();
   const assistRow = page.locator('[data-cm-v521-ranking-panel="assists"] tr', { hasText: 'Asistente A' });
