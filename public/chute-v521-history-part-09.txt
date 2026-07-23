@@ -1,0 +1,265 @@
+function filterOptions(source = state()) {
+  const tournamentOptions = orderedTournaments(source)
+    .filter((tournament) => selectedEra === 'all' || eraOf(tournament, source) === selectedEra)
+    .filter((tournament) => selectedFormat === 'all' || formatGroup(tournament) === selectedFormat)
+    .map((tournament) => `<option value="${esc(tournament.id)}" ${selectedTournament === tournament.id ? 'selected' : ''}>${esc(tournament.name)}</option>`).join('');
+  const teamOptions = (source.teams || []).map((team) => `<option value="${esc(team.id)}" ${selectedTeam === team.id ? 'selected' : ''}>${esc(team.name)}</option>`).join('');
+  return { tournamentOptions, teamOptions };
+}
+
+function activateRanking(tab) {
+  selectedRanking = RANKING_TABS.some(([id]) => id === tab) ? tab : 'goals';
+  localSet(storage.ranking, selectedRanking);
+  document.querySelectorAll('#cmV521History [data-cm-v521-ranking]').forEach((button) => button.classList.toggle('active', button.dataset.cmV521Ranking === selectedRanking));
+  document.querySelectorAll('#cmV521History [data-cm-v521-ranking-panel]').forEach((panel) => {
+    const active = panel.dataset.cmV521RankingPanel === selectedRanking;
+    panel.classList.toggle('active', active);
+    panel.hidden = !active;
+  });
+}
+
+function activateTab(tab, { focus = false } = {}) {
+  selectedTab = TABS.some(([id]) => id === tab) ? tab : 'eternal';
+  localSet(storage.tab, selectedTab);
+  document.querySelectorAll('#cmV521History [data-cm-v521-tab]').forEach((button) => {
+    const active = button.dataset.cmV521Tab === selectedTab;
+    button.classList.toggle('active', active);
+    button.setAttribute('aria-selected', String(active));
+    button.tabIndex = active ? 0 : -1;
+  });
+  document.querySelectorAll('#cmV521History [data-cm-v521-panel]').forEach((panel) => {
+    const active = panel.dataset.cmV521Panel === selectedTab;
+    panel.classList.toggle('active', active);
+    panel.hidden = !active;
+  });
+  activateRanking(selectedRanking);
+  if (focus) document.querySelector('#cmV521History .cm-v521-content')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+function installStyles() {
+  if (document.getElementById('cmV521Styles')) return;
+  const link = document.createElement('link');
+  link.id = 'cmV521Styles';
+  link.rel = 'stylesheet';
+  link.href = `/chute-v521-history.css?v=${VERSION}`;
+  document.head.appendChild(link);
+}
+
+function migrateEras() {
+  if (migrateEras.running) return false;
+  const source = state();
+  const next = clone(source);
+  const expectedConfig = {
+    statsEraSchema: 'era-stats-v2',
+    statsEraCutoffName: CUTOFF_NAME,
+    defaultEraId: ERA_DIVISIONS,
+    statsCompleteFromEra: ERA_DIVISIONS
+  };
+  let changed = false;
+  next.config = { ...(next.config || {}) };
+  for (const [key, value] of Object.entries(expectedConfig)) {
+    if (next.config[key] !== value) {
+      next.config[key] = value;
+      changed = true;
+    }
+  }
+  for (const tournament of next.tournaments || []) {
+    const planned = eraOf(tournament, next);
+    if (tournament.eraId !== planned) {
+      tournament.eraId = planned;
+      changed = true;
+    }
+  }
+  if (!changed) return false;
+  migrateEras.running = true;
+  try {
+    core.setState(next);
+    core.persistLocal?.();
+    if (core.isAdmin?.() && core.cloudLoaded) void core.saveCloud?.();
+  } finally {
+    migrateEras.running = false;
+  }
+  return true;
+}
+migrateEras.running = false;
+
+function renderShell() {
+  if (rendering) return;
+  rendering = true;
+  try {
+    const page = document.getElementById('estadisticas');
+    if (!page) return;
+    const source = state();
+    if (selectedTournament !== 'all' && !(source.tournaments || []).some((tournament) => tournament.id === selectedTournament)) selectedTournament = 'all';
+    if (selectedTeam !== 'all' && !(source.teams || []).some((team) => team.id === selectedTeam)) selectedTeam = 'all';
+    ensureH2HDefaults(source);
+    const tournaments = filteredTournaments(source);
+    const h2hTournaments = filteredTournaments(source, { ignoreTeam: true });
+    const metrics = heroMetrics(tournaments, source);
+
+    [...page.children].forEach((child) => {
+      if (child.id === 'cmV521History' || child.classList.contains('page-title')) return;
+      child.hidden = true;
+      child.setAttribute('aria-hidden', 'true');
+      child.style.setProperty('display', 'none', 'important');
+    });
+    const title = page.querySelector('.page-title');
+    if (title) title.innerHTML = '<p class="eyebrow">ARCHIVO HISTÓRICO</p><h1>Estadísticas de ChuteMundo</h1><p>Clasificaciones acumuladas, palmarés, campeones y récords oficiales.</p>';
+    let host = document.getElementById('cmV521History');
+    if (!host) {
+      host = document.createElement('div');
+      host.id = 'cmV521History';
+      title?.insertAdjacentElement('afterend', host);
+    }
+
+    const options = filterOptions(source);
+    const signature = JSON.stringify({
+      selectedTab, selectedRanking, selectedEra, selectedTournament, selectedFormat, selectedStatus, selectedTeam, selectedH2HA, selectedH2HB,
+      tournaments: tournaments.map((tournament) => [tournament.id, tournament.eraId, tournament.type, tournament.status, tournament.champion, tournament.runnerUp, tournament.third, tournament.awards, tournament.awardDetails, tournament.playerScorers, tournament.playerAssists, (tournament.matches || []).map((match) => [match.id, match.home, match.away, match.homeGoals, match.awayGoals, match.homePens, match.awayPens, match.date, match.venue, match.participationTracked, match.lineups, match.goals])]),
+      teams: (source.teams || []).map((team) => [team.id, team.name, team.players])
+    });
+    if (host.dataset.signature === signature) {
+      activateTab(selectedTab);
+      return;
+    }
+    host.dataset.signature = signature;
+
+    host.innerHTML = `<section class="cm-v521-hero">
+      <div><span>CHUTE MUNDO · ARCHIVO OFICIAL</span><h2>${esc(filterLabel(source, tournaments))}</h2><p>Consulta la historia completa de clubes, jugadores, porteros y torneos.</p></div>
+      ${metricStrip(metrics)}
+    </section>
+    <section class="cm-v521-toolbar">
+      <header><div><span>FILTROS GLOBALES</span><b>Se aplican a todas las tablas, premios y récords</b></div><button type="button" data-cm-v521-reset>Restablecer</button></header>
+      <div>
+        <label>Periodo<select data-cm-v521-filter="era"><option value="all" ${selectedEra === 'all' ? 'selected' : ''}>Toda la historia</option><option value="${ERA_LEAGUES}" ${selectedEra === ERA_LEAGUES ? 'selected' : ''}>Era de ligas</option><option value="${ERA_DIVISIONS}" ${selectedEra === ERA_DIVISIONS ? 'selected' : ''}>Era de divisiones</option></select></label>
+        <label>Torneo<select data-cm-v521-filter="tournament"><option value="all">Todos los torneos</option>${options.tournamentOptions}</select></label>
+        <label>Formato<select data-cm-v521-filter="format">${Object.entries(FORMAT_LABELS).map(([value, label]) => `<option value="${value}" ${selectedFormat === value ? 'selected' : ''}>${esc(label)}</option>`).join('')}</select></label>
+        <label>Estado<select data-cm-v521-filter="status">${Object.entries(STATUS_LABELS).map(([value, label]) => `<option value="${value}" ${selectedStatus === value ? 'selected' : ''}>${esc(label)}</option>`).join('')}</select></label>
+        <label>Equipo<select data-cm-v521-filter="team"><option value="all">Todos los equipos</option>${options.teamOptions}</select></label>
+      </div>
+    </section>
+    <nav class="cm-v521-tabs" role="tablist" aria-label="Archivo estadístico">${TABS.map(([id, label, description]) => `<button type="button" role="tab" data-cm-v521-tab="${id}" class="${selectedTab === id ? 'active' : ''}"><b>${label}</b><small>${description}</small></button>`).join('')}</nav>
+    <div class="cm-v521-content">${eternalPanel(tournaments, source)}${rankingsPanel(tournaments, source)}${honoursPanel(tournaments, source)}${archivePanel(tournaments, source)}${recordsPanel(tournaments, source)}${h2hPanel(h2hTournaments, source)}</div>`;
+    activateTab(selectedTab);
+    document.getElementById('cmV520Stats')?.remove();
+  } finally {
+    rendering = false;
+  }
+}
+
+function persistFilters() {
+  localSet(storage.era, selectedEra);
+  localSet(storage.tournament, selectedTournament);
+  localSet(storage.format, selectedFormat);
+  localSet(storage.status, selectedStatus);
+  localSet(storage.team, selectedTeam);
+  localSet(storage.h2hA, selectedH2HA);
+  localSet(storage.h2hB, selectedH2HB);
+}
+
+function refresh() {
+  refreshQueued = false;
+  migrateEras();
+  renderShell();
+}
+
+function scheduleRefresh() {
+  if (refreshQueued) return;
+  refreshQueued = true;
+  requestAnimationFrame(refresh);
+}
+
+document.addEventListener('click', (event) => {
+  const tab = event.target.closest?.('[data-cm-v521-tab]');
+  if (tab) {
+    event.preventDefault();
+    activateTab(tab.dataset.cmV521Tab, { focus: true });
+    return;
+  }
+  const ranking = event.target.closest?.('[data-cm-v521-ranking]');
+  if (ranking) {
+    event.preventDefault();
+    activateRanking(ranking.dataset.cmV521Ranking);
+    return;
+  }
+  if (event.target.closest?.('[data-cm-v521-reset]')) {
+    selectedEra = 'all';
+    selectedTournament = 'all';
+    selectedFormat = 'all';
+    selectedStatus = 'all';
+    selectedTeam = 'all';
+    persistFilters();
+    renderShell();
+    return;
+  }
+  const team = event.target.closest?.('[data-cm-v521-team]');
+  if (team) {
+    core.navigate?.('equipos');
+    window.ChuteV59?.openTeamProfile?.(team.dataset.cmV521Team);
+    return;
+  }
+  const player = event.target.closest?.('[data-cm-v521-player]');
+  if (player) {
+    core.navigate?.('equipos');
+    window.ChuteV59?.openPlayerProfile?.(player.dataset.cmV521Player);
+    return;
+  }
+  if (event.target.closest?.('[data-page="estadisticas"],[data-cm-page="estadisticas"],[data-cm-mobile-page="estadisticas"]')) setTimeout(scheduleRefresh, 0);
+}, true);
+
+document.addEventListener('change', (event) => {
+  const filter = event.target.closest?.('[data-cm-v521-filter]');
+  if (filter) {
+    const type = filter.dataset.cmV521Filter;
+    if (type === 'era') {
+      selectedEra = filter.value;
+      selectedTournament = 'all';
+    }
+    if (type === 'tournament') selectedTournament = filter.value;
+    if (type === 'format') {
+      selectedFormat = filter.value;
+      selectedTournament = 'all';
+    }
+    if (type === 'status') selectedStatus = filter.value;
+    if (type === 'team') selectedTeam = filter.value;
+    persistFilters();
+    renderShell();
+    return;
+  }
+  const h2h = event.target.closest?.('[data-cm-v521-h2h]');
+  if (h2h) {
+    if (h2h.dataset.cmV521H2h === 'a') selectedH2HA = h2h.value;
+    if (h2h.dataset.cmV521H2h === 'b') selectedH2HB = h2h.value;
+    if (selectedH2HA === selectedH2HB) {
+      const alternate = (state().teams || []).find((team) => team.id !== selectedH2HA)?.id || '';
+      if (h2h.dataset.cmV521H2h === 'a') selectedH2HB = alternate;
+      else selectedH2HA = alternate;
+    }
+    persistFilters();
+    renderShell();
+  }
+}, true);
+
+document.addEventListener('submit', () => setTimeout(scheduleRefresh, 350));
+const statisticsPage = document.getElementById('estadisticas');
+if (statisticsPage) new MutationObserver(() => { if (!statisticsPage.hidden) scheduleRefresh(); }).observe(statisticsPage, { attributes: true, attributeFilter: ['hidden'] });
+
+installStyles();
+scheduleRefresh();
+
+window.ChuteV521History = {
+  version: VERSION,
+  refresh,
+  renderShell,
+  activateTab,
+  eraOf,
+  teamStandings,
+  careerMetricRows,
+  goalkeeperCareerRows,
+  playerHonoursRows,
+  archiveRows,
+  h2hSummary
+};
+window.ChuteV520Stats = window.ChuteV521History;
+window.ChuteV519Stats = window.ChuteV521History;
+window.ChuteV518EraStats = { version: VERSION, renderShell, activateTab, migrateEras };
