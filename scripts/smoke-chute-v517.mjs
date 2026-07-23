@@ -94,8 +94,10 @@ try {
     computed: window.ChuteV517Finalization.computeAwards(window.ChuteMundoCore.getState().tournaments.find((item) => item.id === 'v517-finalization-test'))
   }));
   if (awards.cards !== 6 || !awards.visible) throw new Error(`Panel de premios incompleto: ${JSON.stringify({ cards: awards.cards, visible: awards.visible })}`);
-  const automatic = ['scorer', 'assist', 'mvp', 'goalkeeper', 'revelation', 'finalMvp'];
+  const automatic = ['scorer', 'assist', 'mvp', 'goalkeeper', 'finalMvp'];
   if (automatic.some((key) => !awards.computed.awards[key]?.playerName) || automatic.some((key) => !awards.computed.awards[key]?.reason)) throw new Error(`Premios sin estadísticas completas: ${JSON.stringify(awards.computed.awards)}`);
+  const revelation = awards.computed.awards.revelation;
+  if (!revelation?.reason || (!revelation.playerName && revelation.status !== 'pending')) throw new Error(`Premio revelación inválido: ${JSON.stringify(revelation)}`);
 
   await clickCurrent('[data-cm-v517-quality]');
   await page.waitForSelector('.cm-v517-quality-modal');
