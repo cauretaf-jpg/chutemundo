@@ -1,4 +1,4 @@
-const APP_VERSION = '5.20.2';
+const APP_VERSION = '5.21.0';
 const APP_TITLE = `Chute Mundo v${APP_VERSION} · Competición`;
 const CACHE_NAME = `chute-mundo-v${APP_VERSION}`;
 const RESET_KEY = `cm_runtime_reset_${APP_VERSION.replaceAll('.', '_')}`;
@@ -7,12 +7,14 @@ const LOCAL_HOSTS = new Set(['localhost', '127.0.0.1', '::1']);
 const nativeServiceWorkerRegister = 'serviceWorker' in navigator
   ? navigator.serviceWorker.register.bind(navigator.serviceWorker)
   : null;
-
-const titleDescriptor = Object.getOwnPropertyDescriptor(Document.prototype, 'title');
-const nodeTextDescriptor = Object.getOwnPropertyDescriptor(Node.prototype, 'textContent');
 const nativeServiceWorkerAddEventListener = 'serviceWorker' in navigator
   ? navigator.serviceWorker.addEventListener.bind(navigator.serviceWorker)
   : null;
+const titleDescriptor = Object.getOwnPropertyDescriptor(Document.prototype, 'title');
+const nodeTextDescriptor = Object.getOwnPropertyDescriptor(Node.prototype, 'textContent');
+
+let userNavigated = false;
+let bootCompleted = false;
 
 function installCanonicalVersionLock() {
   titleDescriptor?.set?.call(document, APP_TITLE);
@@ -30,34 +32,33 @@ function installCanonicalVersionLock() {
   }
 
   const heroVersion = document.querySelector('.hero .eyebrow');
-  if (heroVersion && nodeTextDescriptor) {
-    const canonicalHero = `CHUTE MUNDO v${APP_VERSION}`;
-    const nativeReplaceChildren = heroVersion.replaceChildren.bind(heroVersion);
-    nodeTextDescriptor.set.call(heroVersion, canonicalHero);
-    try {
-      Object.defineProperty(heroVersion, 'textContent', {
-        configurable: true,
-        get: () => canonicalHero,
-        set: (value) => {
-          const text = String(value ?? '');
-          if (!/^CHUTE MUNDO v\d/i.test(text) || text === canonicalHero) {
-            nodeTextDescriptor.set.call(heroVersion, text === canonicalHero ? canonicalHero : text);
-          } else {
-            console.info(`Se ignoró un encabezado heredado: ${text}`);
-          }
-        }
-      });
-      heroVersion.replaceChildren = (...nodes) => {
-        const text = nodes.map((node) => typeof node === 'string' ? node : node?.textContent || '').join('');
-        if (/^CHUTE MUNDO v\d/i.test(text) && text !== canonicalHero) {
+  if (!heroVersion || !nodeTextDescriptor) return;
+  const canonicalHero = `CHUTE MUNDO v${APP_VERSION}`;
+  const nativeReplaceChildren = heroVersion.replaceChildren.bind(heroVersion);
+  nodeTextDescriptor.set.call(heroVersion, canonicalHero);
+  try {
+    Object.defineProperty(heroVersion, 'textContent', {
+      configurable: true,
+      get: () => canonicalHero,
+      set: (value) => {
+        const text = String(value ?? '');
+        if (!/^CHUTE MUNDO v\d/i.test(text) || text === canonicalHero) {
+          nodeTextDescriptor.set.call(heroVersion, text === canonicalHero ? canonicalHero : text);
+        } else {
           console.info(`Se ignoró un encabezado heredado: ${text}`);
-          return;
         }
-        nativeReplaceChildren(...nodes);
-      };
-    } catch (error) {
-      console.warn('No se pudo bloquear el encabezado de versión.', error);
-    }
+      }
+    });
+    heroVersion.replaceChildren = (...nodes) => {
+      const text = nodes.map((node) => typeof node === 'string' ? node : node?.textContent || '').join('');
+      if (/^CHUTE MUNDO v\d/i.test(text) && text !== canonicalHero) {
+        console.info(`Se ignoró un encabezado heredado: ${text}`);
+        return;
+      }
+      nativeReplaceChildren(...nodes);
+    };
+  } catch (error) {
+    console.warn('No se pudo bloquear el encabezado de versión.', error);
   }
 }
 
@@ -74,16 +75,11 @@ function installServiceWorkerListenerGuard() {
   navigator.serviceWorker.addEventListener = guardedAddEventListener;
 }
 
-let userNavigated = false;
-let bootCompleted = false;
-
 function applyVersion() {
   document.documentElement.dataset.chuteVersion = APP_VERSION;
   if (document.title !== APP_TITLE) document.title = APP_TITLE;
   const heroVersion = document.querySelector('.hero .eyebrow');
-  if (heroVersion && heroVersion.textContent !== `CHUTE MUNDO v${APP_VERSION}`) {
-    heroVersion.textContent = `CHUTE MUNDO v${APP_VERSION}`;
-  }
+  if (heroVersion && heroVersion.textContent !== `CHUTE MUNDO v${APP_VERSION}`) heroVersion.textContent = `CHUTE MUNDO v${APP_VERSION}`;
 }
 
 function removeResetQuery() {
@@ -123,10 +119,7 @@ async function registerCurrentWorker() {
   if (!nativeServiceWorkerRegister) return null;
   const existing = await navigator.serviceWorker.getRegistration('/');
   if (existing && workerVersion(existing) === APP_VERSION) return existing;
-  const registration = await nativeServiceWorkerRegister(`/sw.js?v=${APP_VERSION}`, {
-    scope: '/',
-    updateViaCache: 'none'
-  });
+  const registration = await nativeServiceWorkerRegister(`/sw.js?v=${APP_VERSION}`, { scope: '/', updateViaCache: 'none' });
   await waitForActivation(registration);
   return registration;
 }
@@ -156,10 +149,8 @@ async function resetLegacyRuntimeOnce() {
     removeResetQuery();
     return;
   }
-
   let alreadyReset = false;
   try { alreadyReset = localStorage.getItem(RESET_KEY) === 'done'; } catch {}
-
   if (alreadyReset) {
     removeResetQuery();
     try { await registerCurrentWorker(); } catch (error) { console.warn('No se pudo registrar el service worker actual.', error); }
@@ -168,20 +159,15 @@ async function resetLegacyRuntimeOnce() {
 
   let cleaned = false;
   try {
-    if ('serviceWorker' in navigator) {
-      const registrations = await navigator.serviceWorker.getRegistrations();
-      await Promise.all(registrations.map((registration) => registration.unregister()));
-    }
-    if ('caches' in window) {
-      const cacheNames = await caches.keys();
-      await Promise.all(cacheNames.filter((name) => name.startsWith('chute-mundo-')).map((name) => caches.delete(name)));
-    }
+    const registrations = await navigator.serviceWorker.getRegistrations();
+    await Promise.all(registrations.map((registration) => registration.unregister()));
+    const cacheNames = await caches.keys();
+    await Promise.all(cacheNames.filter((name) => name.startsWith('chute-mundo-')).map((name) => caches.delete(name)));
     await registerCurrentWorker();
     cleaned = true;
   } catch (error) {
     console.warn('La limpieza automática de caché no pudo completarse.', error);
   }
-
   try { localStorage.setItem(RESET_KEY, 'done'); } catch {}
   if (!cleaned) return;
 
@@ -207,14 +193,9 @@ document.addEventListener('chute:boot-complete', (event) => {
   restoreHomeAfterBoot(event.detail?.core || window.ChuteMundoCore);
 }, { once: true });
 
-document.addEventListener('chute:ready', () => applyVersion());
-
+document.addEventListener('chute:ready', applyVersion);
 const title = document.querySelector('title');
-if (title) {
-  new MutationObserver(() => {
-    if (document.title !== APP_TITLE) document.title = APP_TITLE;
-  }).observe(title, { childList: true, subtree: true, characterData: true });
-}
+if (title) new MutationObserver(applyVersion).observe(title, { childList: true, subtree: true, characterData: true });
 
 window.ChuteVersion = Object.freeze({
   version: APP_VERSION,
