@@ -1,0 +1,201 @@
+function metricEntries(raw) {
+  if (Array.isArray(raw)) return raw.map((value) => ({ key: '', value }));
+  if (!raw || typeof raw !== 'object') return [];
+  return Object.entries(raw).map(([key, value]) => ({ key, value }));
+}
+
+function parseMetricEntry(entry, kind, source = state()) {
+  const sourceValue = entry.value;
+  let name = entry.key || '';
+  let teamId = '';
+  let appearances = 0;
+  let value = 0;
+
+  if (Array.isArray(sourceValue)) {
+    name = sourceValue[0] ?? name;
+    const second = sourceValue[1];
+    const third = sourceValue[2];
+    const fourth = sourceValue[3];
+    if (typeof second === 'string') {
+      teamId = second;
+      appearances = third ?? 0;
+      value = fourth ?? third ?? 0;
+    } else {
+      value = second ?? 0;
+      teamId = typeof third === 'string' ? third : '';
+      appearances = typeof third === 'number' ? third : fourth ?? 0;
+    }
+  } else if (sourceValue && typeof sourceValue === 'object') {
+    name = sourceValue.name ?? sourceValue.playerName ?? sourceValue.player ?? sourceValue.scorer ?? sourceValue.assist ?? name;
+    teamId = sourceValue.teamId ?? sourceValue.team ?? sourceValue.clubId ?? sourceValue.club ?? '';
+    appearances = sourceValue.appearances ?? sourceValue.matches ?? sourceValue.games ?? sourceValue.pj ?? 0;
+    value = kind === 'goals'
+      ? (sourceValue.goals ?? sourceValue.value ?? sourceValue.total ?? sourceValue.count ?? 0)
+      : (sourceValue.assists ?? sourceValue.value ?? sourceValue.total ?? sourceValue.count ?? 0);
+  } else if (typeof sourceValue === 'number' || typeof sourceValue === 'string') {
+    if (!name && typeof sourceValue === 'string') name = sourceValue;
+    else value = number(sourceValue);
+  }
+
+  name = String(name || '').trim();
+  teamId = resolveTeamId(teamId, name, source);
+  if (!name || !teamId) return null;
+  return { teamId, name, appearances: number(appearances), value: number(value) };
+}
+
+function tournamentMetricRows(tournament, kind, source = state()) {
+  const field = kind === 'goals' ? 'playerScorers' : 'playerAssists';
+  const rows = new Map();
+  for (const entry of metricEntries(tournament?.[field])) {
+    const parsed = parseMetricEntry(entry, kind, source);
+    if (!parsed) continue;
+    rows.set(`${parsed.teamId}__${norm(parsed.name)}`, parsed);
+  }
+
+  const detailed = new Map();
+  for (const row of matchRows([tournament])) {
+    for (const goal of Array.isArray(row.match.goals) ? row.match.goals : []) {
+      const name = kind === 'goals' ? goal.playerName : goal.assistName;
+      const teamId = resolveTeamId(goal.teamId || (goal.side === 'away' ? row.away : row.home), name, source);
+      if (!name || !teamId || (kind === 'assists' && /sin asistencia|sin pase|ninguna/i.test(String(name)))) continue;
+      const key = `${teamId}__${norm(name)}`;
+      const current = detailed.get(key) || { teamId, name: String(name).trim(), appearances: 0, value: 0 };
+      current.value += 1;
+      detailed.set(key, current);
+    }
+  }
+
+  for (const [key, detail] of detailed) {
+    const current = rows.get(key);
+    if (!current) rows.set(key, detail);
+    else current.value = Math.max(current.value, detail.value);
+  }
+  return [...rows.values()];
+}
+
+function lineupNames(lineup, field) {
+  const values = Array.isArray(lineup?.[field]) ? lineup[field] : [];
+  return values.map((value) => typeof value === 'string' ? value : playerName(value)).filter(Boolean);
+}
+
+function appearedInLineup(name, lineup) {
+  const key = norm(name);
+  if (lineupNames(lineup, 'starters').some((item) => norm(item) === key)) return true;
+  return (lineup?.changes || []).some((change) => norm(change?.playerIn) === key || norm(change?.playerOut) === key);
+}
+
+function playerAppearancesInTournament(tournament, teamId, name) {
+  let appearances = 0;
+  for (const row of matchRows([tournament])) {
+    const side = row.home === teamId ? 'home' : row.away === teamId ? 'away' : null;
+    if (!side || !row.match.participationTracked) continue;
+    if (appearedInLineup(name, row.match.lineups?.[side])) appearances += 1;
+  }
+  return appearances;
+}
+
+function careerMetricRows(tournaments, kind, source = state()) {
+  const careers = new Map();
+  for (const tournament of tournaments) {
+    for (const metric of tournamentMetricRows(tournament, kind, source)) {
+      if (selectedTeam !== 'all' && metric.teamId !== selectedTeam) continue;
+      const key = norm(metric.name);
+      const derivedAppearances = playerAppearancesInTournament(tournament, metric.teamId, metric.name);
+      const appearances = Math.max(metric.appearances, derivedAppearances);
+      const current = careers.get(key) || {
+        name: metric.name,
+        value: 0,
+        appearances: 0,
+        teams: new Set(),
+        teamCounts: new Map(),
+        tournaments: new Set(),
+        bestTournament: null
+      };
+      current.value += metric.value;
+      current.appearances += appearances;
+      current.teams.add(metric.teamId);
+      current.teamCounts.set(metric.teamId, number(current.teamCounts.get(metric.teamId)) + metric.value + 1);
+      current.tournaments.add(tournament.id);
+      if (!current.bestTournament || metric.value > current.bestTournament.value) {
+        current.bestTournament = { id: tournament.id, name: formatTournamentName(tournament), value: metric.value };
+      }
+      careers.set(key, current);
+    }
+  }
+  return [...careers.values()].map((row) => {
+    const primaryTeam = [...row.teamCounts].sort((left, right) => right[1] - left[1])[0]?.[0] || [...row.teams][0] || '';
+    return {
+      ...row,
+      teamId: primaryTeam,
+      average: row.appearances ? row.value / row.appearances : null
+    };
+  }).filter((row) => row.value > 0).sort((left, right) =>
+    right.value - left.value ||
+    right.tournaments.size - left.tournaments.size ||
+    left.name.localeCompare(right.name, 'es')
+  );
+}
+
+function goalkeeperCareerRows(tournaments, source = state()) {
+  const careers = new Map();
+  const matches = matchRows(tournaments);
+  for (const team of source.teams || []) {
+    if (selectedTeam !== 'all' && team.id !== selectedTeam) continue;
+    const roster = Array.isArray(team.players) ? team.players : team.players && typeof team.players === 'object' ? Object.values(team.players) : [];
+    for (const entry of roster) {
+      const name = playerName(entry);
+      if (!name || !isGoalkeeper(entry)) continue;
+      const key = norm(name);
+      const current = careers.get(key) || {
+        name,
+        teamId: team.id,
+        teams: new Set(),
+        teamCounts: new Map(),
+        appearances: 0,
+        cleanSheets: 0,
+        goalsConceded: 0,
+        wins: 0,
+        draws: 0,
+        losses: 0,
+        tournaments: new Set()
+      };
+      for (const row of matches) {
+        const side = row.home === team.id ? 'home' : row.away === team.id ? 'away' : null;
+        if (!side || !row.match.participationTracked) continue;
+        if (!appearedInLineup(name, row.match.lineups?.[side])) continue;
+        const conceded = side === 'home' ? number(row.match.awayGoals) : number(row.match.homeGoals);
+        current.appearances += 1;
+        current.goalsConceded += conceded;
+        current.teams.add(team.id);
+        current.teamCounts.set(team.id, number(current.teamCounts.get(team.id)) + 1);
+        current.tournaments.add(row.tournament.id);
+        if (conceded === 0) current.cleanSheets += 1;
+        const result = regulationResult(row, team.id);
+        if (result === 'win') current.wins += 1;
+        else if (result === 'draw') current.draws += 1;
+        else current.losses += 1;
+      }
+      careers.set(key, current);
+    }
+  }
+  return [...careers.values()].filter((row) => row.appearances > 0).map((row) => ({
+    ...row,
+    teamId: [...row.teamCounts].sort((left, right) => right[1] - left[1])[0]?.[0] || row.teamId,
+    average: row.goalsConceded / row.appearances,
+    cleanSheetPct: row.cleanSheets / row.appearances * 100
+  })).sort((left, right) =>
+    right.cleanSheets - left.cleanSheets ||
+    right.cleanSheetPct - left.cleanSheetPct ||
+    left.average - right.average ||
+    right.appearances - left.appearances ||
+    left.name.localeCompare(right.name, 'es')
+  );
+}
+
+function teamCleanSheetRows(tournaments, source = state()) {
+  return teamStandings(tournaments, source).filter((row) => row.pj > 0).sort((left, right) =>
+    right.cleanSheets - left.cleanSheets ||
+    right.cleanSheetPct - left.cleanSheetPct ||
+    right.points - left.points
+  );
+}

@@ -1,0 +1,75 @@
+function recordCard(label, value, detail = '', emphasis = '') {
+  return `<article class="cm-v521-record ${emphasis}"><span>${esc(label)}</span><b>${value}</b>${detail ? `<small>${detail}</small>` : ''}</article>`;
+}
+
+function recordsPanel(tournaments, source = state()) {
+  const records = recordBook(tournaments, source);
+  const topTeam = records.teams[0];
+  const titleTeam = [...records.teams].sort((left, right) => right.titles - left.titles || right.points - left.points)[0];
+  const topScorer = records.scorers[0];
+  const topAssist = records.assists[0];
+  const topKeeper = records.keepers[0];
+  const topPlayer = records.players[0];
+
+  return `<section class="cm-v521-panel" data-cm-v521-panel="records">
+    <div class="cm-v521-panel-intro is-dark"><div><span>HITOS OFICIALES</span><h2>Libro de Récords</h2><p>Las marcas más importantes de equipos, jugadores, porteros y partidos.</p></div></div>
+    <div class="cm-v521-record-grid">
+      ${recordCard('Más puntos históricos', topTeam ? esc(teamName(topTeam.teamId, source)) : '—', topTeam ? `${topTeam.points} puntos` : 'Sin datos', 'is-primary')}
+      ${recordCard('Más campeonatos', titleTeam ? esc(teamName(titleTeam.teamId, source)) : '—', titleTeam ? `${titleTeam.titles} títulos` : 'Sin datos')}
+      ${recordCard('Máximo goleador', topScorer ? esc(topScorer.name) : '—', topScorer ? `${topScorer.value} goles` : 'Sin datos')}
+      ${recordCard('Máximo asistidor', topAssist ? esc(topAssist.name) : '—', topAssist ? `${topAssist.value} asistencias` : 'Sin datos')}
+      ${recordCard('Más porterías imbatidas', topKeeper ? esc(topKeeper.name) : '—', topKeeper ? `${topKeeper.cleanSheets} partidos` : 'Sin datos')}
+      ${recordCard('Jugador más premiado', topPlayer ? esc(topPlayer.name) : '—', topPlayer ? `${topPlayer.total} premios` : 'Sin datos')}
+      ${recordCard('Mayor goleada', records.biggest ? esc(recordMatchLabel(records.biggest, source)) : '—', records.biggest ? esc(records.biggest.tournament.name) : 'Sin partidos')}
+      ${recordCard('Partido con más goles', records.highest ? esc(recordMatchLabel(records.highest, source)) : '—', records.highest ? `${number(records.highest.match.homeGoals) + number(records.highest.match.awayGoals)} goles · ${esc(records.highest.tournament.name)}` : 'Sin partidos')}
+      ${recordCard('Mayor racha de victorias', records.bestWinStreak ? esc(teamName(records.bestWinStreak.teamId, source)) : '—', records.bestWinStreak ? `${records.bestWinStreak.bestWin} partidos` : 'Sin datos')}
+      ${recordCard('Mayor invicto', records.bestUnbeaten ? esc(teamName(records.bestUnbeaten.teamId, source)) : '—', records.bestUnbeaten ? `${records.bestUnbeaten.bestUnbeaten} partidos` : 'Sin datos')}
+      ${recordCard('Mayor racha sin recibir', records.bestCleanStreak ? esc(teamName(records.bestCleanStreak.teamId, source)) : '—', records.bestCleanStreak ? `${records.bestCleanStreak.bestClean} partidos` : 'Sin datos')}
+      ${recordCard('Campeón más dominante', records.bestChampion ? esc(teamName(records.bestChampion.teamId, source)) : '—', records.bestChampion ? `${Math.round(records.bestChampion.performance)}% · ${esc(records.bestChampion.tournament.name)}` : 'Sin datos')}
+    </div>
+    <article class="cm-v521-card">${sectionHeader('MARCAS DE EQUIPOS', 'Récords acumulados', 'Comparación de las principales cifras históricas.', records.teams.length)}
+      ${table(['#', 'Equipo', 'Pts', 'Victorias', 'Goles', 'DG', 'Títulos', 'Finales', 'Porterías imbatidas'], records.teams.map((row, index) => `<tr>
+        <td>${medal(index)}</td><td>${teamCell(row.teamId, source)}</td><td>${row.points}</td><td>${row.pg}</td><td>${row.gf}</td><td>${row.dg > 0 ? '+' : ''}${row.dg}</td>
+        <td>${row.titles}</td><td>${row.finals}</td><td>${row.cleanSheets}</td>
+      </tr>`), 'No hay récords de equipos para este filtro.')}</article>
+  </section>`;
+}
+
+function ensureH2HDefaults(source = state()) {
+  const ids = (source.teams || []).map((team) => team.id);
+  if (!ids.includes(selectedH2HA)) selectedH2HA = selectedTeam !== 'all' && ids.includes(selectedTeam) ? selectedTeam : (ids[0] || '');
+  if (!ids.includes(selectedH2HB) || selectedH2HB === selectedH2HA) selectedH2HB = ids.find((id) => id !== selectedH2HA) || '';
+}
+
+function h2hPanel(tournaments, source = state()) {
+  ensureH2HDefaults(source);
+  const summary = h2hSummary(tournaments, selectedH2HA, selectedH2HB, source);
+  const optionsA = (source.teams || []).map((team) => `<option value="${esc(team.id)}" ${team.id === selectedH2HA ? 'selected' : ''}>${esc(team.name)}</option>`).join('');
+  const optionsB = (source.teams || []).map((team) => `<option value="${esc(team.id)}" ${team.id === selectedH2HB ? 'selected' : ''}>${esc(team.name)}</option>`).join('');
+  const teamA = teamName(selectedH2HA, source);
+  const teamB = teamName(selectedH2HB, source);
+
+  return `<section class="cm-v521-panel" data-cm-v521-panel="h2h">
+    <div class="cm-v521-panel-intro"><div><span>RIVALIDADES</span><h2>Historia Frente a Frente</h2><p>Selecciona dos clubes para revisar todos sus enfrentamientos oficiales.</p></div></div>
+    <section class="cm-v521-h2h-selector"><label>Primer equipo<select data-cm-v521-h2h="a">${optionsA}</select></label><span>VS</span><label>Segundo equipo<select data-cm-v521-h2h="b">${optionsB}</select></label></section>
+    <article class="cm-v521-h2h-score">
+      <div>${logoUrl(selectedH2HA) ? `<img src="${esc(logoUrl(selectedH2HA))}" alt="">` : `<span>${esc(teamA.slice(0, 1))}</span>`}<b>${esc(teamA)}</b><strong>${summary.winsA}</strong><small>victorias</small></div>
+      <section><b>${summary.matches.length}</b><span>partidos</span><strong>${summary.goalsA}–${summary.goalsB}</strong><small>goles históricos</small><em>${summary.draws} empates · penales ${summary.pensA}–${summary.pensB}</em></section>
+      <div>${logoUrl(selectedH2HB) ? `<img src="${esc(logoUrl(selectedH2HB))}" alt="">` : `<span>${esc(teamB.slice(0, 1))}</span>`}<b>${esc(teamB)}</b><strong>${summary.winsB}</strong><small>victorias</small></div>
+    </article>
+    <div class="cm-v521-h2h-metrics">
+      <span><b>${summary.finals}</b><small>Finales disputadas</small></span>
+      <span><b>${summary.titlesA}</b><small>Títulos de ${esc(teamA)}</small></span>
+      <span><b>${summary.titlesB}</b><small>Títulos de ${esc(teamB)}</small></span>
+      <span><b>${summary.pensA + summary.pensB}</b><small>Series por penales</small></span>
+    </div>
+    <article class="cm-v521-card">${sectionHeader('CRONOLOGÍA DEL DUELO', 'Todos los enfrentamientos', filterLabel(source, tournaments), summary.recent.length)}
+      ${table(['Torneo', 'Fase', 'Resultado', 'Penales', 'Sede', 'Fecha'], summary.recent.map((row) => {
+        const score = matchScoreForTeams(row, selectedH2HA, selectedH2HB);
+        const penalties = score.scoreA === score.scoreB && (score.pensA || score.pensB) ? `${score.pensA}–${score.pensB}` : '—';
+        return `<tr><td><b>${esc(row.tournament.name)}</b></td><td>${esc(row.match.label || row.match.round || row.match.stage || 'Partido')}</td>
+          <td><strong>${esc(teamA)} ${score.scoreA}–${score.scoreB} ${esc(teamB)}</strong></td><td>${penalties}</td>
+          <td>${esc(row.match.venue || 'Sin sede')}</td><td>${esc(row.match.date || 'Sin fecha')}</td></tr>`;
+      }), 'Estos equipos no tienen enfrentamientos dentro de los filtros seleccionados.')}</article>
+  </section>`;
+}

@@ -1,0 +1,133 @@
+function streakRecords(tournaments, source = state()) {
+  const rows = chronologicalMatches(tournaments);
+  const trackers = new Map();
+  const get = (teamId) => {
+    if (!trackers.has(teamId)) trackers.set(teamId, {
+      teamId,
+      win: 0,
+      unbeaten: 0,
+      clean: 0,
+      bestWin: 0,
+      bestUnbeaten: 0,
+      bestClean: 0
+    });
+    return trackers.get(teamId);
+  };
+
+  for (const row of rows) {
+    for (const teamId of [row.home, row.away]) {
+      const tracker = get(teamId);
+      const result = regulationResult(row, teamId);
+      const winner = winnerId(row);
+      const conceded = row.home === teamId ? number(row.match.awayGoals) : number(row.match.homeGoals);
+      tracker.win = winner === teamId ? tracker.win + 1 : 0;
+      tracker.unbeaten = result !== 'loss' ? tracker.unbeaten + 1 : 0;
+      tracker.clean = conceded === 0 ? tracker.clean + 1 : 0;
+      tracker.bestWin = Math.max(tracker.bestWin, tracker.win);
+      tracker.bestUnbeaten = Math.max(tracker.bestUnbeaten, tracker.unbeaten);
+      tracker.bestClean = Math.max(tracker.bestClean, tracker.clean);
+    }
+  }
+  return [...trackers.values()].filter((row) => selectedTeam === 'all' || row.teamId === selectedTeam);
+}
+
+function bestStreak(rows, field) {
+  return [...rows].sort((left, right) => right[field] - left[field])[0] || null;
+}
+
+function championPerformance(tournaments, source = state()) {
+  const rows = [];
+  for (const tournament of tournaments.filter((item) => item.champion)) {
+    const row = tournamentTeamRow(tournament, tournament.champion, source);
+    if (!row?.pj) continue;
+    rows.push({ tournament, teamId: tournament.champion, performance: row.performance, points: row.points, pj: row.pj, dg: row.dg });
+  }
+  return rows.sort((left, right) => right.performance - left.performance || right.dg - left.dg)[0] || null;
+}
+
+function recordBook(tournaments, source = state()) {
+  const teams = teamStandings(tournaments, source);
+  const scorers = careerMetricRows(tournaments, 'goals', source);
+  const assists = careerMetricRows(tournaments, 'assists', source);
+  const keepers = goalkeeperCareerRows(tournaments, source);
+  const players = playerHonoursRows(tournaments, source);
+  const matches = matchRows(tournaments);
+  const biggest = [...matches].sort((left, right) => {
+    const rightDifference = Math.abs(number(right.match.homeGoals) - number(right.match.awayGoals));
+    const leftDifference = Math.abs(number(left.match.homeGoals) - number(left.match.awayGoals));
+    return rightDifference - leftDifference || (number(right.match.homeGoals) + number(right.match.awayGoals)) - (number(left.match.homeGoals) + number(left.match.awayGoals));
+  })[0] || null;
+  const highest = [...matches].sort((left, right) =>
+    (number(right.match.homeGoals) + number(right.match.awayGoals)) -
+    (number(left.match.homeGoals) + number(left.match.awayGoals))
+  )[0] || null;
+  const streaks = streakRecords(tournaments, source);
+  return {
+    teams,
+    scorers,
+    assists,
+    keepers,
+    players,
+    matches,
+    biggest,
+    highest,
+    bestWinStreak: bestStreak(streaks, 'bestWin'),
+    bestUnbeaten: bestStreak(streaks, 'bestUnbeaten'),
+    bestCleanStreak: bestStreak(streaks, 'bestClean'),
+    bestChampion: championPerformance(tournaments, source)
+  };
+}
+
+function h2hSummary(tournaments, teamA, teamB, source = state()) {
+  const matches = matchRows(tournaments).filter((row) =>
+    (row.home === teamA && row.away === teamB) || (row.home === teamB && row.away === teamA)
+  );
+  let winsA = 0;
+  let winsB = 0;
+  let draws = 0;
+  let goalsA = 0;
+  let goalsB = 0;
+  let pensA = 0;
+  let pensB = 0;
+  let finals = 0;
+  let titlesA = 0;
+  let titlesB = 0;
+
+  for (const row of matches) {
+    const aHome = row.home === teamA;
+    const scoreA = number(aHome ? row.match.homeGoals : row.match.awayGoals);
+    const scoreB = number(aHome ? row.match.awayGoals : row.match.homeGoals);
+    goalsA += scoreA;
+    goalsB += scoreB;
+    if (scoreA > scoreB) winsA += 1;
+    else if (scoreB > scoreA) winsB += 1;
+    else draws += 1;
+    const winner = winnerId(row);
+    if (scoreA === scoreB && winner === teamA) pensA += 1;
+    if (scoreA === scoreB && winner === teamB) pensB += 1;
+    const final = norm(row.match.round) === 'final' || norm(row.match.label) === 'final';
+    if (final) {
+      finals += 1;
+      if (winner === teamA || row.tournament.champion === teamA) titlesA += 1;
+      if (winner === teamB || row.tournament.champion === teamB) titlesB += 1;
+    }
+  }
+
+  const order = new Map(tournaments.map((tournament, index) => [tournament.id, index + 1]));
+  const recent = [...matches].sort((left, right) => matchTimestamp(right, order) - matchTimestamp(left, order));
+  return { teamA, teamB, matches, winsA, winsB, draws, goalsA, goalsB, pensA, pensB, finals, titlesA, titlesB, recent };
+}
+
+function matchScoreForTeams(row, teamA, teamB) {
+  const aHome = row.home === teamA;
+  return {
+    scoreA: number(aHome ? row.match.homeGoals : row.match.awayGoals),
+    scoreB: number(aHome ? row.match.awayGoals : row.match.homeGoals),
+    pensA: number(aHome ? row.match.homePens : row.match.awayPens),
+    pensB: number(aHome ? row.match.awayPens : row.match.homePens)
+  };
+}
+
+function recordMatchLabel(row, source = state()) {
+  return `${teamName(row.home, source)} ${number(row.match.homeGoals)}–${number(row.match.awayGoals)} ${teamName(row.away, source)}`;
+}

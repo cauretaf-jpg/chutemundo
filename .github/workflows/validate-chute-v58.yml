@@ -1,4 +1,4 @@
-name: Validate Chute Mundo v5.20.1
+name: Validate Chute Mundo v5.21
 
 on:
   pull_request:
@@ -19,18 +19,18 @@ jobs:
           set -o pipefail
           npm run check:official
           while IFS= read -r file; do node --check "$file"; done < <(find public -type f \( -name '*.mjs' -o -name '*.js' \) | sort)
-          node --check scripts/audit-chute-v520.mjs
-          node --check scripts/smoke-chute-v520.mjs
+          node --check scripts/audit-chute-v521.mjs
+          node --check scripts/smoke-chute-v521.mjs
           node --check scripts/smoke-chute-v516.mjs
           node --check scripts/smoke-chute-v517.mjs
           node scripts/check-chute-v516.mjs 2>&1 | tee /tmp/chute-v516-syntax.log
           cat public/chute-v517-finalization-part-*.txt > /tmp/chute-v517-concatenated.mjs
           node --check /tmp/chute-v517-concatenated.mjs 2>&1 | tee /tmp/chute-v517-syntax.log
-          cat public/chute-v520-stats-part-*.txt > /tmp/chute-v520-concatenated.mjs
-          node --check /tmp/chute-v520-concatenated.mjs 2>&1 | tee /tmp/chute-v520-syntax.log
+          cat public/chute-v521-history-part-*.txt > /tmp/chute-v521-concatenated.mjs
+          node --check /tmp/chute-v521-concatenated.mjs 2>&1 | tee /tmp/chute-v521-syntax.log
           cat public/chute-v518-era-stats-part-*.txt > /tmp/chute-v518-archive.mjs
           node --check /tmp/chute-v518-archive.mjs 2>&1 | tee /tmp/chute-v518-archive-syntax.log
-          node scripts/audit-chute-v520.mjs
+          node scripts/audit-chute-v521.mjs
 
       - name: Validate required files and active imports
         run: |
@@ -47,44 +47,46 @@ jobs:
           test -s public/chute-v5162-playoff-seeding.mjs
           test -s public/chute-v517-finalization.mjs
           test -s public/chute-v517-finalization.css
-          test -s public/chute-v520-stats.mjs
-          test -s public/chute-v520-stats.css
-          test -s public/chute-v520-stats-sync.mjs
+          test -s public/chute-v521-history.mjs
+          test -s public/chute-v521-history.css
+          test -s public/chute-v521-history-sync.mjs
           test -s public/chute-v520-stats-guard.mjs
-          test -s scripts/audit-chute-v520.mjs
-          test -s scripts/smoke-chute-v520.mjs
+          test -s scripts/audit-chute-v521.mjs
+          test -s scripts/smoke-chute-v521.mjs
           test -s scripts/smoke-chute-v516.mjs
           test -s scripts/smoke-chute-v517.mjs
           for index in $(seq 0 11); do part=$(printf "%02d" "$index"); test -s "public/chute-v516-events-stats-part-${part}.txt"; done
           for index in $(seq 0 7); do part=$(printf "%02d" "$index"); test -s "public/chute-v517-finalization-part-${part}.txt"; done
-          for index in $(seq 0 7); do part=$(printf "%02d" "$index"); test -s "public/chute-v520-stats-part-${part}.txt"; done
-          head -n 1 public/chute-official.mjs | grep -q "chute-bootstrap.mjs?v=5.20.1"
-          grep -q "chute-v520-stats.mjs?v=5.20.1" public/chute-official.mjs
-          grep -q "chute-v520-stats-sync.mjs?v=5.20.1" public/chute-official.mjs
-          grep -q "chute-v520-stats-guard.mjs?v=5.20.1" public/chute-official.mjs
+          for index in $(seq 0 9); do part=$(printf "%02d" "$index"); test -s "public/chute-v521-history-part-${part}.txt"; done
+          head -n 1 public/chute-official.mjs | grep -q "chute-bootstrap.mjs?v=5.21.0"
+          grep -q "chute-v521-history.mjs?v=5.21.0" public/chute-official.mjs
+          grep -q "chute-v521-history-sync.mjs?v=5.21.0" public/chute-official.mjs
+          grep -q "chute-v520-stats-guard.mjs?v=5.21.0" public/chute-official.mjs
           grep -q "chute:boot-complete" public/chute-official.mjs
-          ! grep -q "pageBeforeStatistics" public/chute-official.mjs
-          ! grep -q "chute-v5183-stats-preflight.mjs" public/chute-official.mjs
-          ! grep -q "chute-v519-stats.mjs" public/chute-official.mjs
+          ! grep -q "chute-v520-stats.mjs" public/chute-official.mjs
+          ! grep -q "chute-v520-stats-sync.mjs" public/chute-official.mjs
           ! grep -q "chute-v58-analysis.mjs" public/chute-official.mjs
-          grep -q "const CACHE = 'chute-mundo-v5.20.1'" public/sw.js
-          grep -q "chute-bootstrap.mjs?v=5.20.1" public/sw.js
+          grep -q "const CACHE = 'chute-mundo-v5.21.0'" public/sw.js
+          grep -q "chute-v521-history-part-" public/sw.js
           grep -q "self.clients.claim()" public/sw.js
           grep -q "fetch(request, { cache: 'no-store' })" public/sw.js
-          ! grep -q "chute-v5183-stats-preflight.mjs" public/sw.js
-          ! grep -q "chute-v519-stats.mjs" public/sw.js
-          ! grep -q "chute-v58-analysis.mjs" public/sw.js
-          grep -q "chute-official.mjs?v=5.20.1" public/index.html
-          grep -q "Chute Mundo v5.20.1 · Competición" public/index.html
+          ! grep -q "chute-v520-stats.mjs" public/sw.js
+          ! grep -q "chute-v520-stats-sync.mjs" public/sw.js
+          grep -q "chute-official.mjs?v=5.21.0" public/index.html
+          grep -q "Chute Mundo v5.21.0 · Competición" public/index.html
+          grep -q "const APP_VERSION = '5.21.0'" public/chute-bootstrap.mjs
           grep -q "resetLegacyRuntimeOnce" public/chute-bootstrap.mjs
           grep -q "registration.unregister()" public/chute-bootstrap.mjs
           grep -q "core.navigate('inicio')" public/chute-bootstrap.mjs
-          grep -q "Análisis histórico" public/chute-v520-stats-part-00.txt
-          grep -q "Portería imbatida" public/chute-v520-stats-part-00.txt
-          ! grep -q "document.title = 'Chute Mundo" public/chute-v520-stats-part-*.txt
-          grep -q "data-cm-v520-filter=\"era\"" public/chute-v520-stats-part-06.txt
-          grep -q "data-cm-v520-filter=\"tournament\"" public/chute-v520-stats-part-06.txt
-          grep -q "__cmV520StatsSync" public/chute-v520-stats-sync.mjs
+          grep -q "La Tabla Eterna" public/chute-v521-history-part-00.txt
+          grep -q "Salón de la Gloria" public/chute-v521-history-part-00.txt
+          grep -q "Archivo de Campeones" public/chute-v521-history-part-00.txt
+          grep -q "data-cm-v521-filter=\"era\"" public/chute-v521-history-part-09.txt
+          grep -q "data-cm-v521-filter=\"tournament\"" public/chute-v521-history-part-09.txt
+          grep -q "data-cm-v521-filter=\"format\"" public/chute-v521-history-part-09.txt
+          grep -q "data-cm-v521-filter=\"status\"" public/chute-v521-history-part-09.txt
+          grep -q "data-cm-v521-filter=\"team\"" public/chute-v521-history-part-09.txt
+          grep -q "__cmV521HistorySync" public/chute-v521-history-sync.mjs
           grep -q "rel=\"icon\" href=\"/chute-icon.svg\"" public/index.html
 
       - name: Install browser
@@ -96,7 +98,7 @@ jobs:
         run: |
           npx serve public -l 4173 --no-clipboard > /tmp/chute-server.log 2>&1 &
           sleep 3
-          node scripts/smoke-chute-v520.mjs > /tmp/chute-smoke-v520.log 2>&1
+          node scripts/smoke-chute-v521.mjs > /tmp/chute-smoke-v521.log 2>&1
           node scripts/smoke-chute-v516.mjs > /tmp/chute-smoke-v516.log 2>&1
           node scripts/smoke-chute-v517.mjs > /tmp/chute-smoke-v517.log 2>&1
 
@@ -104,12 +106,12 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: chute-v5-20-1-diagnostics
+          name: chute-v5-21-diagnostics
           path: |
             /tmp/chute-v516-syntax.log
             /tmp/chute-v517-syntax.log
             /tmp/chute-v518-archive-syntax.log
-            /tmp/chute-v520-syntax.log
+            /tmp/chute-v521-syntax.log
             /tmp/chute-smoke-*.log
             /tmp/chute-server.log
           retention-days: 3
