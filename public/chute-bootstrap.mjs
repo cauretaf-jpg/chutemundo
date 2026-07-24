@@ -1,4 +1,4 @@
-const APP_VERSION = '5.21.0';
+const APP_VERSION = '5.22.0';
 const APP_TITLE = `Chute Mundo v${APP_VERSION} · Competición`;
 const CACHE_NAME = `chute-mundo-v${APP_VERSION}`;
 const RESET_KEY = `cm_runtime_reset_${APP_VERSION.replaceAll('.', '_')}`;
