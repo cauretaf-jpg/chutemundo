@@ -1,0 +1,3 @@
+Chute Mundo v5.23.0
+Participantes dinámicos, Centro de Control, Reglamento Oficial y divisiones preparadas.
+Release commit: 4a11a5ffe438ba86a91eee713b0150d21d2ab55d
