@@ -1,0 +1,3 @@
+ChuteMundo production deployment trigger for Randolph/Randolf Salazar local photo.
+Expected asset: /player-photos/perla/randolph-salazar.png
+Expected patch: chute-v522-photo-fix.mjs?v=5.22.4 loaded before profiles.
