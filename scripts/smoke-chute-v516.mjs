@@ -8,7 +8,7 @@ page.on('console', (message) => { if (message.type() === 'error') errors.push(me
 
 try {
   await page.goto('http://127.0.0.1:4173/', { waitUntil: 'domcontentloaded' });
-  await page.waitForFunction(() => window.ChuteV516EventsStats && window.ChuteV515MatchCenter && window.ChuteMundoCore && window.ChuteV521History);
+  await page.waitForFunction(() => window.ChuteV516EventsStats && window.ChuteV515MatchCenter && window.ChuteMundoCore && window.ChuteV521History && window.ChuteV522StatsRefinement);
 
   const pure = await page.evaluate(() => {
     const api = window.ChuteV516EventsStats;
@@ -55,7 +55,7 @@ try {
     return { version: api.version, venues: api.venues(source), starter, substitute, goalkeeper, untracked, options };
   });
 
-  if (pure.version !== '5.16.1' || !pure.venues.includes("Wladi's House") || !pure.venues.includes("Carlo's House")) throw new Error(`Sedes o versión inválidas: ${JSON.stringify(pure)}`);
+  if (pure.version !== '5.16.1' || !pure.venues.includes("Wladi's House") || !pure.venues.includes("Carlo's House")) throw new Error(`Sedes o versión base inválidas: ${JSON.stringify(pure)}`);
   if (pure.starter.appearances !== 1 || pure.starter.minutes !== 20 || pure.starter.substituted !== 1 || pure.starter.goals !== 1 || pure.starter.assists !== 0) throw new Error(`Estadísticas del titular inválidas: ${JSON.stringify(pure.starter)}`);
   if (pure.substitute.appearances !== 1 || pure.substitute.entries !== 1 || pure.substitute.minutes !== 100 || pure.substitute.penaltiesScored !== 1 || pure.substitute.yellows !== 1) throw new Error(`Estadísticas del suplente inválidas: ${JSON.stringify(pure.substitute)}`);
   if (!pure.goalkeeper.goalkeeper || pure.goalkeeper.appearances !== 1 || pure.goalkeeper.minutes !== 0 || pure.goalkeeper.goalsConceded !== 1) throw new Error(`Estadísticas de portero inválidas: ${JSON.stringify(pure.goalkeeper)}`);
@@ -77,6 +77,7 @@ try {
   await page.waitForSelector('[data-cm-v516-goal-minute="home"]');
   await page.waitForSelector('[data-cm-v516-card-minute="home"]');
   await page.waitForSelector('[data-cm-v516-sub-minute="home"]');
+  await page.waitForFunction(() => [...(document.getElementById('cmV59Venue')?.options || [])].some((option) => option.value === "Carloco's House"));
 
   const visual = await page.evaluate(() => {
     const venue = document.getElementById('cmV59Venue');
@@ -99,7 +100,7 @@ try {
       viewport: document.documentElement.clientWidth
     };
   });
-  if (!/5\.(16|17|18|19|20|21)/.test(visual.title) || visual.venueTag !== 'SELECT' || !visual.venues.includes("Wladi's House") || !visual.venues.includes("Carlo's House") || !visual.addVenue || visual.goalMinutes !== 2 || visual.cardMinutes !== 2 || visual.subMinutes !== 2 || !visual.groups.includes('EN CANCHA') || visual.onFieldOptions < 4 || !visual.globalMinuteHidden || !visual.legacyPenaltyHidden || !visual.undoUnified || visual.width > visual.viewport + 3) throw new Error(`Interfaz v5.16 inválida: ${JSON.stringify(visual)}`);
+  if (!/5\.(16|17|18|19|20|21|22)/.test(visual.title) || visual.venueTag !== 'SELECT' || !visual.venues.includes("Wladi's House") || !visual.venues.includes("Carloco's House") || visual.venues.some((venue) => /Campo 1|^Carlo's House$/.test(venue)) || !visual.addVenue || visual.goalMinutes !== 2 || visual.cardMinutes !== 2 || visual.subMinutes !== 2 || !visual.groups.includes('EN CANCHA') || visual.onFieldOptions < 4 || !visual.globalMinuteHidden || !visual.legacyPenaltyHidden || !visual.undoUnified || visual.width > visual.viewport + 3) throw new Error(`Interfaz v5.16 inválida: ${JSON.stringify(visual)}`);
 
   const playerKey = await page.evaluate(() => {
     const core = window.ChuteMundoCore;
@@ -118,9 +119,9 @@ try {
   await page.locator('[data-close-modal]').first().click();
   await page.waitForFunction(() => document.getElementById('modal')?.hidden === true);
   await page.evaluate(() => window.ChuteMundoCore.navigate('estadisticas'));
-  await page.waitForSelector('#cmV521History', { state: 'visible' });
+  await page.waitForSelector('#cmV521History[data-cm-v522-ready="true"]', { state: 'visible' });
   const statsPage = await page.evaluate(() => ({ text: document.getElementById('cmV521History')?.innerText || '', width: document.documentElement.scrollWidth, viewport: document.documentElement.clientWidth }));
-  if (!statsPage.text.includes('La Tabla Eterna') || !statsPage.text.includes('Rankings Históricos') || !statsPage.text.includes('Salón de la Gloria') || !statsPage.text.includes('Archivo de Campeones') || statsPage.width > statsPage.viewport + 3) throw new Error(`Archivo Histórico v5.21 inválido: ${JSON.stringify(statsPage)}`);
+  if (!statsPage.text.includes('Resumen') || !statsPage.text.includes('Jugadores') || !statsPage.text.includes('Equipos y Palmarés') || !statsPage.text.includes('Torneos') || !statsPage.text.includes('Líderes acumulados') || statsPage.width > statsPage.viewport + 3) throw new Error(`Centro estadístico v5.22 inválido: ${JSON.stringify(statsPage)}`);
 
   const critical = errors.filter((message) => !/favicon|firestore|permission-denied|Failed to load resource|QUIC_NETWORK|ERR_NAME_NOT_RESOLVED|ERR_CONNECTION|network/i.test(message));
   if (critical.length) throw new Error(critical.join(' | '));
