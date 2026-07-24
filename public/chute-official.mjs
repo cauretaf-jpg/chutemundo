@@ -25,6 +25,7 @@ await import('/chute-v521-history.mjs?v=5.22.0');
 await import('/chute-v521-history-sync.mjs?v=5.22.0');
 await import('/chute-v522-stats-refinement.mjs?v=5.22.0');
 await import('/chute-v522-historical-dates.mjs?v=5.22.1');
+await import('/chute-v522-photo-fix.mjs?v=5.22.1');
 await import('/chute-v520-stats-guard.mjs?v=5.22.0');
 window.ChuteVersion?.apply?.();
 document.dispatchEvent(new CustomEvent('chute:boot-complete', {
