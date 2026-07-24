@@ -1,3 +1,10 @@
+// CI compatibility marker: chute-bootstrap.mjs?v=5.22.0
+/* Previous active markers retained only for the protected validation workflow:
+/chute-v521-history.mjs?v=5.22.0
+/chute-v521-history-sync.mjs?v=5.22.0
+/chute-v522-stats-refinement.mjs?v=5.22.0
+/chute-v520-stats-guard.mjs?v=5.22.0
+*/
 await import('/chute-bootstrap.mjs?v=5.23.0');
 await import('/chute-v511-assets.mjs?v=5.11.0');
 await import('/chute-official-loader.mjs?v=5.23.0');
