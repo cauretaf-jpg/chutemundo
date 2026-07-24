@@ -1,9 +1,9 @@
-const CACHE = 'chute-mundo-v5.22.0';
+const CACHE = 'chute-mundo-v5.22.3';
 const CORE = [
   '/', '/index.html',
   '/chute-bootstrap.mjs?v=5.22.0',
-  '/chute-official.css?v=5.16.0', '/chute-official.mjs?v=5.22.0', '/chute-official-loader.mjs?v=5.22.0',
-  '/chute-detail.mjs?v=5.22.0',
+  '/chute-official.css?v=5.16.0', '/chute-official.mjs?v=5.22.3', '/chute-official-loader.mjs?v=5.22.0',
+  '/chute-detail.mjs?v=5.22.0', '/chute-v522-photo-fix.mjs?v=5.22.3', '/chute-v522-historical-dates.mjs?v=5.22.2',
   '/chute-v513-lineups.mjs?v=5.13.0', '/chute-v513-lineups.css?v=5.13.0',
   '/chute-v514-unified-match.mjs?v=5.14.0', '/chute-v514-unified-match.css?v=5.14.0',
   '/chute-v515-match-center.mjs?v=5.15.0', '/chute-v515-match-center.css?v=5.15.0',
