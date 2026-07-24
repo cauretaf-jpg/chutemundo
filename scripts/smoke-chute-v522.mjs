@@ -115,7 +115,8 @@ try {
 
   await page.locator('[data-cm-v521-tab="archive"]').click();
   const tournamentStats = await page.locator('.cm-v522-tournament-stats').innerText();
-  if (!tournamentStats.includes('Rendimiento por competencia') || !tournamentStats.includes('Sedes consolidadas') || !tournamentStats.includes("Carloco's House") || !tournamentStats.includes("Wladi's House")) throw new Error(`Estadísticas de torneos incompletas: ${tournamentStats}`);
+  const tournamentStatsNormalized = tournamentStats.toLocaleLowerCase('es');
+  if (!tournamentStatsNormalized.includes('rendimiento por competencia') || !tournamentStatsNormalized.includes('sedes consolidadas') || !tournamentStats.includes("Carloco's House") || !tournamentStats.includes("Wladi's House")) throw new Error(`Estadísticas de torneos incompletas: ${tournamentStats}`);
 
   const mobile = await page.evaluate(() => ({ width: document.documentElement.scrollWidth, viewport: document.documentElement.clientWidth }));
   if (mobile.width > mobile.viewport + 3) throw new Error(`Desborde móvil en v5.22: ${JSON.stringify(mobile)}`);
