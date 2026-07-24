@@ -8,7 +8,7 @@ page.on('console', (message) => { if (message.type() === 'error') errors.push(me
 
 try {
   await page.goto('http://127.0.0.1:4173/', { waitUntil: 'domcontentloaded' });
-  await page.waitForFunction(() => window.ChuteV516EventsStats && window.ChuteV515MatchCenter && window.ChuteMundoCore && window.ChuteV521History && window.ChuteV522StatsRefinement);
+  await page.waitForFunction(() => window.ChuteV516EventsStats && window.ChuteV515MatchCenter && window.ChuteMundoCore && window.ChuteV521History && window.ChuteV522StatsRefinement && window.ChuteV523ControlCenter);
 
   const pure = await page.evaluate(() => {
     const api = window.ChuteV516EventsStats;
@@ -77,6 +77,7 @@ try {
   await page.waitForSelector('[data-cm-v516-goal-minute="home"]');
   await page.waitForSelector('[data-cm-v516-card-minute="home"]');
   await page.waitForSelector('[data-cm-v516-sub-minute="home"]');
+  await page.waitForSelector('.cm-v523-match-participants');
   await page.waitForFunction(() => [...(document.getElementById('cmV59Venue')?.options || [])].some((option) => option.value === "Carloco's House"));
 
   const visual = await page.evaluate(() => {
@@ -96,11 +97,13 @@ try {
       globalMinuteHidden: globalMinute ? getComputedStyle(globalMinute).display === 'none' : false,
       legacyPenaltyHidden: [...document.querySelectorAll('.cm-v516-legacy-pens-hidden')].every((item) => getComputedStyle(item).display === 'none'),
       undoUnified: Boolean(document.querySelector('[data-cm-v516-undo]')) && !document.querySelector('[data-cm-v59-undo]'),
+      participantHome: document.querySelector('[data-cm-v523-match-person="home"]')?.value,
+      participantAway: document.querySelector('[data-cm-v523-match-person="away"]')?.value,
       width: document.documentElement.scrollWidth,
       viewport: document.documentElement.clientWidth
     };
   });
-  if (!/5\.(16|17|18|19|20|21|22)/.test(visual.title) || visual.venueTag !== 'SELECT' || !visual.venues.includes("Wladi's House") || !visual.venues.includes("Carloco's House") || visual.venues.some((venue) => /Campo 1|^Carlo's House$/.test(venue)) || !visual.addVenue || visual.goalMinutes !== 2 || visual.cardMinutes !== 2 || visual.subMinutes !== 2 || !visual.groups.includes('EN CANCHA') || visual.onFieldOptions < 4 || !visual.globalMinuteHidden || !visual.legacyPenaltyHidden || !visual.undoUnified || visual.width > visual.viewport + 3) throw new Error(`Interfaz v5.16 inválida: ${JSON.stringify(visual)}`);
+  if (!/5\.(16|17|18|19|20|21|22|23)/.test(visual.title) || visual.venueTag !== 'SELECT' || !visual.venues.includes("Wladi's House") || !visual.venues.includes("Carloco's House") || visual.venues.some((venue) => /Campo 1|^Carlo's House$/.test(venue)) || !visual.addVenue || visual.goalMinutes !== 2 || visual.cardMinutes !== 2 || visual.subMinutes !== 2 || !visual.groups.includes('EN CANCHA') || visual.onFieldOptions < 4 || !visual.globalMinuteHidden || !visual.legacyPenaltyHidden || !visual.undoUnified || visual.participantHome !== 'participante_alvaro' || visual.participantAway !== 'participante_carlos' || visual.width > visual.viewport + 3) throw new Error(`Interfaz v5.16 inválida: ${JSON.stringify(visual)}`);
 
   const playerKey = await page.evaluate(() => {
     const core = window.ChuteMundoCore;
@@ -120,8 +123,9 @@ try {
   await page.waitForFunction(() => document.getElementById('modal')?.hidden === true);
   await page.evaluate(() => window.ChuteMundoCore.navigate('estadisticas'));
   await page.waitForSelector('#cmV521History[data-cm-v522-ready="true"]', { state: 'visible' });
+  await page.waitForSelector('[data-cm-v523-tab="participants"]');
   const statsPage = await page.evaluate(() => ({ text: document.getElementById('cmV521History')?.innerText || '', width: document.documentElement.scrollWidth, viewport: document.documentElement.clientWidth }));
-  if (!statsPage.text.includes('Resumen') || !statsPage.text.includes('Jugadores') || !statsPage.text.includes('Equipos y Palmarés') || !statsPage.text.includes('Torneos') || !statsPage.text.includes('Líderes acumulados') || statsPage.width > statsPage.viewport + 3) throw new Error(`Centro estadístico v5.22 inválido: ${JSON.stringify(statsPage)}`);
+  if (!statsPage.text.includes('Resumen') || !statsPage.text.includes('Jugadores') || !statsPage.text.includes('Equipos y Palmarés') || !statsPage.text.includes('Torneos') || !statsPage.text.includes('Participantes') || !statsPage.text.includes('Líderes acumulados') || statsPage.width > statsPage.viewport + 3) throw new Error(`Centro estadístico v5.23 inválido: ${JSON.stringify(statsPage)}`);
 
   const critical = errors.filter((message) => !/favicon|firestore|permission-denied|Failed to load resource|QUIC_NETWORK|ERR_NAME_NOT_RESOLVED|ERR_CONNECTION|network/i.test(message));
   if (critical.length) throw new Error(critical.join(' | '));

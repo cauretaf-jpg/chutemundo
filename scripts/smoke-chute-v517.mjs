@@ -19,7 +19,7 @@ async function clickCurrent(selector) {
 
 try {
   await page.goto('http://127.0.0.1:4173/', { waitUntil: 'domcontentloaded' });
-  await page.waitForFunction(() => window.ChuteV517Finalization && window.ChuteMundoCore && window.ChuteTournamentHub && window.ChuteV520StatsGuard && window.ChuteV522StatsRefinement);
+  await page.waitForFunction(() => window.ChuteV517Finalization && window.ChuteMundoCore && window.ChuteTournamentHub && window.ChuteV520StatsGuard && window.ChuteV522StatsRefinement && window.ChuteV523ControlCenter);
   const setup = await page.evaluate(() => {
     const core = window.ChuteMundoCore;
     const original = structuredClone(core.getState());
@@ -39,6 +39,7 @@ try {
     const match = (id, round, label, homeIndex, awayIndex, homeGoals, awayGoals, goals, extras = {}) => ({
       id, stage: 'knockout', round, label, home: teams[homeIndex].id, away: teams[awayIndex].id,
       homeGoals, awayGoals, goals, cards: [], specialEvents: [], participationTracked: true,
+      participantHome: 'participante_alvaro', participantAway: 'participante_carlos',
       date: '2026-07-21', venue: "Wladi's House", lineups: { home: lineup(homeIndex), away: lineup(awayIndex) }, ...extras
     });
     const semi1Goals = [goal('g1', 'home', teams[0].id, names[0][1], names[0][2], 20), goal('g2', 'away', teams[3].id, names[3][1], '', 70)];
@@ -48,6 +49,7 @@ try {
     ];
     const tournament = {
       id: 'v517-finalization-test', name: 'Torneo finalización v5.17', type: 'league_playoff', status: 'active', teamIds: teams.map((team) => team.id),
+      participantLocal: 'participante_alvaro', participantAway: 'participante_carlos',
       matches: [
         match('s1', 'Semifinales', 'Semifinal 1', 0, 3, 1, 1, semi1Goals, { shootoutStarted: true, homePens: 4, awayPens: 3, penaltyShootout: shootout }),
         match('s2', 'Semifinales', 'Semifinal 2', 1, 2, 2, 0, [goal('g3', 'home', teams[1].id, names[1][1], names[1][2], 30), goal('g4', 'home', teams[1].id, names[1][1], '', 60)]),
@@ -128,12 +130,17 @@ try {
     return tournament?.status === 'historical' && tournament.awardsEngineVersion === '5.17.0' && tournament.awardDetails?.mvp?.playerName;
   }, setup.tournamentId);
 
+  const finalData = await page.evaluate((id) => {
+    const tournament = window.ChuteMundoCore.getState().tournaments.find((item) => item.id === id);
+    return { status: tournament?.status, participantChampion: tournament?.participantChampion, champion: tournament?.champion };
+  }, setup.tournamentId);
   const title = await page.title();
-  if (!/5\.(17|18|19|20|21|22)/.test(title)) throw new Error(`Título incorrecto: ${title}`);
+  if (!/5\.(17|18|19|20|21|22|23)/.test(title)) throw new Error(`Título incorrecto: ${title}`);
+  if (finalData.participantChampion && finalData.participantChampion !== 'participante_alvaro') throw new Error(`Participante campeón incorrecto: ${JSON.stringify(finalData)}`);
   const critical = errors.filter((message) => !/favicon|firestore|permission-denied|Failed to load resource|QUIC_NETWORK|ERR_NAME_NOT_RESOLVED|ERR_CONNECTION|network/i.test(message));
   if (critical.length) throw new Error(critical.join(' | '));
   await page.evaluate(() => window.ChuteMundoCore.setState(window.__cmV517Original));
-  console.log('Chute Mundo v5.17 regression smoke OK', { penaltyText, cards: awards.cards, mvp: awards.computed.awards.mvp.playerName, goalkeeper: awards.computed.awards.goalkeeper.playerName, quality, status });
+  console.log('Chute Mundo v5.17 regression smoke OK', { penaltyText, cards: awards.cards, mvp: awards.computed.awards.mvp.playerName, goalkeeper: awards.computed.awards.goalkeeper.playerName, quality, finalData });
 } finally {
   await browser.close();
 }
