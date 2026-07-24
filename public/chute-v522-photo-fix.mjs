@@ -1,8 +1,8 @@
 const model = window.ChuteDetailModel;
 if (!model) throw new Error('Chute Mundo no está listo para corregir fotografías.');
 
-const VERSION = '5.22.3';
-const SALAZAR_URL = 'https://raw.githubusercontent.com/cauretaf-jpg/TorneosChute/7ef9a3a605b85fc96de921f961b2e751230d112e/public/player-photos/perla/randolph-salazar.png';
+const VERSION = '5.22.4';
+const SALAZAR_URL = '/player-photos/perla/randolph-salazar.png?v=bb2a2d76';
 const previousPhotoUrl = model.photoUrl?.bind(model);
 const previousPhoto = model.photo?.bind(model);
 const normalize = (value = '') => String(value).normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
@@ -31,7 +31,7 @@ function repairImage(image) {
   image.onerror = () => {
     image.onerror = null;
     image.classList.remove('photo-fallback');
-    image.setAttribute('src', `${SALAZAR_URL}?retry=${Date.now()}`);
+    image.setAttribute('src', `/player-photos/perla/randolph-salazar.png?retry=${Date.now()}`);
   };
   return true;
 }
