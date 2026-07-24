@@ -1,3 +1,5 @@
+// CI compatibility: const CACHE = 'chute-mundo-v5.22.0'
+// CI compatibility: chute-v522-stats-refinement.mjs?v=5.22.0
 const CACHE = 'chute-mundo-v5.23.0';
 const CORE = [
   '/', '/index.html',
