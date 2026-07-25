@@ -21,8 +21,10 @@ function tournamentFromHub() {
 
 function setVisible(element, visible) {
   if (!element) return;
-  element.hidden = !visible;
-  element.setAttribute('aria-hidden', visible ? 'false' : 'true');
+  const hidden = !visible;
+  if (element.hidden !== hidden) element.hidden = hidden;
+  const aria = visible ? 'false' : 'true';
+  if (element.getAttribute('aria-hidden') !== aria) element.setAttribute('aria-hidden', aria);
 }
 
 function qualityCounts(tournament) {
@@ -45,7 +47,7 @@ function syncTournamentToolbar() {
 
   const random = tools.querySelector('[data-v511-random]');
   const start = tools.querySelector('[data-v511-start]');
-  let finish = tools.querySelector('[data-cm-v517-finish], [data-v511-finish]');
+  const finish = tools.querySelector('[data-cm-v517-finish], [data-v511-finish]');
   const quality = tools.querySelector('[data-cm-v517-quality]');
   const schedule = tools.querySelector('[data-v511-schedule]');
   const upcoming = tournament.status === 'upcoming';
@@ -71,14 +73,16 @@ function syncTournamentToolbar() {
     finish.disabled = !core.canEdit?.();
     finish.classList.toggle('danger', critical > 0);
     finish.classList.toggle('primary', critical === 0);
-    finish.textContent = critical > 0
+    const text = critical > 0
       ? `✓ Revisar torneo · ${critical} bloqueos`
       : warnings > 0
         ? `✓ Revisar y finalizar · ${warnings} avisos`
         : '✓ Revisar y finalizar torneo';
-    finish.title = critical > 0
+    const title = critical > 0
       ? 'Abre el control de calidad. El torneo no puede finalizar mientras existan bloqueos.'
       : 'Abre la revisión final antes de cerrar el torneo.';
+    if (finish.textContent !== text) finish.textContent = text;
+    if (finish.title !== title) finish.title = title;
   }
 
   tools.dataset.cmV5242Toolbar = tournament.status;
@@ -115,8 +119,7 @@ function activateParticipants() {
   host.querySelectorAll('[data-cm-v521-panel]').forEach((item) => {
     const active = item === panel;
     item.classList.toggle('active', active);
-    item.hidden = !active;
-    item.setAttribute('aria-hidden', active ? 'false' : 'true');
+    setVisible(item, active);
   });
   localStorage.setItem('cm_v523_stats_tab', 'participants');
 }
@@ -129,8 +132,7 @@ function deactivateParticipants() {
   }
   if (panel) {
     panel.classList.remove('active');
-    panel.hidden = true;
-    panel.setAttribute('aria-hidden', 'true');
+    setVisible(panel, false);
   }
   localStorage.removeItem('cm_v523_stats_tab');
 }
@@ -148,8 +150,7 @@ function syncStatsTabs() {
     return;
   }
   panel.classList.remove('active');
-  panel.hidden = true;
-  panel.setAttribute('aria-hidden', 'true');
+  setVisible(panel, false);
 }
 
 function refresh() {
@@ -182,9 +183,7 @@ document.addEventListener('click', (event) => {
 
 new MutationObserver(scheduleRefresh).observe(document.body, {
   childList: true,
-  subtree: true,
-  attributes: true,
-  attributeFilter: ['class', 'hidden', 'data-tournament-id']
+  subtree: true
 });
 
 document.addEventListener('chute:ready', scheduleRefresh);
