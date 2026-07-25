@@ -66,10 +66,11 @@ try {
   const admin = await page.evaluate(() => ({
     tabs: [...document.querySelectorAll('[data-cm-v523-admin-tab]')].map((button) => button.textContent.trim()),
     status: document.querySelector('[data-cm-v523-admin-panel="status"]')?.innerText || '',
-    title: document.title
+    title: document.title,
+    version: window.ChuteVersion?.version || ''
   }));
   for (const label of ['Estado', 'Participantes', 'Reglamento', 'Datos y respaldos', 'Mantenimiento']) if (!admin.tabs.includes(label)) throw new Error(`Falta pestaña administrativa ${label}: ${JSON.stringify(admin.tabs)}`);
-  if (!admin.status.includes('Listo para comenzar las divisiones') || !admin.title.includes('5.23.0')) throw new Error(`Estado divisional o versión incorrectos: ${JSON.stringify(admin)}`);
+  if (!admin.status.includes('Listo para comenzar las divisiones') || !/^5\.(?:23|24)\./.test(admin.version) || !admin.title.includes(admin.version)) throw new Error(`Estado divisional o versión incorrectos: ${JSON.stringify(admin)}`);
 
   await page.locator('[data-cm-v523-admin-tab="rules"]').click();
   const rulesText = await page.locator('[data-cm-v523-admin-panel="rules"]').innerText();
@@ -104,12 +105,14 @@ try {
   if (!rows.find((row) => row.id === 'participante_sofia')?.pj || rows.find((row) => row.id === 'participante_sofia')?.titles !== 1) throw new Error(`Acumulados de Sofía incorrectos: ${JSON.stringify(rows)}`);
 
   const mobile = await page.evaluate(() => ({ width: document.documentElement.scrollWidth, viewport: document.documentElement.clientWidth }));
-  if (mobile.width > mobile.viewport + 3) throw new Error(`Desborde móvil en v5.23: ${JSON.stringify(mobile)}`);
+  if (mobile.width > mobile.viewport + 3) throw new Error(`Desborde móvil en regresión v5.23: ${JSON.stringify(mobile)}`);
   const critical = errors.filter((message) => !/favicon|firestore|permission-denied|Failed to load resource|QUIC_NETWORK|ERR_NAME_NOT_RESOLVED|ERR_CONNECTION|network|service worker|example.com/i.test(message));
   if (critical.length) throw new Error(critical.join(' | '));
   await page.evaluate(() => window.ChuteMundoCore.setState(window.__cmV523Original));
-  console.log('Chute Mundo v5.23 participants and divisions smoke OK', { setup, admin, selectors, rows, mobile });
+  console.log('Chute Mundo v5.23 regression smoke OK', { setup, admin, selectors, rows, mobile });
 } finally {
   await context.close();
   await browser.close();
 }
+
+await import('./smoke-chute-v524.mjs');

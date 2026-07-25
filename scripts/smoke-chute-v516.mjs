@@ -103,7 +103,7 @@ try {
       viewport: document.documentElement.clientWidth
     };
   });
-  if (!/5\.(16|17|18|19|20|21|22|23)/.test(visual.title) || visual.venueTag !== 'SELECT' || !visual.venues.includes("Wladi's House") || !visual.venues.includes("Carloco's House") || visual.venues.some((venue) => /Campo 1|^Carlo's House$/.test(venue)) || !visual.addVenue || visual.goalMinutes !== 2 || visual.cardMinutes !== 2 || visual.subMinutes !== 2 || !visual.groups.includes('EN CANCHA') || visual.onFieldOptions < 4 || !visual.globalMinuteHidden || !visual.legacyPenaltyHidden || !visual.undoUnified || visual.participantHome !== 'participante_alvaro' || visual.participantAway !== 'participante_carlos' || visual.width > visual.viewport + 3) throw new Error(`Interfaz v5.16 inválida: ${JSON.stringify(visual)}`);
+  if (!/5\.(16|17|18|19|20|21|22|23|24)/.test(visual.title) || visual.venueTag !== 'SELECT' || !visual.venues.includes("Wladi's House") || !visual.venues.includes("Carloco's House") || visual.venues.some((venue) => /Campo 1|^Carlo's House$/.test(venue)) || !visual.addVenue || visual.goalMinutes !== 2 || visual.cardMinutes !== 2 || visual.subMinutes !== 2 || !visual.groups.includes('EN CANCHA') || visual.onFieldOptions < 4 || !visual.globalMinuteHidden || !visual.legacyPenaltyHidden || !visual.undoUnified || visual.participantHome !== 'participante_alvaro' || visual.participantAway !== 'participante_carlos' || visual.width > visual.viewport + 3) throw new Error(`Interfaz v5.16 inválida: ${JSON.stringify(visual)}`);
 
   const playerKey = await page.evaluate(() => {
     const core = window.ChuteMundoCore;

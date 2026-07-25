@@ -8,14 +8,16 @@ const [pkgRaw, index, official, bootstrap, sw, control, css, divisions] = await 
   read('public/sw.js'), read('public/chute-v523-control-center.mjs'), read('public/chute-v523-participants-admin.css'), read('public/chute-v54.mjs')
 ]);
 const pkg = JSON.parse(pkgRaw);
+const currentVersion = pkg.version;
 const failures = [];
 const check = (condition, message) => { if (!condition) failures.push(message); };
+const versionAtLeast523 = /^5\.(?:2[4-9]|[3-9]\d)\.\d+$/.test(currentVersion) || /^5\.23\.\d+$/.test(currentVersion);
 
-check(pkg.version === '5.23.0', 'package.json no está en v5.23.0.');
-check(index.includes('Chute Mundo v5.23.0 · Competición') && index.includes('/chute-official.mjs?v=5.23.0'), 'index.html no usa v5.23.0.');
-check(bootstrap.includes("const APP_VERSION = '5.23.0'"), 'El bootstrap no fija v5.23.0.');
-check(official.includes('/chute-v523-control-center.mjs?v=5.23.0'), 'El Centro de Control v5.23 no está activo.');
-check(sw.includes("const CACHE = 'chute-mundo-v5.23.0'") && sw.includes('/chute-v523-control-center.mjs?v=5.23.0'), 'La PWA no precarga v5.23.');
+check(versionAtLeast523, `package.json debe conservar las funciones incorporadas desde v5.23; versión actual: ${currentVersion}.`);
+check(index.includes(`Chute Mundo v${currentVersion} · Competición`) && index.includes(`/chute-official.mjs?v=${currentVersion}`), 'index.html no usa la versión canónica actual.');
+check(bootstrap.includes(`const APP_VERSION = '${currentVersion}'`), 'El bootstrap no fija la versión canónica actual.');
+check(official.includes(`/chute-v523-control-center.mjs?v=${currentVersion}`), 'El Centro de Control v5.23 no permanece activo en la versión actual.');
+check(sw.includes(`const CACHE = 'chute-mundo-v${currentVersion}'`) && sw.includes(`/chute-v523-control-center.mjs?v=${currentVersion}`), 'La PWA no conserva el Centro de Control v5.23.');
 check(control.includes("const HOME_DEFAULT = 'participante_alvaro'") && control.includes("const AWAY_DEFAULT = 'participante_carlos'"), 'Faltan participantes predeterminados.');
 check(control.includes('cmV523ParticipantForm') && control.includes('data-cm-v523-match-person'), 'Falta gestión dinámica o asignación por partido.');
 check(control.includes('La Liga de los Participantes') && control.includes('Ranking de participantes'), 'Faltan estadísticas de participantes.');
@@ -27,11 +29,11 @@ check(divisions.includes('yellowLimit: 2') && divisions.includes('participantHom
 check(css.includes('.cm-v523-admin-tabs') && css.includes('.cm-v523-match-participants') && css.includes('.cm-v523-participant-cards'), 'Faltan estilos de Administración, partido o estadísticas.');
 
 if (failures.length) {
-  console.error('Auditoría Chute Mundo v5.23 fallida:');
+  console.error('Auditoría de regresión Chute Mundo v5.23 fallida:');
   failures.forEach((failure) => console.error(`- ${failure}`));
   process.exit(1);
 }
-console.log('Auditoría Chute Mundo v5.23 OK');
+console.log(`Auditoría de regresión v5.23 OK sobre Chute Mundo v${currentVersion}`);
 console.log('- Participantes dinámicos con Álvaro local y Carlos visita.');
 console.log('- Estadísticas históricas de participantes.');
 console.log('- Administración reorganizada y Reglamento Oficial.');

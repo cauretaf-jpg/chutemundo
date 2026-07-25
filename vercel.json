@@ -11,7 +11,7 @@
   "rewrites": [
     {
       "source": "/",
-      "destination": "/public/chute-official.html"
+      "destination": "/public/index.html"
     }
   ],
   "headers": [
