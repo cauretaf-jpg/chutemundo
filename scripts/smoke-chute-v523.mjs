@@ -114,3 +114,5 @@ try {
   await context.close();
   await browser.close();
 }
+
+await import('./smoke-chute-v524.mjs');
