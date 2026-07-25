@@ -32,7 +32,7 @@ check(tournamentsSource.includes('cmV524ShowMore') && tournamentsSource.includes
 check(tournamentsSource.includes("window.confirm('Hay información sin guardar"), 'Falta protección al cerrar un formulario con cambios.');
 check(archiveSource.includes('let archiveOpen = false'), 'El historial no comienza cerrado.');
 check(archiveSource.includes('Ver torneos anteriores') && archiveSource.includes('Ocultar torneos anteriores'), 'Faltan los controles para abrir y cerrar el archivo.');
-check(fixesSource.includes('syncTournamentToolbar') && fixesSource.includes('dataCmV5242Redundant'), 'Falta la barra contextual o la eliminación de acciones duplicadas.');
+check(fixesSource.includes('syncTournamentToolbar') && fixesSource.includes('cmV5242Redundant'), 'Falta la barra contextual o la eliminación de acciones duplicadas.');
 check(fixesSource.includes('activateParticipants') && fixesSource.includes('deactivateParticipants') && fixesSource.includes("panel.dataset.cmV521Panel = 'participants'"), 'Participantes no está integrado al sistema de pestañas históricas.');
 check(fixesSource.includes('localStorage.removeItem') && fixesSource.includes('nativeStatsTab'), 'Falta limpiar el estado de Participantes al cambiar de pestaña.');
 check(!tournamentsSource.includes('setInterval(') && !archiveSource.includes('setInterval(') && !fixesSource.includes('setInterval('), 'La organización de Torneos no debe usar intervalos periódicos.');
