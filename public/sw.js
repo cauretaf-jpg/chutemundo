@@ -19,7 +19,7 @@ const CORE = [
   ...Array.from({ length: 10 }, (_, index) => `/chute-v521-history-part-${String(index).padStart(2, '0')}.txt?v=5.21.0`),
   '/chute-v522-stats-refinement.mjs?v=5.24.0', '/chute-v522-stats-refinement.css?v=5.22.0',
   '/chute-v523-control-center.mjs?v=5.24.0', '/chute-v523-participants-admin.css?v=5.23.0',
-  '/chute-v524-tournaments.mjs?v=5.24.0', '/chute-v524-tournaments.css?v=5.24.0',
+  '/chute-v524-tournaments.mjs?v=5.24.0', '/chute-v524-tournaments.css?v=5.24.0', '/chute-v524-tournament-render-guard.mjs?v=5.24.0',
   '/chute-v520-stats-guard.mjs?v=5.24.0',
   '/manifest.webmanifest', '/chute-icon.svg', '/chute-icon-maskable.svg'
 ];
