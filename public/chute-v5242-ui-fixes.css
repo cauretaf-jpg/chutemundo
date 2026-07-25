@@ -1,0 +1,7 @@
+[data-v511-tools] > [hidden],
+[data-cm-v523-panel="participants"][hidden],
+[data-cm-v523-panel="participants"]:not(.active){display:none!important}
+[data-v511-tools][data-cm-v5242-toolbar="active"]{align-items:center}
+[data-v511-tools] [data-cm-v517-finish]{white-space:nowrap}
+[data-v511-tools] [data-cm-v517-quality][data-cm-v5242-redundant]{display:none!important}
+@media(max-width:720px){[data-v511-tools] [data-cm-v517-finish],[data-v511-tools] [data-v511-schedule]{width:100%}}
