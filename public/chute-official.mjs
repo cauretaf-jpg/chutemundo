@@ -35,6 +35,7 @@ await import('/chute-v522-stats-refinement.mjs?v=5.24.0');
 await import('/chute-v522-historical-dates.mjs?v=5.22.2');
 await import('/chute-v523-control-center.mjs?v=5.24.0');
 await import('/chute-v524-tournaments.mjs?v=5.24.0');
+await import('/chute-v524-tournament-render-guard.mjs?v=5.24.0');
 await import('/chute-v520-stats-guard.mjs?v=5.24.0');
 window.ChuteVersion?.apply?.();
 document.dispatchEvent(new CustomEvent('chute:boot-complete', {
