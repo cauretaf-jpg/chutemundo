@@ -5,7 +5,7 @@
 /chute-v522-stats-refinement.mjs?v=5.22.0
 /chute-v520-stats-guard.mjs?v=5.22.0
 */
-await import('/chute-bootstrap.mjs?v=5.24.0');
+await import('/chute-bootstrap.mjs?v=5.24.1');
 await import('/chute-v511-assets.mjs?v=5.11.0');
 await import('/chute-official-loader.mjs?v=5.24.0');
 await import('/password-reset.mjs?v=3.0.3');
@@ -37,8 +37,9 @@ await import('/chute-v523-control-center.mjs?v=5.24.0');
 await import('/chute-v524-form-dirty-guard.mjs?v=5.24.0');
 await import('/chute-v524-tournaments.mjs?v=5.24.0');
 await import('/chute-v524-tournament-render-guard.mjs?v=5.24.0');
+await import('/chute-v5241-history-collapse.mjs?v=5.24.1');
 await import('/chute-v520-stats-guard.mjs?v=5.24.0');
 window.ChuteVersion?.apply?.();
 document.dispatchEvent(new CustomEvent('chute:boot-complete', {
-  detail: { version: window.ChuteVersion?.version || '5.24.0', core: window.ChuteMundoCore }
+  detail: { version: window.ChuteVersion?.version || '5.24.1', core: window.ChuteMundoCore }
 }));
