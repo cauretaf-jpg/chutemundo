@@ -9,7 +9,7 @@ page.on('console', (message) => { if (message.type() === 'error') errors.push(me
 
 try {
   await page.goto('http://127.0.0.1:4173/', { waitUntil: 'domcontentloaded' });
-  await page.waitForFunction(() => window.ChuteMundoCore && window.ChuteV524Tournaments && window.ChuteV5241HistoryCollapse && window.ChuteVersion?.bootCompleted);
+  await page.waitForFunction(() => window.ChuteMundoCore && window.ChuteV524Tournaments && window.ChuteV5241HistoryCollapse && window.ChuteV5242UiFixes && window.ChuteVersion?.bootCompleted);
 
   await page.evaluate(() => {
     const core = window.ChuteMundoCore;
@@ -18,7 +18,11 @@ try {
     core.canEdit = () => true;
     core.saveCloud = async () => true;
     const teams = ['a', 'b', 'c', 'd'].map((id) => ({ id, name: `Equipo ${id.toUpperCase()}`, initials: id.toUpperCase(), players: [] }));
-    const match = (id, played = true) => ({ id, stage: 'regular', round: 'Fecha 1', home: 'a', away: 'b', homeGoals: played ? 1 : null, awayGoals: played ? 0 : null });
+    const participants = [
+      { id: 'participante_alvaro', name: 'Álvaro', color: '#e74c3c', defaultSide: 'home', archived: false },
+      { id: 'participante_carlos', name: 'Carlos', color: '#3498db', defaultSide: 'away', archived: false }
+    ];
+    const match = (id, played = true) => ({ id, stage: 'regular', round: 'Fecha 1', home: 'a', away: 'b', homeGoals: played ? 1 : null, awayGoals: played ? 0 : null, participantHome: 'participante_alvaro', participantAway: 'participante_carlos' });
     const historical = Array.from({ length: 8 }, (_, index) => ({
       id: `hist-${index + 1}`,
       name: `Torneo Histórico ${index + 1}`,
@@ -31,10 +35,11 @@ try {
     }));
     const upcoming = [1, 2].map((index) => ({ id: `next-${index}`, name: `Próximo Torneo ${index}`, type: index === 1 ? 'division_season' : 'direct_knockout', status: 'upcoming', startDate: `2027-0${index}-01`, teamIds: teams.map((team) => team.id), matches: [match(`nm-${index}`, false)] }));
     const active = { id: 'active', name: 'Temporada Actual', type: 'division_season', status: 'active', startDate: '2026-08-01', teamIds: teams.map((team) => team.id), matches: [match('am-1'), match('am-2', false)] };
-    core.setState({ ...core.getState(), teams, tournaments: [...historical, ...upcoming, active] });
+    core.setState({ ...core.getState(), teams, participants, tournaments: [...historical, ...upcoming, active] });
     core.navigate('torneos');
     window.ChuteV524Tournaments.render();
     window.ChuteV5241HistoryCollapse.render();
+    window.ChuteV5242UiFixes.refresh();
   });
 
   await page.waitForSelector('#cmV524CreateToggle', { state: 'visible' });
@@ -85,19 +90,61 @@ try {
   const searched = await page.locator('#tournamentList').innerText();
   if (!searched.includes('Torneo Histórico 8')) throw new Error(`La búsqueda no encontró el torneo esperado: ${searched}`);
   await page.locator('#cmV524ClearFilters').click();
-
   await page.locator('#cmV5241ArchiveToggle').click();
   await page.waitForSelector('#cmV524HistoryPanel', { state: 'hidden' });
-  if (!(await page.locator('#cmV5241UpcomingPanel').isVisible())) throw new Error('Los próximos torneos desaparecieron al cerrar el archivo.');
+
+  await page.locator('#cmV524ActiveTournament [data-open-tournament="active"]').click();
+  await page.waitForSelector('#cmTournamentHub [data-v511-tools]', { state: 'visible' });
+  await page.evaluate(() => window.ChuteV5242UiFixes.refresh());
+  const toolbar = await page.evaluate(() => {
+    const tools = document.querySelector('#cmTournamentHub [data-v511-tools]');
+    const visible = (selector) => {
+      const element = tools?.querySelector(selector);
+      return Boolean(element && !element.hidden && element.getClientRects().length);
+    };
+    return {
+      random: visible('[data-v511-random]'),
+      start: visible('[data-v511-start]'),
+      finish: visible('[data-cm-v517-finish]'),
+      quality: visible('[data-cm-v517-quality]'),
+      schedule: visible('[data-v511-schedule]'),
+      finishText: tools?.querySelector('[data-cm-v517-finish]')?.textContent || '',
+      visibleButtons: [...tools.querySelectorAll('button')].filter((button) => !button.hidden && button.getClientRects().length).length
+    };
+  });
+  if (toolbar.random || toolbar.start || toolbar.quality || !toolbar.finish || !toolbar.schedule || toolbar.visibleButtons !== 2 || !toolbar.finishText.includes('Revisar torneo')) throw new Error(`Barra contextual incorrecta: ${JSON.stringify(toolbar)}`);
+
+  await page.evaluate(() => window.ChuteMundoCore.navigate('estadisticas'));
+  await page.waitForSelector('#cmV521History', { state: 'visible' });
+  await page.waitForSelector('[data-cm-v523-tab="participants"]');
+  await page.locator('[data-cm-v523-tab="participants"]').click();
+  await page.waitForSelector('[data-cm-v523-panel="participants"].active', { state: 'visible' });
+  const participantState = await page.evaluate(() => ({
+    title: document.querySelector('[data-cm-v523-panel="participants"]')?.textContent || '',
+    visiblePanels: [...document.querySelectorAll('#cmV521History [data-cm-v521-panel]')].filter((panel) => !panel.hidden && panel.getClientRects().length).length
+  }));
+  if (!participantState.title.includes('La Liga de los Participantes') || participantState.visiblePanels !== 1) throw new Error(`Participantes no quedó aislado: ${JSON.stringify(participantState)}`);
+
+  const nativeTab = page.locator('#cmV521History [data-cm-v521-tab]:not([data-cm-v523-tab])').first();
+  await nativeTab.click();
+  await page.waitForFunction(() => {
+    const panel = document.querySelector('[data-cm-v523-panel="participants"]');
+    return panel?.hidden && !panel.classList.contains('active') && panel.getClientRects().length === 0;
+  });
+  const nativeState = await page.evaluate(() => ({
+    participantVisible: document.querySelector('[data-cm-v523-panel="participants"]')?.getClientRects().length > 0,
+    visiblePanels: [...document.querySelectorAll('#cmV521History [data-cm-v521-panel]')].filter((panel) => !panel.hidden && panel.getClientRects().length).length
+  }));
+  if (nativeState.participantVisible || nativeState.visiblePanels !== 1) throw new Error(`Participantes siguió visible en otra pestaña: ${JSON.stringify(nativeState)}`);
 
   const mobile = await page.evaluate(() => ({ width: document.documentElement.scrollWidth, viewport: document.documentElement.clientWidth, title: document.title }));
-  if (mobile.width > mobile.viewport + 3) throw new Error(`Desborde móvil en v5.24.1: ${JSON.stringify(mobile)}`);
-  if (!mobile.title.includes('5.24.1')) throw new Error(`La versión visible no es v5.24.1: ${mobile.title}`);
+  if (mobile.width > mobile.viewport + 3) throw new Error(`Desborde móvil en v5.24.2: ${JSON.stringify(mobile)}`);
+  if (!mobile.title.includes('5.24.2')) throw new Error(`La versión visible no es v5.24.2: ${mobile.title}`);
 
   const critical = errors.filter((message) => !/favicon|firestore|permission-denied|Failed to load resource|QUIC_NETWORK|ERR_NAME_NOT_RESOLVED|ERR_CONNECTION|network|service worker/i.test(message));
   if (critical.length) throw new Error(critical.join(' | '));
   await page.evaluate(() => window.ChuteMundoCore.setState(window.__cmV524Original));
-  console.log('Chute Mundo v5.24.1 collapsible tournament archive smoke OK', { summary, activeText, upcomingText, mobile });
+  console.log('Chute Mundo v5.24.2 toolbar and statistics tabs smoke OK', { summary, activeText, upcomingText, toolbar, participantState, nativeState, mobile });
 } finally {
   await context.close();
   await browser.close();
