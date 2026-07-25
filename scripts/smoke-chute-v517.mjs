@@ -68,7 +68,11 @@ try {
     return Boolean(tournament?.eraId);
   }, setup.tournamentId);
   await page.waitForTimeout(520);
-  await page.evaluate(() => window.ChuteMundoCore.navigate('torneos'));
+  await page.evaluate(() => {
+    window.ChuteMundoCore.navigate('torneos');
+    window.ChuteV524Tournaments?.render?.();
+    window.ChuteV5241HistoryCollapse?.render?.();
+  });
   await clickCurrent(`[data-open-tournament="${setup.tournamentId}"]`);
   await page.waitForFunction((id) => {
     const hub = document.querySelector(`#cmTournamentHub[data-tournament-id="${id}"]`);
