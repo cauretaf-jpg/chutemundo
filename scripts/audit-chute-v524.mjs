@@ -19,9 +19,10 @@ const check = (condition, message) => { if (!condition) failures.push(message); 
 
 check(pkg.version === '5.24.1', 'package.json no está en v5.24.1.');
 check(bootstrap.includes("const APP_VERSION = '5.24.1'"), 'El bootstrap no fija v5.24.1.');
-check(official.includes("/chute-v524-tournaments.mjs?v=5.24.0"), 'La organización de Torneos v5.24 no está activa.');
+check(official.includes("/chute-v524-tournaments.mjs?v=5.24.1"), 'La organización de Torneos v5.24 no está activa en la versión actual.');
 check(official.includes("/chute-v5241-history-collapse.mjs?v=5.24.1"), 'El archivo plegable v5.24.1 no está activo.');
 check(sw.includes("const CACHE = 'chute-mundo-v5.24.1'"), 'La caché PWA no usa v5.24.1.');
+check(sw.includes('/chute-v524-tournaments.mjs?v=5.24.1') && sw.includes('/chute-v524-tournaments.css?v=5.24.1'), 'La PWA no conserva la organización de Torneos v5.24.');
 check(sw.includes('/chute-v5241-history-collapse.mjs?v=5.24.1') && sw.includes('/chute-v5241-history-collapse.css?v=5.24.1'), 'La PWA no precarga el archivo plegable.');
 check(tournamentsSource.includes('cmV524CreateToggle') && tournamentsSource.includes('cmV524CreatePanel'), 'Falta el formulario plegable de creación.');
 check(tournamentsSource.includes('cmV524TournamentSummary') && tournamentsSource.includes('cmV524ActiveTournament'), 'Falta el resumen o la competición actual destacada.');
