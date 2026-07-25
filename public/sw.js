@@ -1,10 +1,10 @@
 // CI compatibility: const CACHE = 'chute-mundo-v5.22.0'
 // CI compatibility: chute-v522-stats-refinement.mjs?v=5.22.0
-const CACHE = 'chute-mundo-v5.24.0';
+const CACHE = 'chute-mundo-v5.24.1';
 const CORE = [
   '/', '/index.html',
-  '/chute-bootstrap.mjs?v=5.24.0',
-  '/chute-official.css?v=5.16.0', '/chute-official.mjs?v=5.24.0', '/chute-official-loader.mjs?v=5.24.0',
+  '/chute-bootstrap.mjs?v=5.24.1',
+  '/chute-official.css?v=5.16.0', '/chute-official.mjs?v=5.24.1', '/chute-official-loader.mjs?v=5.24.0',
   '/chute-detail.mjs?v=5.24.0', '/chute-v522-photo-fix.mjs?v=5.22.4', '/chute-v522-historical-dates.mjs?v=5.22.2',
   '/player-photos/perla/randolph-salazar.png?v=bb2a2d76',
   '/chute-v513-lineups.mjs?v=5.13.0', '/chute-v513-lineups.css?v=5.13.0',
@@ -20,6 +20,7 @@ const CORE = [
   '/chute-v522-stats-refinement.mjs?v=5.24.0', '/chute-v522-stats-refinement.css?v=5.22.0',
   '/chute-v523-control-center.mjs?v=5.24.0', '/chute-v523-participants-admin.css?v=5.23.0',
   '/chute-v524-form-dirty-guard.mjs?v=5.24.0', '/chute-v524-tournaments.mjs?v=5.24.0', '/chute-v524-tournaments.css?v=5.24.0', '/chute-v524-tournament-render-guard.mjs?v=5.24.0',
+  '/chute-v5241-history-collapse.mjs?v=5.24.1', '/chute-v5241-history-collapse.css?v=5.24.1',
   '/chute-v520-stats-guard.mjs?v=5.24.0',
   '/manifest.webmanifest', '/chute-icon.svg', '/chute-icon-maskable.svg'
 ];
