@@ -1,5 +1,6 @@
 const VERSION = '5.24.0';
 let baseline = '';
+let observedPanel = null;
 
 function form() { return document.getElementById('tournamentForm'); }
 function panel() { return document.getElementById('cmV524CreatePanel'); }
@@ -64,10 +65,17 @@ document.addEventListener('click', (event) => {
   closeThroughOfficialApi({ discard: Boolean(cancel || dirty) });
 }, true);
 
-const observer = new MutationObserver(() => {
-  if (isOpen()) remember();
+const panelObserver = new MutationObserver(() => {
+  if (isOpen()) requestAnimationFrame(remember);
 });
-observer.observe(document.documentElement, { childList: true, subtree: true, attributes: true, attributeFilter: ['hidden'] });
+const structureObserver = new MutationObserver(() => {
+  const current = panel();
+  if (!current || current === observedPanel) return;
+  observedPanel = current;
+  panelObserver.observe(current, { attributes: true, attributeFilter: ['hidden'] });
+  if (isOpen()) requestAnimationFrame(remember);
+});
+structureObserver.observe(document.documentElement, { childList: true, subtree: true });
 
 document.addEventListener('chute:boot-complete', remember);
 window.ChuteV524FormDirtyGuard = Object.freeze({ version: VERSION, snapshot, remember });
