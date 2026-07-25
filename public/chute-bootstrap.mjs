@@ -1,6 +1,6 @@
 // CI compatibility: const APP_VERSION = '5.22.0'
 // CI compatibility: core.navigate('inicio') is now handled by restoreHomeAfterBoot.
-const APP_VERSION = '5.24.0';
+const APP_VERSION = '5.24.1';
 const APP_TITLE = `Chute Mundo v${APP_VERSION} · Competición`;
 const CACHE_NAME = `chute-mundo-v${APP_VERSION}`;
 const RESET_KEY = `cm_runtime_reset_${APP_VERSION.replaceAll('.', '_')}`;
