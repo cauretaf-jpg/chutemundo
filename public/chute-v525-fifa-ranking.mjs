@@ -1,5 +1,5 @@
 const core = window.ChuteMundoCore;
-const model = window.ChuteDetailModel || {};
+const detailModel = window.ChuteDetailModel || {};
 if (!core) throw new Error('Chute Mundo no está listo para el Ranking FIFA v5.25.');
 
 const VERSION = '5.25.0';
@@ -7,11 +7,12 @@ const BASE_RATING = 1000;
 const K_FACTOR = 24;
 const FRIENDLY_FACTOR = 0.25;
 const PODIUM_BONUS = Object.freeze({ champion: 50, runnerUp: 25, third: 10 });
-const esc = model.esc || ((value = '') => String(value).replace(/[&<>"']/g, (character) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[character])));
+const STORAGE_KEY = 'cm_v525_stats_tab';
+const esc = detailModel.esc || ((value = '') => String(value).replace(/[&<>"']/g, (character) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[character])));
 const num = (value) => Number.isFinite(Number(value)) ? Number(value) : 0;
-const norm = (value = '') => String(value).normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
+const normalize = (value = '') => String(value).normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
 const sourceState = () => core.getState?.() || { teams: [], tournaments: [], friendlies: [] };
-const played = (match) => core.matchPlayed?.(match) ?? (match?.homeGoals !== null && match?.homeGoals !== '' && match?.awayGoals !== null && match?.awayGoals !== '');
+const matchPlayed = (match) => core.matchPlayed?.(match) ?? (match?.homeGoals !== null && match?.homeGoals !== '' && match?.awayGoals !== null && match?.awayGoals !== '');
 let refreshQueued = false;
 
 function loadStyles() {
@@ -26,9 +27,8 @@ function loadStyles() {
 function parseDate(value) {
   if (!value) return null;
   if (typeof value === 'number' && Number.isFinite(value)) return value;
-  const raw = String(value).trim();
-  const iso = /^\d{4}-\d{2}-\d{2}$/.test(raw) ? `${raw}T00:00:00` : raw;
-  const parsed = Date.parse(iso);
+  const text = String(value).trim();
+  const parsed = Date.parse(/^\d{4}-\d{2}-\d{2}$/.test(text) ? `${text}T00:00:00` : text);
   return Number.isFinite(parsed) ? parsed : null;
 }
 
@@ -37,13 +37,14 @@ function teamName(teamId, source = sourceState()) {
 }
 
 function logoUrl(teamId) {
-  return model.logoUrl?.(teamId) || '';
+  return detailModel.logoUrl?.(teamId) || '';
 }
 
-function matchTeams(tournament, match) {
-  const home = match?.home || match?.homeTeamId || core.resolveHome?.(tournament, match);
-  const away = match?.away || match?.awayTeamId || core.resolveAway?.(tournament, match);
-  return { home, away };
+function resolveTeams(tournament, match) {
+  return {
+    home: match?.home || match?.homeTeamId || core.resolveHome?.(tournament, match),
+    away: match?.away || match?.awayTeamId || core.resolveAway?.(tournament, match)
+  };
 }
 
 function penaltyWinner(match, home, away) {
@@ -51,25 +52,28 @@ function penaltyWinner(match, home, away) {
   const awayPens = match?.awayPens !== null && match?.awayPens !== undefined && match?.awayPens !== '' ? num(match.awayPens) : null;
   if (homePens !== null && awayPens !== null && homePens !== awayPens) return homePens > awayPens ? home : away;
   const attempts = Array.isArray(match?.penaltyShootout) ? match.penaltyShootout : [];
-  if (!attempts.length) return null;
-  const scoredHome = attempts.filter((attempt) => attempt.side === 'home' && attempt.result === 'scored').length;
-  const scoredAway = attempts.filter((attempt) => attempt.side === 'away' && attempt.result === 'scored').length;
-  return scoredHome === scoredAway ? null : scoredHome > scoredAway ? home : away;
+  const homeScored = attempts.filter((attempt) => attempt.side === 'home' && attempt.result === 'scored').length;
+  const awayScored = attempts.filter((attempt) => attempt.side === 'away' && attempt.result === 'scored').length;
+  return homeScored === awayScored ? null : homeScored > awayScored ? home : away;
 }
 
 function actualScores(match, home, away) {
-  const hg = num(match.homeGoals);
-  const ag = num(match.awayGoals);
-  if (hg > ag) return { home: 1, away: 0, penalties: false };
-  if (ag > hg) return { home: 0, away: 1, penalties: false };
+  const homeGoals = num(match.homeGoals);
+  const awayGoals = num(match.awayGoals);
+  if (homeGoals > awayGoals) return { home: 1, away: 0, penalties: false };
+  if (awayGoals > homeGoals) return { home: 0, away: 1, penalties: false };
   const winner = penaltyWinner(match, home, away);
   if (winner === home) return { home: 0.75, away: 0.5, penalties: true };
   if (winner === away) return { home: 0.5, away: 0.75, penalties: true };
   return { home: 0.5, away: 0.5, penalties: false };
 }
 
+function expectedScore(rating, opponentRating) {
+  return 1 / (1 + (10 ** ((opponentRating - rating) / 400)));
+}
+
 function stageMultiplier(match) {
-  const text = norm(`${match?.stage || ''} ${match?.round || ''} ${match?.label || ''}`);
+  const text = normalize(`${match?.stage || ''} ${match?.round || ''} ${match?.label || ''}`);
   if (/3er|3 er|tercer|third/.test(text)) return 1.1;
   if (/semi/.test(text)) return 1.25;
   if (/final/.test(text) && !/semi/.test(text)) return 1.35;
@@ -84,65 +88,50 @@ function goalDifferenceMultiplier(match) {
   return 1;
 }
 
-function expectedScore(rating, opponentRating) {
-  return 1 / (1 + (10 ** ((opponentRating - rating) / 400)));
-}
-
-function friendlyContainers(source = sourceState()) {
-  const raw = Array.isArray(source.friendlies) ? source.friendlies : [];
-  return raw.flatMap((entry, index) => {
-    if (Array.isArray(entry?.matches)) return entry.matches.map((match, matchIndex) => ({ tournament: entry, match, tournamentIndex: index, matchIndex, friendly: true }));
-    return [{ tournament: { id: entry?.tournamentId || `friendly-${index + 1}`, name: entry?.tournamentName || 'Amistoso', status: 'historical', type: 'friendly' }, match: entry, tournamentIndex: index, matchIndex: 0, friendly: true }];
+function friendlyRecords(source) {
+  return (Array.isArray(source.friendlies) ? source.friendlies : []).flatMap((entry, tournamentIndex) => {
+    if (Array.isArray(entry?.matches)) {
+      return entry.matches.map((match, matchIndex) => ({ tournament: entry, match, tournamentIndex, matchIndex, friendly: true }));
+    }
+    return [{
+      tournament: { id: entry?.tournamentId || `friendly-${tournamentIndex + 1}`, name: entry?.tournamentName || entry?.name || 'Amistoso', type: 'friendly', status: 'historical' },
+      match: entry,
+      tournamentIndex,
+      matchIndex: 0,
+      friendly: true
+    }];
   });
 }
 
-function matchRecords(tournaments, source = sourceState(), { includeFriendlies = true } = {}) {
+function chronologicalMatches(tournaments, source, includeFriendlies) {
   const official = (tournaments || []).flatMap((tournament, tournamentIndex) => (tournament.matches || []).map((match, matchIndex) => ({ tournament, match, tournamentIndex, matchIndex, friendly: false })));
-  const combined = includeFriendlies ? [...official, ...friendlyContainers(source)] : official;
-  return combined.map((record, sequence) => {
-    const { home, away } = matchTeams(record.tournament, record.match);
-    const time = parseDate(record.match?.date) ?? parseDate(record.tournament?.startDate || record.tournament?.date || record.tournament?.createdAt) ?? (record.tournamentIndex * 100000 + record.matchIndex + sequence);
-    return { ...record, home, away, time, sequence };
-  }).filter((record) => record.match?.stage !== 'bye' && played(record.match) && record.home && record.away)
+  return [...official, ...(includeFriendlies ? friendlyRecords(source) : [])]
+    .map((record, sequence) => {
+      const teams = resolveTeams(record.tournament, record.match);
+      const fallback = record.tournamentIndex * 100000 + record.matchIndex + sequence;
+      return {
+        ...record,
+        ...teams,
+        sequence,
+        time: parseDate(record.match?.date) ?? parseDate(record.tournament?.startDate || record.tournament?.date || record.tournament?.createdAt) ?? fallback
+      };
+    })
+    .filter((record) => record.match?.stage !== 'bye' && matchPlayed(record.match) && record.home && record.away)
     .sort((left, right) => left.time - right.time || left.sequence - right.sequence);
 }
 
-function tournamentBonusEvents(tournaments) {
+function podiumEvents(tournaments) {
   return (tournaments || []).map((tournament, index) => {
-    const matches = (tournament.matches || []).filter((match) => match?.stage !== 'bye' && played(match));
+    const matches = (tournament.matches || []).filter((match) => match?.stage !== 'bye' && matchPlayed(match));
     if (!matches.length && !tournament.champion && !tournament.runnerUp && !tournament.third) return null;
-    const latest = Math.max(0, ...matches.map((match, matchIndex) => parseDate(match.date) ?? (index * 100000 + matchIndex)));
+    const latest = Math.max(index * 100000, ...matches.map((match, matchIndex) => parseDate(match.date) ?? (index * 100000 + matchIndex)));
     return { tournament, time: latest + 0.5, sequence: index };
   }).filter(Boolean).sort((left, right) => left.time - right.time || left.sequence - right.sequence);
 }
 
-function filterTournamentsForUi(source = sourceState()) {
-  const era = document.querySelector('[data-cm-v521-filter="era"]')?.value || 'all';
-  const tournamentId = document.querySelector('[data-cm-v521-filter="tournament"]')?.value || 'all';
-  const format = document.querySelector('[data-cm-v521-filter="format"]')?.value || 'all';
-  const status = document.querySelector('[data-cm-v521-filter="status"]')?.value || 'all';
-  return (source.tournaments || []).filter((tournament) => {
-    const division = tournament.type === 'division_season' || tournament.eraId === 'divisions' || tournament.era === 'division';
-    const eraId = division ? 'divisions' : 'leagues';
-    if (era !== 'all' && era !== eraId) return false;
-    if (tournamentId !== 'all' && tournament.id !== tournamentId) return false;
-    if (status !== 'all') {
-      const statusId = tournament.status === 'historical' || tournament.champion ? 'historical' : tournament.status === 'active' ? 'active' : 'upcoming';
-      if (status !== statusId) return false;
-    }
-    if (format !== 'all') {
-      const type = norm(`${tournament.type || ''} ${tournament.name || ''}`);
-      const group = type.includes('division') ? 'division' : type.includes('cup') || type.includes('copa') || type.includes('knockout') ? 'cup' : type.includes('playoff') || type.includes('play off') ? 'playoff' : type.includes('league') || type.includes('liga') ? 'league' : 'other';
-      if (format !== group) return false;
-    }
-    return true;
-  });
-}
-
-function compute(tournaments = sourceState().tournaments || [], { includeFriendlies = true, source = sourceState() } = {}) {
-  const teams = source.teams || [];
-  const table = new Map(teams.map((team) => [team.id, {
-    teamId: team.id,
+function emptyRow(teamId) {
+  return {
+    teamId,
     rating: BASE_RATING,
     bonus: 0,
     pj: 0,
@@ -158,18 +147,22 @@ function compute(tournaments = sourceState().tournaments || [], { includeFriendl
     titles: 0,
     runners: 0,
     thirds: 0
-  }]));
-  const get = (teamId) => {
-    if (!table.has(teamId)) table.set(teamId, { teamId, rating: BASE_RATING, bonus: 0, pj: 0, pg: 0, pe: 0, pp: 0, gf: 0, gc: 0, lastDelta: 0, lastMatch: '', officialMatches: 0, friendlyMatches: 0, titles: 0, runners: 0, thirds: 0 });
-    return table.get(teamId);
   };
+}
 
-  const matches = matchRecords(tournaments, source, { includeFriendlies });
-  const bonusEvents = tournamentBonusEvents(tournaments);
+function compute(tournaments = sourceState().tournaments || [], { includeFriendlies = true, source = sourceState() } = {}) {
+  const rows = new Map((source.teams || []).map((team) => [team.id, emptyRow(team.id)]));
+  const get = (teamId) => {
+    if (!rows.has(teamId)) rows.set(teamId, emptyRow(teamId));
+    return rows.get(teamId);
+  };
+  const matches = chronologicalMatches(tournaments, source, includeFriendlies);
+  const bonuses = podiumEvents(tournaments);
   let bonusIndex = 0;
-  const applyBonusUntil = (time) => {
-    while (bonusIndex < bonusEvents.length && bonusEvents[bonusIndex].time <= time) {
-      const tournament = bonusEvents[bonusIndex].tournament;
+
+  const applyBonuses = (time) => {
+    while (bonusIndex < bonuses.length && bonuses[bonusIndex].time <= time) {
+      const tournament = bonuses[bonusIndex].tournament;
       if (tournament.champion) { const row = get(tournament.champion); row.bonus += PODIUM_BONUS.champion; row.titles += 1; }
       if (tournament.runnerUp) { const row = get(tournament.runnerUp); row.bonus += PODIUM_BONUS.runnerUp; row.runners += 1; }
       if (tournament.third) { const row = get(tournament.third); row.bonus += PODIUM_BONUS.third; row.thirds += 1; }
@@ -178,41 +171,38 @@ function compute(tournaments = sourceState().tournaments || [], { includeFriendl
   };
 
   for (const record of matches) {
-    applyBonusUntil(record.time);
+    applyBonuses(record.time);
     const home = get(record.home);
     const away = get(record.away);
-    const homeBefore = home.rating;
-    const awayBefore = away.rating;
-    const expectedHome = expectedScore(homeBefore, awayBefore);
-    const expectedAway = expectedScore(awayBefore, homeBefore);
     const actual = actualScores(record.match, record.home, record.away);
-    const importance = stageMultiplier(record.match);
-    const margin = goalDifferenceMultiplier(record.match);
-    const scope = record.friendly ? FRIENDLY_FACTOR : 1;
-    const deltaHome = K_FACTOR * importance * margin * scope * (actual.home - expectedHome);
-    const deltaAway = K_FACTOR * importance * margin * scope * (actual.away - expectedAway);
+    const factor = K_FACTOR * stageMultiplier(record.match) * goalDifferenceMultiplier(record.match) * (record.friendly ? FRIENDLY_FACTOR : 1);
+    const deltaHome = factor * (actual.home - expectedScore(home.rating, away.rating));
+    const deltaAway = factor * (actual.away - expectedScore(away.rating, home.rating));
     home.rating = Math.round((home.rating + deltaHome) * 100) / 100;
     away.rating = Math.round((away.rating + deltaAway) * 100) / 100;
     home.lastDelta = Math.round(deltaHome * 100) / 100;
     away.lastDelta = Math.round(deltaAway * 100) / 100;
-    const score = `${num(record.match.homeGoals)}–${num(record.match.awayGoals)}`;
-    home.lastMatch = `${record.tournament.name || 'Partido'} · ${score}`;
-    away.lastMatch = `${record.tournament.name || 'Partido'} · ${score}`;
-    for (const [row, gf, gc] of [[home, num(record.match.homeGoals), num(record.match.awayGoals)], [away, num(record.match.awayGoals), num(record.match.homeGoals)]]) {
-      row.pj += 1; row.gf += gf; row.gc += gc;
+    home.lastMatch = `${record.tournament.name || 'Partido'} · ${num(record.match.homeGoals)}–${num(record.match.awayGoals)}`;
+    away.lastMatch = home.lastMatch;
+    for (const [row, goalsFor, goalsAgainst] of [[home, num(record.match.homeGoals), num(record.match.awayGoals)], [away, num(record.match.awayGoals), num(record.match.homeGoals)]]) {
+      row.pj += 1;
+      row.gf += goalsFor;
+      row.gc += goalsAgainst;
       if (record.friendly) row.friendlyMatches += 1; else row.officialMatches += 1;
-      if (gf > gc) row.pg += 1; else if (gf === gc) row.pe += 1; else row.pp += 1;
+      if (goalsFor > goalsAgainst) row.pg += 1;
+      else if (goalsFor === goalsAgainst) row.pe += 1;
+      else row.pp += 1;
     }
   }
-  applyBonusUntil(Number.POSITIVE_INFINITY);
+  applyBonuses(Number.POSITIVE_INFINITY);
 
-  return [...table.values()].map((row) => ({
+  return [...rows.values()].map((row) => ({
     ...row,
     dg: row.gf - row.gc,
     points: row.rating + row.bonus,
     ratingChange: row.rating - BASE_RATING,
     winPct: row.pj ? row.pg / row.pj * 100 : 0
-  })).filter((row) => row.pj || row.bonus || !(teams.find((team) => team.id === row.teamId)?.archived))
+  })).filter((row) => row.pj || row.bonus || !(source.teams || []).find((team) => team.id === row.teamId)?.archived)
     .sort((left, right) => right.points - left.points || right.rating - left.rating || right.titles - left.titles || right.pg - left.pg || teamName(left.teamId, source).localeCompare(teamName(right.teamId, source), 'es'))
     .map((row, index) => ({ ...row, pos: index + 1 }));
 }
@@ -222,12 +212,34 @@ function order(source = sourceState()) {
   return compute(source.tournaments || [], { source, includeFriendlies: true }).filter((row) => active.has(row.teamId)).map((row) => row.teamId);
 }
 
-function signed(value, digits = 1) {
-  const rounded = Number(value || 0).toFixed(digits);
-  return Number(value || 0) > 0 ? `+${rounded}` : rounded;
+function selectedTournaments(source = sourceState()) {
+  const era = document.querySelector('[data-cm-v521-filter="era"]')?.value || 'all';
+  const tournamentId = document.querySelector('[data-cm-v521-filter="tournament"]')?.value || 'all';
+  const format = document.querySelector('[data-cm-v521-filter="format"]')?.value || 'all';
+  const status = document.querySelector('[data-cm-v521-filter="status"]')?.value || 'all';
+  return (source.tournaments || []).filter((tournament) => {
+    const division = tournament.type === 'division_season' || tournament.eraId === 'divisions' || tournament.era === 'division';
+    if (era !== 'all' && era !== (division ? 'divisions' : 'leagues')) return false;
+    if (tournamentId !== 'all' && tournament.id !== tournamentId) return false;
+    if (status !== 'all') {
+      const current = tournament.status === 'historical' || tournament.champion ? 'historical' : tournament.status === 'active' ? 'active' : 'upcoming';
+      if (current !== status) return false;
+    }
+    if (format !== 'all') {
+      const text = normalize(`${tournament.type || ''} ${tournament.name || ''}`);
+      const current = text.includes('division') ? 'division' : text.includes('cup') || text.includes('copa') || text.includes('knockout') ? 'cup' : text.includes('playoff') || text.includes('play off') ? 'playoff' : text.includes('league') || text.includes('liga') ? 'league' : 'other';
+      if (current !== format) return false;
+    }
+    return true;
+  });
 }
 
-function topCards(rows, source) {
+function signed(value, digits = 1) {
+  const text = Number(value || 0).toFixed(digits);
+  return Number(value || 0) > 0 ? `+${text}` : text;
+}
+
+function podiumCards(rows, source) {
   return rows.slice(0, 3).map((row, index) => `<article class="cm-v525-rank-card ${index === 0 ? 'is-leader' : ''}"><span>${index === 0 ? 'LÍDER FIFA' : `${index + 1}.º LUGAR`}</span><div><img src="${esc(logoUrl(row.teamId))}" alt=""><section><h3>${esc(teamName(row.teamId, source))}</h3><p>${row.pj} partidos · ${row.titles} títulos</p></section></div><strong>${Math.round(row.points)}<small>puntos FIFA</small></strong><footer><b>Rating ${row.rating.toFixed(1)}</b><em class="${row.lastDelta > 0 ? 'positive' : row.lastDelta < 0 ? 'negative' : ''}">${signed(row.lastDelta)}</em></footer></article>`).join('');
 }
 
@@ -237,19 +249,30 @@ function rankingTable(rows, source) {
 }
 
 function panelMarkup(source = sourceState()) {
-  const tournaments = filterTournamentsForUi(source);
-  const specificFilter = Boolean(document.querySelector('[data-cm-v521-filter="tournament"]')?.value !== 'all' || document.querySelector('[data-cm-v521-filter="format"]')?.value !== 'all' || document.querySelector('[data-cm-v521-filter="status"]')?.value !== 'all');
-  let rows = compute(tournaments, { source, includeFriendlies: !specificFilter });
-  const selectedTeam = document.querySelector('[data-cm-v521-filter="team"]')?.value || 'all';
-  if (selectedTeam !== 'all') rows = rows.filter((row) => row.teamId === selectedTeam);
-  return `<section class="cm-v525-fifa-panel" data-cm-v521-panel="fifa" data-cm-v525-panel="fifa" hidden><header class="cm-v525-fifa-head"><div><span>RANKING FIFA CHUTE</span><h2>Clasificación dinámica de clubes</h2><p>Modelo ELO propio: mide resultado, fuerza del rival, fase, diferencia de gol y penales. Los amistosos tienen peso reducido.</p></div><strong>${rows.length}<small>equipos clasificados</small></strong></header><section class="cm-v525-formula"><article><span>Base</span><b>${BASE_RATING}</b><small>puntos iniciales</small></article><article><span>Factor K</span><b>${K_FACTOR}</b><small>sensibilidad por partido</small></article><article><span>Amistosos</span><b>×${FRIENDLY_FACTOR}</b><small>impacto reducido</small></article><article><span>Bonos</span><b>50 · 25 · 10</b><small>campeón, 2.º y 3.º</small></article></section><div class="cm-v525-rank-cards">${topCards(rows, source)}</div><article class="cm-v525-ranking-board"><header><div><span>CLASIFICACIÓN ACTUAL</span><h3>Puntos FIFA por equipo</h3></div><p>El rating ELO determina la fuerza esperada. Los bonos de podio se suman al total visible sin alterar la expectativa del siguiente partido.</p></header>${rankingTable(rows, source)}</article><details class="cm-v525-method"><summary>Ver fórmula y multiplicadores</summary><div><p><b>Variación:</b> 24 × importancia × diferencia de gol × alcance × (resultado real − resultado esperado).</p><p><b>Resultado esperado:</b> 1 ÷ [1 + 10^((rating rival − rating propio) ÷ 400)].</p><p><b>Resultado real:</b> victoria 1; empate 0,5; derrota 0; tanda ganada 0,75 y tanda perdida 0,5.</p><p><b>Fases:</b> regular/grupos ×1; tercer lugar ×1,10; semifinal ×1,25; final ×1,35.</p><p><b>Diferencia:</b> 1 gol ×1; 2 ×1,15; 3 ×1,25; 4 o más ×1,35.</p></div></details></section>`;
+  const tournaments = selectedTournaments(source);
+  const tournamentFilter = document.querySelector('[data-cm-v521-filter="tournament"]')?.value || 'all';
+  const formatFilter = document.querySelector('[data-cm-v521-filter="format"]')?.value || 'all';
+  const statusFilter = document.querySelector('[data-cm-v521-filter="status"]')?.value || 'all';
+  let rows = compute(tournaments, { source, includeFriendlies: tournamentFilter === 'all' && formatFilter === 'all' && statusFilter === 'all' });
+  const teamFilter = document.querySelector('[data-cm-v521-filter="team"]')?.value || 'all';
+  if (teamFilter !== 'all') rows = rows.filter((row) => row.teamId === teamFilter);
+  return `<section class="cm-v525-fifa-panel" data-cm-v521-panel="fifa" data-cm-v525-panel="fifa" hidden><header class="cm-v525-fifa-head"><div><span>RANKING FIFA CHUTE</span><h2>Clasificación dinámica de clubes</h2><p>Modelo ELO propio: mide resultado, fuerza del rival, fase, diferencia de gol y penales. Los amistosos tienen peso reducido.</p></div><strong>${rows.length}<small>equipos clasificados</small></strong></header><section class="cm-v525-formula"><article><span>Base</span><b>${BASE_RATING}</b><small>puntos iniciales</small></article><article><span>Factor K</span><b>${K_FACTOR}</b><small>sensibilidad por partido</small></article><article><span>Amistosos</span><b>×${FRIENDLY_FACTOR}</b><small>impacto reducido</small></article><article><span>Bonos</span><b>50 · 25 · 10</b><small>campeón, 2.º y 3.º</small></article></section><div class="cm-v525-rank-cards">${podiumCards(rows, source)}</div><article class="cm-v525-ranking-board"><header><div><span>CLASIFICACIÓN ACTUAL</span><h3>Puntos FIFA por equipo</h3></div><p>El rating ELO determina la fuerza esperada. Los bonos de podio se suman al total visible sin alterar la expectativa del siguiente partido.</p></header>${rankingTable(rows, source)}</article><details class="cm-v525-method"><summary>Ver fórmula y multiplicadores</summary><div><p><b>Variación:</b> 24 × importancia × diferencia de gol × alcance × (resultado real − resultado esperado).</p><p><b>Resultado esperado:</b> 1 ÷ [1 + 10^((rating rival − rating propio) ÷ 400)].</p><p><b>Resultado real:</b> victoria 1; empate 0,5; derrota 0; tanda ganada 0,75 y tanda perdida 0,5.</p><p><b>Fases:</b> regular/grupos ×1; tercer lugar ×1,10; semifinal ×1,25; final ×1,35.</p><p><b>Diferencia:</b> 1 gol ×1; 2 ×1,15; 3 ×1,25; 4 o más ×1,35.</p></div></details></section>`;
 }
 
-function ensureStatsPanel() {
+function statsSignature(source) {
+  return JSON.stringify({
+    filters: [...document.querySelectorAll('[data-cm-v521-filter]')].map((field) => [field.dataset.cmV521Filter, field.value]),
+    teams: (source.teams || []).map((team) => [team.id, team.name, team.archived]),
+    tournaments: (source.tournaments || []).map((tournament) => [tournament.id, tournament.type, tournament.status, tournament.champion, tournament.runnerUp, tournament.third, (tournament.matches || []).map((match) => [match.id, match.home, match.away, match.homeGoals, match.awayGoals, match.homePens, match.awayPens, match.stage, match.round, match.label, match.date])]),
+    friendlies: source.friendlies || []
+  });
+}
+
+function ensureStatsUi() {
   const host = document.getElementById('cmV521History');
   const tabs = host?.querySelector('.cm-v521-tabs');
   const content = host?.querySelector('.cm-v521-content');
-  if (!host || !tabs || !content) return false;
+  if (!host || !tabs || !content) return null;
   let tab = tabs.querySelector('[data-cm-v525-tab="fifa"]');
   if (!tab) {
     tab = document.createElement('button');
@@ -259,29 +282,21 @@ function ensureStatsPanel() {
     tab.innerHTML = '<b>Ranking FIFA</b><small>Fuerza actual de los clubes</small>';
     tabs.insertBefore(tab, tabs.children[1] || null);
   }
+  const signature = statsSignature(sourceState());
   let panel = content.querySelector('[data-cm-v525-panel="fifa"]');
-  const source = sourceState();
-  const signature = JSON.stringify({
-    filters: [...document.querySelectorAll('[data-cm-v521-filter]')].map((field) => [field.dataset.cmV521Filter, field.value]),
-    teams: (source.teams || []).map((team) => [team.id, team.name, team.archived]),
-    tournaments: (source.tournaments || []).map((tournament) => [tournament.id, tournament.type, tournament.status, tournament.champion, tournament.runnerUp, tournament.third, (tournament.matches || []).map((match) => [match.id, match.home, match.away, match.homeGoals, match.awayGoals, match.homePens, match.awayPens, match.stage, match.round, match.label, match.date])]),
-    friendlies: source.friendlies || []
-  });
   if (!panel || panel.dataset.signature !== signature) {
     panel?.remove();
-    content.insertAdjacentHTML('afterbegin', panelMarkup(source));
+    content.insertAdjacentHTML('afterbegin', panelMarkup(sourceState()));
     panel = content.querySelector('[data-cm-v525-panel="fifa"]');
     panel.dataset.signature = signature;
   }
-  if (localStorage.getItem('cm_v525_stats_tab') === 'fifa') activateFifa();
-  return true;
+  return { host, tab, panel };
 }
 
-function activateFifa() {
-  if (!ensureStatsPanel()) return;
-  const host = document.getElementById('cmV521History');
-  const tab = host.querySelector('[data-cm-v525-tab="fifa"]');
-  const panel = host.querySelector('[data-cm-v525-panel="fifa"]');
+function activateFifa(persist = true) {
+  const refs = ensureStatsUi();
+  if (!refs) return false;
+  const { host, tab, panel } = refs;
   host.querySelectorAll('[data-cm-v521-tab], [data-cm-v523-tab], [data-cm-v525-tab]').forEach((button) => {
     const active = button === tab;
     button.classList.toggle('active', active);
@@ -294,7 +309,8 @@ function activateFifa() {
     item.setAttribute('aria-hidden', active ? 'false' : 'true');
   });
   localStorage.removeItem('cm_v523_stats_tab');
-  localStorage.setItem('cm_v525_stats_tab', 'fifa');
+  if (persist) localStorage.setItem(STORAGE_KEY, 'fifa');
+  return true;
 }
 
 function deactivateFifa() {
@@ -303,8 +319,12 @@ function deactivateFifa() {
   const panel = host?.querySelector('[data-cm-v525-panel="fifa"]');
   tab?.classList.remove('active');
   tab?.setAttribute('aria-selected', 'false');
-  if (panel) { panel.classList.remove('active'); panel.hidden = true; panel.setAttribute('aria-hidden', 'true'); }
-  localStorage.removeItem('cm_v525_stats_tab');
+  if (panel) {
+    panel.classList.remove('active');
+    panel.hidden = true;
+    panel.setAttribute('aria-hidden', 'true');
+  }
+  localStorage.removeItem(STORAGE_KEY);
 }
 
 function rulesMarkup() {
@@ -315,8 +335,7 @@ function ensureRules() {
   const panel = document.querySelector('[data-cm-v523-admin-panel="rules"]');
   const base = panel?.querySelector('.cm-v523-rules');
   if (!panel || !base) return false;
-  const extra = panel.querySelector('[data-cm-v525-rules]');
-  if (!extra) base.insertAdjacentHTML('beforeend', rulesMarkup());
+  if (!panel.querySelector('[data-cm-v525-rules]')) base.insertAdjacentHTML('beforeend', rulesMarkup());
   return true;
 }
 
@@ -329,7 +348,9 @@ function installLegacyBridge() {
 function refresh() {
   refreshQueued = false;
   installLegacyBridge();
-  ensureStatsPanel();
+  const wasActive = localStorage.getItem(STORAGE_KEY) === 'fifa' || Boolean(document.querySelector('[data-cm-v525-tab="fifa"].active'));
+  ensureStatsUi();
+  if (wasActive) activateFifa(false);
   ensureRules();
 }
 
@@ -344,16 +365,16 @@ document.addEventListener('click', (event) => {
   if (fifaTab) {
     event.preventDefault();
     event.stopImmediatePropagation();
-    activateFifa();
+    activateFifa(true);
     document.querySelector('#cmV521History .cm-v521-content')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
     return;
   }
-  const otherStats = event.target.closest?.('#cmV521History [data-cm-v521-tab], #cmV521History [data-cm-v523-tab]');
-  if (otherStats) deactivateFifa();
-  const team = event.target.closest?.('[data-cm-v525-team]');
-  if (team) {
+  const otherStatsTab = event.target.closest?.('#cmV521History [data-cm-v521-tab], #cmV521History [data-cm-v523-tab]');
+  if (otherStatsTab) deactivateFifa();
+  const teamButton = event.target.closest?.('[data-cm-v525-team]');
+  if (teamButton) {
     core.navigate?.('equipos');
-    window.ChuteV59?.openTeamProfile?.(team.dataset.cmV525Team);
+    window.ChuteV59?.openTeamProfile?.(teamButton.dataset.cmV525Team);
   }
   setTimeout(scheduleRefresh, 30);
 }, true);
