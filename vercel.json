@@ -1,6 +1,7 @@
 {
   "cleanUrls": true,
   "trailingSlash": false,
+  "ignoreCommand": "node -e \"process.exit(process.env.VERCEL_PROJECT_ID === 'prj_Tn8vMpjKJvvou7kGDwDqOkSuwFRl' ? 0 : 1)\"",
   "git": {
     "deploymentEnabled": {
       "feature/**": false,
