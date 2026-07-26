@@ -1,4 +1,4 @@
-name: Validate Chute Mundo v5.22
+name: Validate Chute Mundo v5.25
 
 on:
   pull_request:
@@ -20,9 +20,12 @@ jobs:
           npm run check:official
           while IFS= read -r file; do node --check "$file"; done < <(find public -type f \( -name '*.mjs' -o -name '*.js' \) | sort)
           node --check scripts/audit-chute-v522.mjs
+          node --check scripts/audit-chute-v525.mjs
           node --check scripts/smoke-chute-v522.mjs
           node --check scripts/smoke-chute-v516.mjs
           node --check scripts/smoke-chute-v517.mjs
+          node --check scripts/smoke-chute-v517-stable.mjs
+          node --check scripts/smoke-chute-v525.mjs
           node scripts/check-chute-v516.mjs 2>&1 | tee /tmp/chute-v516-syntax.log
           cat public/chute-v517-finalization-part-*.txt > /tmp/chute-v517-concatenated.mjs
           node --check /tmp/chute-v517-concatenated.mjs 2>&1 | tee /tmp/chute-v517-syntax.log
@@ -31,6 +34,7 @@ jobs:
           cat public/chute-v518-era-stats-part-*.txt > /tmp/chute-v518-archive.mjs
           node --check /tmp/chute-v518-archive.mjs 2>&1 | tee /tmp/chute-v518-archive-syntax.log
           node scripts/audit-chute-v522.mjs
+          node scripts/audit-chute-v525.mjs
 
       - name: Validate required files and active imports
         run: |
@@ -53,10 +57,15 @@ jobs:
           test -s public/chute-v522-stats-refinement.mjs
           test -s public/chute-v522-stats-refinement.css
           test -s public/chute-v520-stats-guard.mjs
+          test -s public/chute-v525-fifa-ranking.mjs
+          test -s public/chute-v525-fifa-ranking.css
           test -s scripts/audit-chute-v522.mjs
+          test -s scripts/audit-chute-v525.mjs
           test -s scripts/smoke-chute-v522.mjs
           test -s scripts/smoke-chute-v516.mjs
           test -s scripts/smoke-chute-v517.mjs
+          test -s scripts/smoke-chute-v517-stable.mjs
+          test -s scripts/smoke-chute-v525.mjs
           for index in $(seq 0 11); do part=$(printf "%02d" "$index"); test -s "public/chute-v516-events-stats-part-${part}.txt"; done
           for index in $(seq 0 7); do part=$(printf "%02d" "$index"); test -s "public/chute-v517-finalization-part-${part}.txt"; done
           for index in $(seq 0 9); do part=$(printf "%02d" "$index"); test -s "public/chute-v521-history-part-${part}.txt"; done
@@ -65,12 +74,14 @@ jobs:
           grep -q "chute-v521-history-sync.mjs?v=5.22.0" public/chute-official.mjs
           grep -q "chute-v522-stats-refinement.mjs?v=5.22.0" public/chute-official.mjs
           grep -q "chute-v520-stats-guard.mjs?v=5.22.0" public/chute-official.mjs
+          grep -q "chute-v525-fifa-ranking.mjs?v=5.25.0" public/chute-official.mjs
           grep -q "chute:boot-complete" public/chute-official.mjs
           ! grep -q "chute-v520-stats.mjs" public/chute-official.mjs
           ! grep -q "chute-v520-stats-sync.mjs" public/chute-official.mjs
           ! grep -q "chute-v58-analysis.mjs" public/chute-official.mjs
           grep -q "const CACHE = 'chute-mundo-v5.22.0'" public/sw.js
           grep -q "chute-v522-stats-refinement.mjs?v=5.22.0" public/sw.js
+          grep -q "chute-v525-fifa-ranking.mjs?v=5.25.0" public/sw.js
           grep -q "chute-v521-history-part-" public/sw.js
           grep -q "self.clients.claim()" public/sw.js
           grep -q "fetch(request, { cache: 'no-store' })" public/sw.js
@@ -78,7 +89,9 @@ jobs:
           ! grep -q "chute-v520-stats-sync.mjs" public/sw.js
           grep -q "chute-official.mjs?v=5.22.0" public/index.html
           grep -q "Chute Mundo v5.22.0 · Competición" public/index.html
+          grep -q "Chute Mundo v5.25.0 · Competición" public/index.html
           grep -q "const APP_VERSION = '5.22.0'" public/chute-bootstrap.mjs
+          grep -q "const APP_VERSION = '5.25.0'" public/chute-bootstrap.mjs
           grep -q "resetLegacyRuntimeOnce" public/chute-bootstrap.mjs
           grep -q "registration.unregister()" public/chute-bootstrap.mjs
           grep -q "core.navigate('inicio')" public/chute-bootstrap.mjs
@@ -90,6 +103,8 @@ jobs:
           grep -q "#7c3aed" public/chute-v522-stats-refinement.mjs
           grep -q "#111827" public/chute-v522-stats-refinement.mjs
           grep -q "rel=\"icon\" href=\"/chute-icon.svg\"" public/index.html
+          grep -q "const K_FACTOR = 24" public/chute-v525-fifa-ranking.mjs
+          grep -q "Balón de Oro" public/chute-v525-fifa-ranking.mjs
 
       - name: Install browser
         run: |
@@ -102,13 +117,14 @@ jobs:
           sleep 3
           node scripts/smoke-chute-v522.mjs > /tmp/chute-smoke-v522.log 2>&1
           node scripts/smoke-chute-v516.mjs > /tmp/chute-smoke-v516.log 2>&1
-          node scripts/smoke-chute-v517.mjs > /tmp/chute-smoke-v517.log 2>&1
+          node scripts/smoke-chute-v517-stable.mjs > /tmp/chute-smoke-v517.log 2>&1
+          node scripts/smoke-chute-v525.mjs > /tmp/chute-smoke-v525.log 2>&1
 
       - name: Upload diagnostics
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: chute-v5-22-diagnostics
+          name: chute-v5-25-diagnostics
           path: |
             /tmp/chute-v516-syntax.log
             /tmp/chute-v517-syntax.log

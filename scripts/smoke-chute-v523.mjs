@@ -70,7 +70,7 @@ try {
     version: window.ChuteVersion?.version || ''
   }));
   for (const label of ['Estado', 'Participantes', 'Reglamento', 'Datos y respaldos', 'Mantenimiento']) if (!admin.tabs.includes(label)) throw new Error(`Falta pestaña administrativa ${label}: ${JSON.stringify(admin.tabs)}`);
-  if (!admin.status.includes('Listo para comenzar las divisiones') || !/^5\.(?:23|24)\./.test(admin.version) || !admin.title.includes(admin.version)) throw new Error(`Estado divisional o versión incorrectos: ${JSON.stringify(admin)}`);
+  if (!admin.status.includes('Listo para comenzar las divisiones') || !/^5\.(?:23|24|25)\./.test(admin.version) || !admin.title.includes(admin.version)) throw new Error(`Estado divisional o versión incorrectos: ${JSON.stringify(admin)}`);
 
   await page.locator('[data-cm-v523-admin-tab="rules"]').click();
   const rulesText = await page.locator('[data-cm-v523-admin-panel="rules"]').innerText();

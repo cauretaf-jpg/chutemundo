@@ -22,7 +22,7 @@ try {
       { id: 'participante_alvaro', name: 'Álvaro', color: '#e74c3c', defaultSide: 'home', archived: false },
       { id: 'participante_carlos', name: 'Carlos', color: '#3498db', defaultSide: 'away', archived: false }
     ];
-    const match = (id, played = true) => ({ id, stage: 'regular', round: 'Fecha 1', home: 'a', away: 'b', homeGoals: played ? 1 : null, awayGoals: played ? 0 : null, participantHome: 'participante_alvaro', participantAway: 'participante_carlos' });
+    const match = (id, isPlayed = true) => ({ id, stage: 'regular', round: 'Fecha 1', home: 'a', away: 'b', homeGoals: isPlayed ? 1 : null, awayGoals: isPlayed ? 0 : null, participantHome: 'participante_alvaro', participantAway: 'participante_carlos' });
     const historical = Array.from({ length: 8 }, (_, index) => ({
       id: `hist-${index + 1}`,
       name: `Torneo Histórico ${index + 1}`,
@@ -79,9 +79,11 @@ try {
   if (initialArchive.includes('Próximo Torneo')) throw new Error(`El archivo mezcló próximos torneos: ${initialArchive}`);
 
   await page.locator('#cmV524ShowMore').click();
+  await page.waitForFunction(() => document.querySelectorAll('#tournamentList > .cm-v524-tournament-card').length === 6);
   cards = await page.locator('#tournamentList > .cm-v524-tournament-card').count();
   if (cards !== 6) throw new Error(`Ver más debía mostrar 6 torneos anteriores, mostró ${cards}.`);
   await page.locator('#cmV524ShowLess').click();
+  await page.waitForFunction(() => document.querySelectorAll('#tournamentList > .cm-v524-tournament-card').length === 3);
   cards = await page.locator('#tournamentList > .cm-v524-tournament-card').count();
   if (cards !== 3) throw new Error(`Ver menos debía volver a 3 torneos anteriores, mostró ${cards}.`);
 
@@ -116,35 +118,44 @@ try {
 
   await page.evaluate(() => window.ChuteMundoCore.navigate('estadisticas'));
   await page.waitForSelector('#cmV521History', { state: 'visible' });
-  await page.waitForSelector('[data-cm-v523-tab="participants"]');
-  await page.locator('[data-cm-v523-tab="participants"]').click();
-  await page.waitForSelector('[data-cm-v523-panel="participants"].active', { state: 'visible' });
-  const participantState = await page.evaluate(() => ({
-    title: document.querySelector('[data-cm-v523-panel="participants"]')?.textContent || '',
-    visiblePanels: [...document.querySelectorAll('#cmV521History [data-cm-v521-panel]')].filter((panel) => !panel.hidden && panel.getClientRects().length).length
-  }));
+  await page.waitForFunction(() => [...document.querySelectorAll('#cmV521History [data-cm-v523-tab="participants"]')].some((button) => button.getClientRects().length));
+  const participantClicked = await page.evaluate(() => {
+    const button = [...document.querySelectorAll('#cmV521History [data-cm-v523-tab="participants"]')].find((item) => item.getClientRects().length);
+    button?.click();
+    return Boolean(button);
+  });
+  if (!participantClicked) throw new Error('No se encontró la pestaña visible de Participantes.');
+  await page.waitForFunction(() => [...document.querySelectorAll('#cmV521History [data-cm-v523-panel="participants"]')].some((panel) => panel.classList.contains('active') && !panel.hidden && panel.getClientRects().length));
+  const participantState = await page.evaluate(() => {
+    const panel = [...document.querySelectorAll('#cmV521History [data-cm-v523-panel="participants"]')].find((item) => item.classList.contains('active') && !item.hidden && item.getClientRects().length);
+    return {
+      title: panel?.textContent || '',
+      visiblePanels: [...document.querySelectorAll('#cmV521History [data-cm-v521-panel]')].filter((item) => !item.hidden && item.getClientRects().length).length
+    };
+  });
   if (!participantState.title.includes('La Liga de los Participantes') || participantState.visiblePanels !== 1) throw new Error(`Participantes no quedó aislado: ${JSON.stringify(participantState)}`);
 
-  const nativeTab = page.locator('#cmV521History [data-cm-v521-tab]:not([data-cm-v523-tab])').first();
-  await nativeTab.click();
-  await page.waitForFunction(() => {
-    const panel = document.querySelector('[data-cm-v523-panel="participants"]');
-    return panel?.hidden && !panel.classList.contains('active') && panel.getClientRects().length === 0;
+  const nativeClicked = await page.evaluate(() => {
+    const button = [...document.querySelectorAll('#cmV521History [data-cm-v521-tab]:not([data-cm-v523-tab])')].find((item) => item.getClientRects().length);
+    button?.click();
+    return Boolean(button);
   });
+  if (!nativeClicked) throw new Error('No se encontró una pestaña estadística nativa visible.');
+  await page.waitForFunction(() => [...document.querySelectorAll('#cmV521History [data-cm-v523-panel="participants"]')].every((panel) => panel.hidden && !panel.classList.contains('active') && panel.getClientRects().length === 0));
   const nativeState = await page.evaluate(() => ({
-    participantVisible: document.querySelector('[data-cm-v523-panel="participants"]')?.getClientRects().length > 0,
+    participantVisible: [...document.querySelectorAll('#cmV521History [data-cm-v523-panel="participants"]')].some((panel) => panel.getClientRects().length > 0),
     visiblePanels: [...document.querySelectorAll('#cmV521History [data-cm-v521-panel]')].filter((panel) => !panel.hidden && panel.getClientRects().length).length
   }));
   if (nativeState.participantVisible || nativeState.visiblePanels !== 1) throw new Error(`Participantes siguió visible en otra pestaña: ${JSON.stringify(nativeState)}`);
 
   const mobile = await page.evaluate(() => ({ width: document.documentElement.scrollWidth, viewport: document.documentElement.clientWidth, title: document.title }));
-  if (mobile.width > mobile.viewport + 3) throw new Error(`Desborde móvil en v5.24.2: ${JSON.stringify(mobile)}`);
-  if (!mobile.title.includes('5.24.2')) throw new Error(`La versión visible no es v5.24.2: ${mobile.title}`);
+  if (mobile.width > mobile.viewport + 3) throw new Error(`Desborde móvil en regresión v5.24.2: ${JSON.stringify(mobile)}`);
+  if (!mobile.title.includes('5.25.0')) throw new Error(`La versión visible no es v5.25.0: ${mobile.title}`);
 
   const critical = errors.filter((message) => !/favicon|firestore|permission-denied|Failed to load resource|QUIC_NETWORK|ERR_NAME_NOT_RESOLVED|ERR_CONNECTION|network|service worker/i.test(message));
   if (critical.length) throw new Error(critical.join(' | '));
   await page.evaluate(() => window.ChuteMundoCore.setState(window.__cmV524Original));
-  console.log('Chute Mundo v5.24.2 toolbar and statistics tabs smoke OK', { summary, activeText, upcomingText, toolbar, participantState, nativeState, mobile });
+  console.log('Chute Mundo v5.24.2 regression smoke OK on v5.25.0', { summary, activeText, upcomingText, toolbar, participantState, nativeState, mobile });
 } finally {
   await context.close();
   await browser.close();
