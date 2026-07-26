@@ -64,12 +64,10 @@ try {
   await page.waitForFunction(() => !document.querySelector('[data-cm-v525-panel="fifa"]')?.classList.contains('active'));
   if (await page.locator('[data-cm-v525-panel="fifa"]').isVisible()) throw new Error('Ranking FIFA quedó visible en La Tabla Eterna.');
 
-  await page.evaluate(() => {
-    window.ChuteMundoCore.navigate('administracion');
-    window.ChuteV523ControlCenter.renderAdmin();
-    document.querySelector('[data-cm-v523-admin-tab="rules"]')?.click();
-    window.ChuteFifaV525.refresh();
-  });
+  await page.evaluate(() => window.ChuteMundoCore.navigate('administracion'));
+  await page.waitForSelector('#cmV523Admin', { state: 'visible' });
+  await page.locator('[data-cm-v523-admin-tab="rules"]').click();
+  await page.evaluate(() => window.ChuteFifaV525.refresh());
   await page.waitForSelector('[data-cm-v525-rules]', { state: 'visible' });
   const rules = await page.locator('[data-cm-v523-admin-panel="rules"]').innerText();
   for (const text of ['Ranking FIFA Chute', 'K=24', 'Bota de Oro', 'Balón de Oro', 'Guante de Oro', 'Figura de la Final', 'Amistosos ×0,25']) if (!rules.includes(text)) throw new Error(`Falta regla: ${text}`);
