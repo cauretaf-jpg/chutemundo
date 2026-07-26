@@ -72,14 +72,35 @@ try {
   await page.evaluate((id) => {
     window.ChuteMundoCore.navigate('torneos');
     window.ChuteV524Tournaments?.render?.();
-    document.querySelector(`[data-open-tournament="${CSS.escape(id)}"]`)?.click();
+    const button = [...document.querySelectorAll(`[data-open-tournament="${CSS.escape(id)}"]`)].find((item) => item.getClientRects().length);
+    button?.click();
   }, setup.tournamentId);
-  await page.waitForFunction((id) => Boolean(document.querySelector(`#cmTournamentHub[data-tournament-id="${id}"] [data-cm-v517-awards-tab]`)), setup.tournamentId);
-  const hidden = await page.locator('[data-cm-v517-awards-panel]').evaluate((panel) => panel.hidden && panel.getClientRects().length === 0);
+  await page.waitForFunction((id) => {
+    const hub = document.querySelector(`#cmTournamentHub[data-tournament-id="${id}"]`);
+    return Boolean(hub && hub.getClientRects().length && [...hub.querySelectorAll('[data-cm-v517-awards-tab]')].some((item) => item.getClientRects().length));
+  }, setup.tournamentId);
+  const hidden = await page.evaluate(() => {
+    const hub = document.querySelector('#cmTournamentHub');
+    const panel = hub?.querySelector('[data-cm-v517-awards-panel]');
+    return Boolean(panel && panel.hidden && panel.getClientRects().length === 0);
+  });
   if (!hidden) throw new Error('El panel de premios debe comenzar oculto.');
-  await page.locator('[data-cm-v517-awards-tab]').click();
-  await page.waitForSelector('[data-cm-v517-awards-panel].active .cm-v517-awards-grid');
-  if (await page.locator('.cm-v517-award-card').count() !== 6) throw new Error('El panel no muestra los seis premios.');
+  const clicked = await page.evaluate(() => {
+    const hub = document.querySelector('#cmTournamentHub');
+    const button = [...(hub?.querySelectorAll('[data-cm-v517-awards-tab]') || [])].find((item) => item.getClientRects().length);
+    button?.click();
+    return Boolean(button);
+  });
+  if (!clicked) throw new Error('No se encontró una pestaña visible de Premios.');
+  await page.waitForFunction(() => {
+    const panel = [...document.querySelectorAll('[data-cm-v517-awards-panel]')].find((item) => item.classList.contains('active') && item.getClientRects().length);
+    return Boolean(panel?.querySelector('.cm-v517-awards-grid'));
+  });
+  const awardCards = await page.evaluate(() => {
+    const panel = [...document.querySelectorAll('[data-cm-v517-awards-panel]')].find((item) => item.classList.contains('active') && item.getClientRects().length);
+    return panel?.querySelectorAll('.cm-v517-award-card').length || 0;
+  });
+  if (awardCards !== 6) throw new Error(`El panel no muestra los seis premios: ${awardCards}.`);
 
   await page.evaluate((id) => window.ChuteV517Finalization.finalizeTournament(id), setup.tournamentId);
   await page.waitForFunction((id) => {
@@ -96,7 +117,7 @@ try {
   const criticalErrors = errors.filter((message) => !/favicon|firestore|permission-denied|Failed to load resource|QUIC_NETWORK|ERR_NAME_NOT_RESOLVED|ERR_CONNECTION|network/i.test(message));
   if (criticalErrors.length) throw new Error(criticalErrors.join(' | '));
   await page.evaluate(() => window.ChuteMundoCore.setState(window.__cmV517Original));
-  console.log('Chute Mundo v5.17 regression smoke OK', { computed, finalData });
+  console.log('Chute Mundo v5.17 regression smoke OK', { computed, awardCards, finalData });
 } finally {
   await browser.close();
 }
