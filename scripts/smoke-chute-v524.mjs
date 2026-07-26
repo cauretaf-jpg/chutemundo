@@ -118,23 +118,32 @@ try {
 
   await page.evaluate(() => window.ChuteMundoCore.navigate('estadisticas'));
   await page.waitForSelector('#cmV521History', { state: 'visible' });
-  await page.waitForSelector('[data-cm-v523-tab="participants"]');
-  await page.locator('[data-cm-v523-tab="participants"]').click();
-  await page.waitForSelector('[data-cm-v523-panel="participants"].active', { state: 'visible' });
-  const participantState = await page.evaluate(() => ({
-    title: document.querySelector('[data-cm-v523-panel="participants"]')?.textContent || '',
-    visiblePanels: [...document.querySelectorAll('#cmV521History [data-cm-v521-panel]')].filter((panel) => !panel.hidden && panel.getClientRects().length).length
-  }));
+  await page.waitForFunction(() => [...document.querySelectorAll('#cmV521History [data-cm-v523-tab="participants"]')].some((button) => button.getClientRects().length));
+  const participantClicked = await page.evaluate(() => {
+    const button = [...document.querySelectorAll('#cmV521History [data-cm-v523-tab="participants"]')].find((item) => item.getClientRects().length);
+    button?.click();
+    return Boolean(button);
+  });
+  if (!participantClicked) throw new Error('No se encontró la pestaña visible de Participantes.');
+  await page.waitForFunction(() => [...document.querySelectorAll('#cmV521History [data-cm-v523-panel="participants"]')].some((panel) => panel.classList.contains('active') && !panel.hidden && panel.getClientRects().length));
+  const participantState = await page.evaluate(() => {
+    const panel = [...document.querySelectorAll('#cmV521History [data-cm-v523-panel="participants"]')].find((item) => item.classList.contains('active') && !item.hidden && item.getClientRects().length);
+    return {
+      title: panel?.textContent || '',
+      visiblePanels: [...document.querySelectorAll('#cmV521History [data-cm-v521-panel]')].filter((item) => !item.hidden && item.getClientRects().length).length
+    };
+  });
   if (!participantState.title.includes('La Liga de los Participantes') || participantState.visiblePanels !== 1) throw new Error(`Participantes no quedó aislado: ${JSON.stringify(participantState)}`);
 
-  const nativeTab = page.locator('#cmV521History [data-cm-v521-tab]:not([data-cm-v523-tab])').first();
-  await nativeTab.click();
-  await page.waitForFunction(() => {
-    const panel = document.querySelector('[data-cm-v523-panel="participants"]');
-    return panel?.hidden && !panel.classList.contains('active') && panel.getClientRects().length === 0;
+  const nativeClicked = await page.evaluate(() => {
+    const button = [...document.querySelectorAll('#cmV521History [data-cm-v521-tab]:not([data-cm-v523-tab])')].find((item) => item.getClientRects().length);
+    button?.click();
+    return Boolean(button);
   });
+  if (!nativeClicked) throw new Error('No se encontró una pestaña estadística nativa visible.');
+  await page.waitForFunction(() => [...document.querySelectorAll('#cmV521History [data-cm-v523-panel="participants"]')].every((panel) => panel.hidden && !panel.classList.contains('active') && panel.getClientRects().length === 0));
   const nativeState = await page.evaluate(() => ({
-    participantVisible: document.querySelector('[data-cm-v523-panel="participants"]')?.getClientRects().length > 0,
+    participantVisible: [...document.querySelectorAll('#cmV521History [data-cm-v523-panel="participants"]')].some((panel) => panel.getClientRects().length > 0),
     visiblePanels: [...document.querySelectorAll('#cmV521History [data-cm-v521-panel]')].filter((panel) => !panel.hidden && panel.getClientRects().length).length
   }));
   if (nativeState.participantVisible || nativeState.visiblePanels !== 1) throw new Error(`Participantes siguió visible en otra pestaña: ${JSON.stringify(nativeState)}`);
