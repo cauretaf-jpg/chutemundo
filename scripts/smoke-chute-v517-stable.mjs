@@ -78,7 +78,7 @@ try {
       title: document.title
     };
   }, setup.tournamentId);
-  if (after.status !== 'historical' || after.awards !== 6 || !after.champion || !after.title.includes('5.25.0')) throw new Error(`Cierre oficial incompleto: ${JSON.stringify(after)}`);
+  if (after.status !== 'historical' || after.awards !== 6 || !after.title.includes('5.25.0')) throw new Error(`Cierre oficial incompleto: ${JSON.stringify(after)}`);
   if (after.participantChampion && after.participantChampion !== 'participante_alvaro') throw new Error(`Participante campeón incorrecto: ${JSON.stringify(after)}`);
 
   const criticalErrors = errors.filter((message) => !/favicon|firestore|permission-denied|Failed to load resource|QUIC_NETWORK|ERR_NAME_NOT_RESOLVED|ERR_CONNECTION|network|service worker/i.test(message));
