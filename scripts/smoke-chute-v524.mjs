@@ -79,9 +79,11 @@ try {
   if (initialArchive.includes('Próximo Torneo')) throw new Error(`El archivo mezcló próximos torneos: ${initialArchive}`);
 
   await page.locator('#cmV524ShowMore').click();
+  await page.waitForFunction(() => document.querySelectorAll('#tournamentList > .cm-v524-tournament-card').length === 6);
   cards = await page.locator('#tournamentList > .cm-v524-tournament-card').count();
   if (cards !== 6) throw new Error(`Ver más debía mostrar 6 torneos anteriores, mostró ${cards}.`);
   await page.locator('#cmV524ShowLess').click();
+  await page.waitForFunction(() => document.querySelectorAll('#tournamentList > .cm-v524-tournament-card').length === 3);
   cards = await page.locator('#tournamentList > .cm-v524-tournament-card').count();
   if (cards !== 3) throw new Error(`Ver menos debía volver a 3 torneos anteriores, mostró ${cards}.`);
 
