@@ -1,0 +1,54 @@
+.cm-v525-fifa-panel[hidden],.cm-v525-rules[hidden]{display:none!important}
+.cm-v525-fifa-panel{display:grid;gap:18px}
+.cm-v525-fifa-head{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:end;gap:18px;padding:24px;border:1px solid rgba(15,118,90,.18);border-radius:22px;background:linear-gradient(135deg,#073c2e,#0a7256);color:#fff;box-shadow:0 16px 34px rgba(4,53,39,.16)}
+.cm-v525-fifa-head span,.cm-v525-ranking-board>header span{font-size:.7rem;font-weight:900;letter-spacing:.12em}
+.cm-v525-fifa-head h2{margin:.3rem 0 .45rem;font-size:clamp(1.45rem,3vw,2.2rem)}
+.cm-v525-fifa-head p{max-width:760px;margin:0;color:rgba(255,255,255,.8);line-height:1.55}
+.cm-v525-fifa-head>strong{display:grid;justify-items:end;font-size:2.15rem;line-height:1}
+.cm-v525-fifa-head>strong small{margin-top:6px;color:rgba(255,255,255,.72);font-size:.68rem}
+.cm-v525-formula{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
+.cm-v525-formula article{display:grid;gap:5px;padding:16px;border:1px solid rgba(10,78,60,.12);border-radius:17px;background:#fff;box-shadow:0 7px 18px rgba(7,45,31,.05)}
+.cm-v525-formula span{color:#66756f;font-size:.68rem;font-weight:850;text-transform:uppercase;letter-spacing:.08em}
+.cm-v525-formula b{color:#073f30;font-size:1.35rem}
+.cm-v525-formula small{color:#76827d;font-size:.68rem}
+.cm-v525-rank-cards{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}
+.cm-v525-rank-card{display:grid;gap:13px;padding:18px;border:1px solid rgba(10,78,60,.13);border-radius:20px;background:linear-gradient(145deg,#fff,#f3f8f5);box-shadow:0 9px 22px rgba(7,45,31,.06)}
+.cm-v525-rank-card.is-leader{border-color:#d7ab3e;background:linear-gradient(145deg,#fffdf5,#f7f1dc)}
+.cm-v525-rank-card>span{color:#0c7457;font-size:.67rem;font-weight:900;letter-spacing:.1em}
+.cm-v525-rank-card>div{display:grid;grid-template-columns:54px minmax(0,1fr);align-items:center;gap:12px}
+.cm-v525-rank-card img{width:54px;height:54px;object-fit:contain}
+.cm-v525-rank-card h3{margin:0 0 4px;font-size:1rem}
+.cm-v525-rank-card p{margin:0;color:#6f7b76;font-size:.72rem}
+.cm-v525-rank-card>strong{display:grid;color:#083e30;font-size:2rem;line-height:1}
+.cm-v525-rank-card>strong small{margin-top:5px;color:#74807b;font-size:.68rem}
+.cm-v525-rank-card footer{display:flex;justify-content:space-between;gap:12px;padding-top:10px;border-top:1px solid rgba(10,78,60,.1);font-size:.72rem}
+.cm-v525-rank-card footer em,.cm-v525-delta{font-style:normal;font-weight:900}
+.cm-v525-ranking-board{overflow:hidden;border:1px solid rgba(10,78,60,.13);border-radius:20px;background:#fff}
+.cm-v525-ranking-board>header{display:grid;grid-template-columns:minmax(0,1fr) minmax(240px,.65fr);gap:18px;padding:18px 20px;border-bottom:1px solid rgba(10,78,60,.1);background:#f5f9f7}
+.cm-v525-ranking-board>header h3{margin:.25rem 0 0}
+.cm-v525-ranking-board>header p{margin:0;color:#687670;font-size:.74rem;line-height:1.5}
+.cm-v525-table-scroll{overflow:auto}
+.cm-v525-table{width:100%;min-width:900px;border-collapse:collapse}
+.cm-v525-table th,.cm-v525-table td{padding:11px 12px;border-bottom:1px solid #e7eeea;text-align:center;font-size:.75rem;white-space:nowrap}
+.cm-v525-table th{position:sticky;top:0;background:#edf5f1;color:#49625a;font-size:.66rem;text-transform:uppercase;letter-spacing:.05em}
+.cm-v525-table td:nth-child(2),.cm-v525-table th:nth-child(2){text-align:left}
+.cm-v525-table button{display:inline-flex;align-items:center;gap:8px;padding:0;border:0;background:transparent;color:#123d31;font-weight:850;cursor:pointer}
+.cm-v525-table button img{width:32px;height:32px;object-fit:contain}
+.cm-v525-table tbody tr:hover{background:#f8fbf9}
+.cm-v525-method{border:1px solid rgba(10,78,60,.13);border-radius:18px;background:#fff}
+.cm-v525-method summary{padding:16px 18px;color:#087052;font-weight:900;cursor:pointer}
+.cm-v525-method>div{display:grid;gap:8px;padding:0 18px 18px;color:#5e6e67;font-size:.78rem;line-height:1.55}
+.cm-v525-method p{margin:0}
+.cm-v525-empty{padding:30px;text-align:center;color:#6b7873}
+.cm-v525-rules{display:contents}
+.cm-v525-rules article{display:grid;grid-template-columns:48px minmax(0,1fr);gap:16px;padding:20px;border:1px solid rgba(10,78,60,.12);border-radius:18px;background:#fff}
+.cm-v525-rules article>span{display:grid;place-items:center;width:42px;height:42px;border-radius:14px;background:#0b7659;color:#fff;font-weight:900}
+.cm-v525-rules h3{margin:0 0 8px}
+.cm-v525-rules p{margin:.25rem 0 .7rem;color:#566861;line-height:1.55}
+.cm-v525-rules ul{display:grid;gap:7px;margin:.65rem 0;padding-left:20px;color:#53665f;line-height:1.45}
+.cm-v525-rules small{display:block;margin-top:10px;padding:11px 13px;border-radius:12px;background:#eef6f2;color:#52665e;line-height:1.45}
+.cm-v525-rule-formula{overflow:auto;margin:10px 0;padding:12px 14px;border-radius:12px;background:#062f24;color:#fff;font-family:ui-monospace,SFMono-Regular,Consolas,monospace;font-size:.78rem;white-space:nowrap}
+.positive{color:#087a55!important}.negative{color:#b4232e!important}
+@media(max-width:900px){.cm-v525-formula{grid-template-columns:repeat(2,minmax(0,1fr))}.cm-v525-rank-cards{grid-template-columns:1fr}.cm-v525-ranking-board>header{grid-template-columns:1fr}}
+@media(max-width:720px){.cm-v525-fifa-head{grid-template-columns:1fr;padding:19px}.cm-v525-fifa-head>strong{justify-items:start}.cm-v525-formula{grid-template-columns:1fr 1fr}.cm-v525-rules article{grid-template-columns:1fr}.cm-v525-rules article>span{width:38px;height:38px}.cm-v525-table{min-width:820px}}
+@media(max-width:430px){.cm-v525-formula{grid-template-columns:1fr}.cm-v525-fifa-head h2{font-size:1.5rem}}
