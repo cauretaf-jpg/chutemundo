@@ -22,7 +22,7 @@ try {
       { id: 'participante_alvaro', name: 'Álvaro', color: '#e74c3c', defaultSide: 'home', archived: false },
       { id: 'participante_carlos', name: 'Carlos', color: '#3498db', defaultSide: 'away', archived: false }
     ];
-    const match = (id, played = true) => ({ id, stage: 'regular', round: 'Fecha 1', home: 'a', away: 'b', homeGoals: played ? 1 : null, awayGoals: played ? 0 : null, participantHome: 'participante_alvaro', participantAway: 'participante_carlos' });
+    const match = (id, isPlayed = true) => ({ id, stage: 'regular', round: 'Fecha 1', home: 'a', away: 'b', homeGoals: isPlayed ? 1 : null, awayGoals: isPlayed ? 0 : null, participantHome: 'participante_alvaro', participantAway: 'participante_carlos' });
     const historical = Array.from({ length: 8 }, (_, index) => ({
       id: `hist-${index + 1}`,
       name: `Torneo Histórico ${index + 1}`,
@@ -138,13 +138,13 @@ try {
   if (nativeState.participantVisible || nativeState.visiblePanels !== 1) throw new Error(`Participantes siguió visible en otra pestaña: ${JSON.stringify(nativeState)}`);
 
   const mobile = await page.evaluate(() => ({ width: document.documentElement.scrollWidth, viewport: document.documentElement.clientWidth, title: document.title }));
-  if (mobile.width > mobile.viewport + 3) throw new Error(`Desborde móvil en v5.24.2: ${JSON.stringify(mobile)}`);
-  if (!mobile.title.includes('5.24.2')) throw new Error(`La versión visible no es v5.24.2: ${mobile.title}`);
+  if (mobile.width > mobile.viewport + 3) throw new Error(`Desborde móvil en regresión v5.24.2: ${JSON.stringify(mobile)}`);
+  if (!mobile.title.includes('5.25.0')) throw new Error(`La versión visible no es v5.25.0: ${mobile.title}`);
 
   const critical = errors.filter((message) => !/favicon|firestore|permission-denied|Failed to load resource|QUIC_NETWORK|ERR_NAME_NOT_RESOLVED|ERR_CONNECTION|network|service worker/i.test(message));
   if (critical.length) throw new Error(critical.join(' | '));
   await page.evaluate(() => window.ChuteMundoCore.setState(window.__cmV524Original));
-  console.log('Chute Mundo v5.24.2 toolbar and statistics tabs smoke OK', { summary, activeText, upcomingText, toolbar, participantState, nativeState, mobile });
+  console.log('Chute Mundo v5.24.2 regression smoke OK on v5.25.0', { summary, activeText, upcomingText, toolbar, participantState, nativeState, mobile });
 } finally {
   await context.close();
   await browser.close();
