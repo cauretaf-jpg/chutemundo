@@ -142,7 +142,7 @@ try {
     return { status: tournament?.status, participantChampion: tournament?.participantChampion, champion: tournament?.champion };
   }, setup.tournamentId);
   const title = await page.title();
-  if (!/5\.(17|18|19|20|21|22|23|24)/.test(title)) throw new Error(`Título incorrecto: ${title}`);
+  if (!/5\.(17|18|19|20|21|22|23|24|25)/.test(title)) throw new Error(`Título incorrecto: ${title}`);
   if (finalData.participantChampion && finalData.participantChampion !== 'participante_alvaro') throw new Error(`Participante campeón incorrecto: ${JSON.stringify(finalData)}`);
   const critical = errors.filter((message) => !/favicon|firestore|permission-denied|Failed to load resource|QUIC_NETWORK|ERR_NAME_NOT_RESOLVED|ERR_CONNECTION|network/i.test(message));
   if (critical.length) throw new Error(critical.join(' | '));
