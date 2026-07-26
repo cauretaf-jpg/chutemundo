@@ -72,6 +72,26 @@ try {
   await page.waitForSelector('[data-cm-v525-rules]', { state: 'visible' });
   const rules = await page.locator('[data-cm-v523-admin-panel="rules"]').innerText();
   for (const text of ['Ranking FIFA Chute', 'K=24', 'Bota de Oro', 'Balón de Oro', 'Guante de Oro', 'Figura de la Final', 'Amistosos ×0,25']) if (!rules.includes(text)) throw new Error(`Falta regla: ${text}`);
+  const rulesLayout = await page.evaluate(() => {
+    const wrapper = document.querySelector('[data-cm-v525-rules]');
+    const cards = [...(wrapper?.querySelectorAll(':scope > article') || [])];
+    const rects = cards.map((card) => {
+      const rect = card.getBoundingClientRect();
+      const badge = card.querySelector(':scope > span')?.getBoundingClientRect();
+      const content = card.querySelector(':scope > div')?.getBoundingClientRect();
+      return { left: rect.left, top: rect.top, right: rect.right, bottom: rect.bottom, width: rect.width, badgeRight: badge?.right || 0, contentLeft: content?.left || 0 };
+    });
+    const overlap = rects.length === 2 && !(rects[0].bottom <= rects[1].top || rects[1].bottom <= rects[0].top || rects[0].right <= rects[1].left || rects[1].right <= rects[0].left);
+    return {
+      display: wrapper ? getComputedStyle(wrapper).display : '',
+      columns: wrapper ? getComputedStyle(wrapper).gridTemplateColumns : '',
+      cards: cards.length,
+      overlap,
+      rects,
+      badgesSeparated: rects.every((rect) => rect.badgeRight <= rect.contentLeft)
+    };
+  });
+  if (rulesLayout.cards !== 2 || rulesLayout.display !== 'grid' || rulesLayout.overlap || !rulesLayout.badgesSeparated || rulesLayout.rects.some((rect) => rect.width < 250)) throw new Error(`Reglamento superpuesto: ${JSON.stringify(rulesLayout)}`);
 
   const mobile = await page.evaluate(() => ({ width: document.documentElement.scrollWidth, viewport: document.documentElement.clientWidth, title: document.title, version: window.ChuteVersion?.version }));
   if (mobile.width > mobile.viewport + 3) throw new Error(`Desborde móvil en v5.25: ${JSON.stringify(mobile)}`);
@@ -80,7 +100,7 @@ try {
   const critical = errors.filter((message) => !/favicon|firestore|permission-denied|Failed to load resource|QUIC_NETWORK|ERR_NAME_NOT_RESOLVED|ERR_CONNECTION|network|service worker/i.test(message));
   if (critical.length) throw new Error(critical.join(' | '));
   await page.evaluate(() => window.ChuteMundoCore.setState(window.__cmV525Original));
-  console.log('Chute Mundo v5.25 FIFA ranking smoke OK', { setup, mobile });
+  console.log('Chute Mundo v5.25 FIFA ranking smoke OK', { setup, rulesLayout, mobile });
 } finally {
   await context.close();
   await browser.close();
