@@ -72,6 +72,7 @@ try {
   await page.locator('#cmV5241ArchiveToggle').click();
   await page.waitForSelector('#cmV524HistoryPanel', { state: 'visible' });
   if (!(await page.locator('#cmV5241ArchiveToggle').innerText()).includes('Ocultar torneos anteriores')) throw new Error('El botón no cambió al estado de cierre.');
+  await page.waitForFunction(() => document.querySelectorAll('#tournamentList > .cm-v524-tournament-card').length === 3);
 
   let cards = await page.locator('#tournamentList > .cm-v524-tournament-card').count();
   if (cards !== 3) throw new Error(`El archivo móvil debe mostrar 3 torneos inicialmente, mostró ${cards}.`);
