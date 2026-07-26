@@ -40,15 +40,17 @@
 .cm-v525-method>div{display:grid;gap:8px;padding:0 18px 18px;color:#5e6e67;font-size:.78rem;line-height:1.55}
 .cm-v525-method p{margin:0}
 .cm-v525-empty{padding:30px;text-align:center;color:#6b7873}
-.cm-v525-rules{display:contents}
-.cm-v525-rules article{display:grid;grid-template-columns:48px minmax(0,1fr);gap:16px;padding:20px;border:1px solid rgba(10,78,60,.12);border-radius:18px;background:#fff}
+.cm-v523-rules .cm-v525-rules{display:grid;grid-column:1/-1;grid-template-columns:repeat(2,minmax(0,1fr));gap:13px;padding:0;border:0;border-radius:0;background:transparent}
+.cm-v525-rules article{display:grid;grid-template-columns:48px minmax(0,1fr);align-content:start;gap:16px;min-width:0;padding:20px;border:1px solid rgba(10,78,60,.12);border-radius:18px;background:#fff}
 .cm-v525-rules article>span{display:grid;place-items:center;width:42px;height:42px;border-radius:14px;background:#0b7659;color:#fff;font-weight:900}
+.cm-v525-rules article>div{min-width:0}
 .cm-v525-rules h3{margin:0 0 8px}
 .cm-v525-rules p{margin:.25rem 0 .7rem;color:#566861;line-height:1.55}
 .cm-v525-rules ul{display:grid;gap:7px;margin:.65rem 0;padding-left:20px;color:#53665f;line-height:1.45}
 .cm-v525-rules small{display:block;margin-top:10px;padding:11px 13px;border-radius:12px;background:#eef6f2;color:#52665e;line-height:1.45}
 .cm-v525-rule-formula{overflow:auto;margin:10px 0;padding:12px 14px;border-radius:12px;background:#062f24;color:#fff;font-family:ui-monospace,SFMono-Regular,Consolas,monospace;font-size:.78rem;white-space:nowrap}
 .positive{color:#087a55!important}.negative{color:#b4232e!important}
+@media(max-width:1050px){.cm-v523-rules .cm-v525-rules{grid-template-columns:1fr}}
 @media(max-width:900px){.cm-v525-formula{grid-template-columns:repeat(2,minmax(0,1fr))}.cm-v525-rank-cards{grid-template-columns:1fr}.cm-v525-ranking-board>header{grid-template-columns:1fr}}
-@media(max-width:720px){.cm-v525-fifa-head{grid-template-columns:1fr;padding:19px}.cm-v525-fifa-head>strong{justify-items:start}.cm-v525-formula{grid-template-columns:1fr 1fr}.cm-v525-rules article{grid-template-columns:1fr}.cm-v525-rules article>span{width:38px;height:38px}.cm-v525-table{min-width:820px}}
+@media(max-width:720px){.cm-v525-fifa-head{grid-template-columns:1fr;padding:19px}.cm-v525-fifa-head>strong{justify-items:start}.cm-v525-formula{grid-template-columns:1fr 1fr}.cm-v525-rules article{grid-template-columns:38px minmax(0,1fr);padding:15px}.cm-v525-rules article>span{width:38px;height:38px}.cm-v525-table{min-width:820px}}
 @media(max-width:430px){.cm-v525-formula{grid-template-columns:1fr}.cm-v525-fifa-head h2{font-size:1.5rem}}
