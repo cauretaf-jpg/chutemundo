@@ -24,6 +24,7 @@ jobs:
           node --check scripts/smoke-chute-v522.mjs
           node --check scripts/smoke-chute-v516.mjs
           node --check scripts/smoke-chute-v517.mjs
+          node --check scripts/smoke-chute-v517-stable.mjs
           node --check scripts/smoke-chute-v525.mjs
           node scripts/check-chute-v516.mjs 2>&1 | tee /tmp/chute-v516-syntax.log
           cat public/chute-v517-finalization-part-*.txt > /tmp/chute-v517-concatenated.mjs
@@ -63,6 +64,7 @@ jobs:
           test -s scripts/smoke-chute-v522.mjs
           test -s scripts/smoke-chute-v516.mjs
           test -s scripts/smoke-chute-v517.mjs
+          test -s scripts/smoke-chute-v517-stable.mjs
           test -s scripts/smoke-chute-v525.mjs
           for index in $(seq 0 11); do part=$(printf "%02d" "$index"); test -s "public/chute-v516-events-stats-part-${part}.txt"; done
           for index in $(seq 0 7); do part=$(printf "%02d" "$index"); test -s "public/chute-v517-finalization-part-${part}.txt"; done
@@ -115,7 +117,7 @@ jobs:
           sleep 3
           node scripts/smoke-chute-v522.mjs > /tmp/chute-smoke-v522.log 2>&1
           node scripts/smoke-chute-v516.mjs > /tmp/chute-smoke-v516.log 2>&1
-          node scripts/smoke-chute-v517.mjs > /tmp/chute-smoke-v517.log 2>&1
+          node scripts/smoke-chute-v517-stable.mjs > /tmp/chute-smoke-v517.log 2>&1
           node scripts/smoke-chute-v525.mjs > /tmp/chute-smoke-v525.log 2>&1
 
       - name: Upload diagnostics
