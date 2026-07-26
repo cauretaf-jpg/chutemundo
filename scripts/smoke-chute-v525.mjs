@@ -57,7 +57,8 @@ try {
   await page.locator('[data-cm-v525-tab="fifa"]').click();
   await page.waitForSelector('[data-cm-v525-panel="fifa"].active', { state: 'visible' });
   const fifaText = await page.locator('[data-cm-v525-panel="fifa"]').innerText();
-  if (!fifaText.includes('RANKING FIFA CHUTE') || !fifaText.includes('Equipo A') || !fifaText.includes('1000') || !fifaText.includes('Factor K')) throw new Error(`Panel FIFA incompleto: ${fifaText}`);
+  const fifaUpper = fifaText.toUpperCase();
+  if (!fifaUpper.includes('RANKING FIFA CHUTE') || !fifaText.includes('Equipo A') || !fifaText.includes('1000') || !fifaUpper.includes('FACTOR K')) throw new Error(`Panel FIFA incompleto: ${fifaText}`);
   if (await page.locator('[data-cm-v523-panel="participants"]').isVisible()) throw new Error('Participantes quedó visible junto al Ranking FIFA.');
 
   await page.locator('[data-cm-v521-tab="eternal"]').click();
