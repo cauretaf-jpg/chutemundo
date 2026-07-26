@@ -81,12 +81,10 @@ try {
     const hub = document.querySelector(`#cmTournamentHub[data-tournament-id="${id}"]`);
     return hub && hub.getClientRects().length > 0 && [...hub.querySelectorAll('[data-cm-v517-awards-tab]')].some((item) => item.getClientRects().length > 0);
   }, setup.tournamentId);
-  await page.waitForSelector('[data-cm-v517-awards-panel]', { state: 'attached' });
+  await page.waitForFunction(() => Boolean(document.querySelector('[data-cm-v517-awards-panel]')));
+  await page.waitForTimeout(80);
 
-  const initialAwards = await page.evaluate(() => {
-    const panel = document.querySelector('[data-cm-v517-awards-panel]');
-    return { hidden: panel.hidden, display: getComputedStyle(panel).display, rects: panel.getClientRects().length };
-  });
+  const initialAwards = await page.locator('[data-cm-v517-awards-panel]').evaluate((panel) => ({ hidden: panel.hidden, display: getComputedStyle(panel).display, rects: panel.getClientRects().length }));
   if (!initialAwards.hidden || initialAwards.display !== 'none' || initialAwards.rects !== 0) throw new Error(`Premios visibles sin abrir: ${JSON.stringify(initialAwards)}`);
 
   await clickCurrent('[data-cm-tournament-tab="fixture"]');
@@ -99,7 +97,7 @@ try {
   await page.waitForSelector('[data-cm-v517-awards-panel].active .cm-v517-awards-grid');
   const awards = await page.evaluate(() => ({
     cards: document.querySelectorAll('.cm-v517-award-card').length,
-    visible: document.querySelector('[data-cm-v517-awards-panel]').getClientRects().length > 0,
+    visible: document.querySelector('[data-cm-v517-awards-panel]')?.getClientRects().length > 0,
     computed: window.ChuteV517Finalization.computeAwards(window.ChuteMundoCore.getState().tournaments.find((item) => item.id === 'v517-finalization-test'))
   }));
   if (awards.cards !== 6 || !awards.visible) throw new Error(`Panel de premios incompleto: ${JSON.stringify({ cards: awards.cards, visible: awards.visible })}`);
@@ -122,7 +120,7 @@ try {
   await page.waitForSelector('[data-cm-tournament-panel="table"].active');
   const hiddenAgain = await page.evaluate(() => {
     const panel = document.querySelector('[data-cm-v517-awards-panel]');
-    return panel.hidden && getComputedStyle(panel).display === 'none' && panel.getClientRects().length === 0;
+    return Boolean(panel && panel.hidden && getComputedStyle(panel).display === 'none' && panel.getClientRects().length === 0);
   });
   if (!hiddenAgain) throw new Error('Premios no se ocultaron al cambiar de pestaña.');
 
