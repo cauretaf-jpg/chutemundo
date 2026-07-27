@@ -32,9 +32,9 @@ try {
   });
 
   for (const key of ['arnold', 'legacy', 'repaired']) {
-    if (!result[key].startsWith('data:image/jpeg;base64,')) throw new Error(`${key} no usa la fotografía incorporada.`);
+    if (!result[key].includes('/player-photos/perla/arnold-vega.jpg')) throw new Error(`${key} no usa la fotografía incorporada.`);
   }
-  if (result.otherTeam.startsWith('data:image/jpeg;base64,')) throw new Error('La corrección se aplicó fuera de La Perla United.');
+  if (result.otherTeam.includes('/player-photos/perla/arnold-vega.jpg')) throw new Error('La corrección se aplicó fuera de La Perla United.');
   if (result.decoded.width !== 160 || result.decoded.height !== 250) throw new Error(`Dimensiones inesperadas: ${JSON.stringify(result.decoded)}.`);
 
   const critical = errors.filter((message) => !/favicon|firestore|permission-denied|Failed to load resource|QUIC_NETWORK|ERR_NAME_NOT_RESOLVED|ERR_CONNECTION|network|service worker|example\.invalid/i.test(message));
