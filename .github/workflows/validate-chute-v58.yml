@@ -119,7 +119,7 @@ jobs:
           grep -q "\['El Profesor', 'parrilla'" public/chute-v5252-historical-player-stats.mjs
           ! grep -q "El Profesor \." public/chute-v5252-historical-player-stats.mjs
           grep -q "Arnold Vega" public/chute-v5253-arnold-vega-photo.mjs
-          grep -q "Julio Vega" public/chute-v5253-arnold-vega-photo.mjs
+          grep -q "julio vega" public/chute-v5253-arnold-vega-photo.mjs
           grep -q "data:image/jpeg;base64," public/chute-v5253-arnold-vega-photo.mjs
 
       - name: Install browser
