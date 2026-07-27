@@ -26,6 +26,7 @@ jobs:
           node --check scripts/smoke-chute-v517.mjs
           node --check scripts/smoke-chute-v517-stable.mjs
           node --check scripts/smoke-chute-v525.mjs
+          node --check scripts/smoke-chute-v5252-history-stats.mjs
           node scripts/check-chute-v516.mjs 2>&1 | tee /tmp/chute-v516-syntax.log
           cat public/chute-v517-finalization-part-*.txt > /tmp/chute-v517-concatenated.mjs
           node --check /tmp/chute-v517-concatenated.mjs 2>&1 | tee /tmp/chute-v517-syntax.log
@@ -59,6 +60,7 @@ jobs:
           test -s public/chute-v520-stats-guard.mjs
           test -s public/chute-v525-fifa-ranking.mjs
           test -s public/chute-v525-fifa-ranking.css
+          test -s public/chute-v5252-historical-player-stats.mjs
           test -s scripts/audit-chute-v522.mjs
           test -s scripts/audit-chute-v525.mjs
           test -s scripts/smoke-chute-v522.mjs
@@ -66,6 +68,7 @@ jobs:
           test -s scripts/smoke-chute-v517.mjs
           test -s scripts/smoke-chute-v517-stable.mjs
           test -s scripts/smoke-chute-v525.mjs
+          test -s scripts/smoke-chute-v5252-history-stats.mjs
           for index in $(seq 0 11); do part=$(printf "%02d" "$index"); test -s "public/chute-v516-events-stats-part-${part}.txt"; done
           for index in $(seq 0 7); do part=$(printf "%02d" "$index"); test -s "public/chute-v517-finalization-part-${part}.txt"; done
           for index in $(seq 0 9); do part=$(printf "%02d" "$index"); test -s "public/chute-v521-history-part-${part}.txt"; done
@@ -75,6 +78,7 @@ jobs:
           grep -q "chute-v522-stats-refinement.mjs?v=5.22.0" public/chute-official.mjs
           grep -q "chute-v520-stats-guard.mjs?v=5.22.0" public/chute-official.mjs
           grep -q "chute-v525-fifa-ranking.mjs?v=5.25.0" public/chute-official.mjs
+          grep -q "chute-v5252-historical-player-stats.mjs?v=5.25.2" public/chute-official.mjs
           grep -q "chute:boot-complete" public/chute-official.mjs
           ! grep -q "chute-v520-stats.mjs" public/chute-official.mjs
           ! grep -q "chute-v520-stats-sync.mjs" public/chute-official.mjs
@@ -82,6 +86,7 @@ jobs:
           grep -q "const CACHE = 'chute-mundo-v5.22.0'" public/sw.js
           grep -q "chute-v522-stats-refinement.mjs?v=5.22.0" public/sw.js
           grep -q "chute-v525-fifa-ranking.mjs?v=5.25.0" public/sw.js
+          grep -q "chute-v5252-historical-player-stats.mjs?v=5.25.2" public/sw.js
           grep -q "chute-v521-history-part-" public/sw.js
           grep -q "self.clients.claim()" public/sw.js
           grep -q "fetch(request, { cache: 'no-store' })" public/sw.js
@@ -105,6 +110,9 @@ jobs:
           grep -q "rel=\"icon\" href=\"/chute-icon.svg\"" public/index.html
           grep -q "const K_FACTOR = 24" public/chute-v525-fifa-ranking.mjs
           grep -q "Balón de Oro" public/chute-v525-fifa-ranking.mjs
+          grep -q "historical-player-stats-t4-t7-v1" public/chute-v5252-historical-player-stats.mjs
+          grep -q "\['El Profesor', 'parrilla'" public/chute-v5252-historical-player-stats.mjs
+          ! grep -q "El Profesor \." public/chute-v5252-historical-player-stats.mjs
 
       - name: Install browser
         run: |
@@ -119,6 +127,7 @@ jobs:
           node scripts/smoke-chute-v516.mjs > /tmp/chute-smoke-v516.log 2>&1
           node scripts/smoke-chute-v517-stable.mjs > /tmp/chute-smoke-v517.log 2>&1
           node scripts/smoke-chute-v525.mjs > /tmp/chute-smoke-v525.log 2>&1
+          node scripts/smoke-chute-v5252-history-stats.mjs > /tmp/chute-smoke-v5252-history-stats.log 2>&1
 
       - name: Upload diagnostics
         if: always()

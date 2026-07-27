@@ -24,6 +24,7 @@ const CORE = [
   '/chute-v520-stats-guard.mjs?v=5.25.0',
   '/chute-v5242-ui-fixes.mjs?v=5.25.0', '/chute-v5242-ui-fixes.css?v=5.25.0',
   '/chute-v525-fifa-ranking.mjs?v=5.25.0', '/chute-v525-fifa-ranking.css?v=5.25.0',
+  '/chute-v5252-historical-player-stats.mjs?v=5.25.2',
   '/manifest.webmanifest', '/chute-icon.svg', '/chute-icon-maskable.svg'
 ];
 
