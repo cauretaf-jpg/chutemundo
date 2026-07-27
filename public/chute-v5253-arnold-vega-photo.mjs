@@ -2,6 +2,7 @@ const model = window.ChuteDetailModel;
 if (!model) throw new Error('Chute Mundo no está listo para cargar la fotografía de Arnold Vega.');
 
 const VERSION = '5.25.3';
+// Se usa un JPEG local, no un data:image/jpeg;base64, para asegurar decodificación y caché consistentes.
 const ARNOLD_URL = '/player-photos/perla/arnold-vega.jpg?v=e3debd61';
 const previousPhotoUrl = model.photoUrl?.bind(model);
 const previousPhoto = model.photo?.bind(model);
