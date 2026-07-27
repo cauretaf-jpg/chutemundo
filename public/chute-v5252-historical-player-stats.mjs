@@ -195,17 +195,76 @@ function playerName(entry) {
   return Array.isArray(entry) ? String(entry[0] || '') : String(entry?.name || '');
 }
 
+function normalizeName(value = '') {
+  return String(value).normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[’']/g, '').replace(/[^a-z0-9]+/g, ' ').trim();
+}
+
+function editDistance(left = '', right = '') {
+  const a = String(left);
+  const b = String(right);
+  const rows = Array.from({ length: a.length + 1 }, (_, index) => [index]);
+  for (let column = 0; column <= b.length; column += 1) rows[0][column] = column;
+  for (let row = 1; row <= a.length; row += 1) {
+    for (let column = 1; column <= b.length; column += 1) {
+      rows[row][column] = Math.min(
+        rows[row - 1][column] + 1,
+        rows[row][column - 1] + 1,
+        rows[row - 1][column - 1] + (a[row - 1] === b[column - 1] ? 0 : 1)
+      );
+    }
+  }
+  return rows[a.length][b.length];
+}
+
+function candidateScore(requested, candidate) {
+  const query = normalizeName(requested);
+  const current = normalizeName(candidate);
+  if (!query || !current) return 0;
+  if (query === current) return 100;
+  const queryTokens = query.split(' ');
+  const currentTokens = current.split(' ');
+  let score = 0;
+  if (query.includes(current) || current.includes(query)) score += 20;
+  if (queryTokens[0] === currentTokens[0]) score += 8;
+  if (queryTokens.at(-1) === currentTokens.at(-1)) score += 8;
+  else if (editDistance(queryTokens.at(-1), currentTokens.at(-1)) <= 1) score += 5;
+  score += queryTokens.filter((token) => currentTokens.includes(token)).length * 2;
+  return score;
+}
+
+function resolveRosterName(source, teamId, requestedName) {
+  const team = (source.teams || []).find((item) => item.id === teamId);
+  const roster = (team?.players || []).map(playerName).filter(Boolean);
+  const exact = roster.find((name) => name === requestedName);
+  if (exact) return exact;
+  const normalized = roster.find((name) => normalizeName(name) === normalizeName(requestedName));
+  if (normalized) return normalized;
+  const ranked = roster.map((name) => ({ name, score: candidateScore(requestedName, name) })).sort((left, right) => right.score - left.score || left.name.localeCompare(right.name, 'es'));
+  if (ranked[0]?.score >= 8 && (!ranked[1] || ranked[0].score > ranked[1].score)) return ranked[0].name;
+  throw new Error(`No se encontró un nombre canónico único para ${requestedName} en ${teamId}.`);
+}
+
+function canonicalRows(source, rows) {
+  const canonical = rows.map(([name, teamId, appearances, value]) => [resolveRosterName(source, teamId, name), teamId, Number(appearances || 0), Number(value || 0)]);
+  const seen = new Set();
+  for (const [name, teamId] of canonical) {
+    const key = `${teamId}__${name}`;
+    if (seen.has(key)) throw new Error(`La migración histórica duplicó a ${name} en ${teamId}.`);
+    seen.add(key);
+  }
+  return canonical;
+}
+
 function validatePatch(source, tournamentId, patch) {
   const scorerGoals = metricTotal(patch.scorers);
   const assists = metricTotal(patch.assists);
   if (patch.scorers.length !== patch.expected.scorerRows || scorerGoals !== patch.expected.goals || patch.assists.length !== patch.expected.assistRows || assists !== patch.expected.assists) {
     throw new Error(`La tabla histórica ${tournamentId} no coincide con sus totales esperados.`);
   }
-  const teamMap = new Map((source.teams || []).map((team) => [team.id, new Set((team.players || []).map(playerName))]));
-  const missing = [...patch.scorers, ...patch.assists]
-    .filter(([name, teamId]) => !teamMap.get(teamId)?.has(name))
-    .map(([name, teamId]) => `${name} (${teamId})`);
-  if (missing.length) throw new Error(`Jugadores históricos no encontrados en los planteles: ${[...new Set(missing)].join(', ')}.`);
+  return {
+    scorers: canonicalRows(source, patch.scorers),
+    assists: canonicalRows(source, patch.assists)
+  };
 }
 
 function patchSignature(source) {
@@ -253,9 +312,9 @@ function applyPatch() {
     const tournament = (next.tournaments || []).find((item) => item.id === id);
     if (!tournament) continue;
     found += 1;
-    validatePatch(next, id, patch);
-    tournament.playerScorers = patch.scorers.map((row) => [...row]);
-    tournament.playerAssists = patch.assists.map((row) => [...row]);
+    const canonical = validatePatch(next, id, patch);
+    tournament.playerScorers = canonical.scorers;
+    tournament.playerAssists = canonical.assists;
     tournament.historicalPlayerStatsVersion = PATCH_VERSION;
     tournament.historicalPlayerStatsSource = 'Tablas históricas verificadas por el administrador';
     tournament.historicalPlayerStatsUpdatedAt = UPDATED_AT;
@@ -299,6 +358,7 @@ window.ChuteHistoricalStatsV5252 = Object.freeze({
   patchVersion: PATCH_VERSION,
   patches: PATCHES,
   apply: applyPatch,
+  resolveRosterName: (teamId, name) => resolveRosterName(core.getState(), teamId, name),
   totals: () => Object.fromEntries(Object.entries(PATCHES).map(([id, patch]) => [id, {
     scorerRows: patch.scorers.length,
     goals: metricTotal(patch.scorers),
