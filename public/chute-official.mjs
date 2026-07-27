@@ -41,6 +41,7 @@ await import('/chute-v5241-history-collapse.mjs?v=5.25.0');
 await import('/chute-v520-stats-guard.mjs?v=5.25.0');
 await import('/chute-v5242-ui-fixes.mjs?v=5.25.0');
 await import('/chute-v525-fifa-ranking.mjs?v=5.25.0');
+await import('/chute-v5252-historical-player-stats.mjs?v=5.25.2');
 window.ChuteVersion?.apply?.();
 document.dispatchEvent(new CustomEvent('chute:boot-complete', {
   detail: { version: window.ChuteVersion?.version || '5.25.0', core: window.ChuteMundoCore }
