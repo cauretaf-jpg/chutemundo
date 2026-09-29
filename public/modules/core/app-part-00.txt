@@ -67,6 +67,8 @@ function emptyState() {
     discipline: { records: [] },
     divisions: { A: [], B: [] },
     fifaRanking: [],
+    playerIds: {},
+    playerIdentitySchema: 'player-ids-v1',
     activity: []
   };
 }
