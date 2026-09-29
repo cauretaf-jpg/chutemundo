@@ -4,7 +4,7 @@ function waitForCore() {
 }
 
 const core = await waitForCore();
-const VERSION = '5.14.0';
+const VERSION = window.CHUTE_APP_VERSION || '6.0.0';
 const clone = (value) => typeof structuredClone === 'function' ? structuredClone(value) : JSON.parse(JSON.stringify(value));
 const esc = (value = '') => String(value).replace(/[&<>"']/g, (character) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[character]);
 const minuteNumber = (value) => value === 'Penales' ? 120 : Math.max(0, Number.parseInt(String(value ?? '0'), 10) || 0);
@@ -263,7 +263,7 @@ function installStyles() {
   const link = document.createElement('link');
   link.id = 'cmV514Styles';
   link.rel = 'stylesheet';
-  link.href = `/chute-v514-unified-match.css?v=${VERSION}`;
+  link.href = `/styles/match-editor.css?v=${VERSION}`;
   document.head.appendChild(link);
 }
 
