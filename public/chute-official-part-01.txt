@@ -52,7 +52,11 @@ function persistLocal() {
 }
 
 function isAdmin() {
-  return Boolean(authUser?.email && authUser.email.toLowerCase() === ADMIN_EMAIL);
+  return Boolean(authUser && (
+    authClaims?.admin === true ||
+    authClaims?.role === 'admin' ||
+    (authUser.email && authUser.email.toLowerCase() === LEGACY_ADMIN_EMAIL)
+  ));
 }
 
 function canEdit() {
