@@ -1,4 +1,4 @@
-const ASSET_BASE = 'https://raw.githubusercontent.com/cauretaf-jpg/TorneosChute/main/public';
+const ASSET_BASE = '/assets';
 const esc = (value = '') => String(value).replace(/[&<>"']/g, (char) => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[char]));
 const slugify = (value = '') => String(value).normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[’']/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
 const playerSlug = (name) => name === "Randolph D'Luna" ? 'randolph-dluna' : slugify(name);
