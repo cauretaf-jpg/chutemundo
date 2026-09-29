@@ -1,0 +1,110 @@
+name: One-time normalize Chute assets
+
+on:
+  push:
+    branches: [feat/v6-hardening]
+    paths:
+      - '.github/workflows/normalize-assets-once.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  normalize:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feat/v6-hardening
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Install image processor
+        run: npm install --no-save sharp@0.33.5
+
+      - name: Fetch canonical Chute assets
+        run: git clone --depth=1 https://github.com/cauretaf-jpg/TorneosChute.git /tmp/TorneosChute
+
+      - name: Normalize photos and crests
+        run: |
+          node <<'NODE'
+          const fs = require('fs');
+          const path = require('path');
+          const crypto = require('crypto');
+          const sharp = require('sharp');
+
+          const sourceRoot = '/tmp/TorneosChute/public';
+          const targetRoot = path.resolve('public/assets');
+          const manifest = { schema: 'chutemundo-assets-v1', generatedAt: new Date().toISOString(), players: [], logos: [] };
+
+          const walk = (dir) => fs.existsSync(dir)
+            ? fs.readdirSync(dir, { withFileTypes: true }).flatMap((entry) => {
+                const full = path.join(dir, entry.name);
+                return entry.isDirectory() ? walk(full) : [full];
+              })
+            : [];
+
+          async function normalizeImage(input, output, width, height, kind) {
+            fs.mkdirSync(path.dirname(output), { recursive: true });
+            await sharp(input)
+              .rotate()
+              .resize(width, height, { fit: 'contain', position: 'centre', background: { r: 0, g: 0, b: 0, alpha: 0 } })
+              .png({ compressionLevel: 9, adaptiveFiltering: true })
+              .toFile(output);
+            const bytes = fs.readFileSync(output);
+            const relative = path.relative(path.resolve('public'), output).replaceAll(path.sep, '/');
+            manifest[kind].push({
+              path: '/' + relative,
+              width,
+              height,
+              bytes: bytes.length,
+              sha256: crypto.createHash('sha256').update(bytes).digest('hex')
+            });
+          }
+
+          (async () => {
+            for (const input of walk(path.join(sourceRoot, 'player-photos')).filter((file) => /\.(?:png|jpe?g|webp)$/i.test(file))) {
+              const relative = path.relative(path.join(sourceRoot, 'player-photos'), input);
+              const parsed = path.parse(relative);
+              const output = path.join(targetRoot, 'player-photos', parsed.dir, parsed.name + '.png');
+              await normalizeImage(input, output, 600, 750, 'players');
+            }
+
+            for (const input of walk(path.join(sourceRoot, 'team-logos')).filter((file) => /\.(?:png|jpe?g|webp)$/i.test(file))) {
+              const parsed = path.parse(input);
+              const output = path.join(targetRoot, 'team-logos', parsed.name + '.png');
+              await normalizeImage(input, output, 512, 512, 'logos');
+            }
+
+            const overrideMap = [
+              ['public/player-photos/overrides/arnold-vega.png', 'player-photos/overrides/arnold-vega.png'],
+              ['public/player-photos/overrides/rocco-caruso.png', 'player-photos/overrides/rocco-caruso.png'],
+              ['public/player-photos/overrides/warner-ferrara.png', 'player-photos/overrides/warner-ferrara.png']
+            ];
+            for (const [input, relative] of overrideMap) {
+              if (fs.existsSync(input)) await normalizeImage(input, path.join(targetRoot, relative), 600, 750, 'players');
+            }
+
+            fs.mkdirSync(targetRoot, { recursive: true });
+            fs.writeFileSync(path.join(targetRoot, 'assets-manifest.json'), JSON.stringify(manifest, null, 2) + '\n');
+            console.log(`Normalized ${manifest.players.length} player images and ${manifest.logos.length} logos.`);
+          })().catch((error) => {
+            console.error(error);
+            process.exit(1);
+          });
+          NODE
+
+      - name: Commit normalized assets
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add public/assets
+          if git diff --cached --quiet; then
+            echo "No asset changes."
+            exit 0
+          fi
+          git commit -m "Assets: normalizar fotografías y escudos para web"
+          git push origin HEAD:feat/v6-hardening
