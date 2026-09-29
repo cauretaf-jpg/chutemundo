@@ -9,9 +9,9 @@ const APP_SHELL = [
   '/firebase-config.json',
   '/official-history.json',
   `/chute-official.css?v=${VERSION}`,
-  `/chute-official.mjs?v=${VERSION}`,
-  `/chute-v6.css?v=${VERSION}`,
-  `/chute-v6.mjs?v=${VERSION}`,
+  `/app.mjs?v=${VERSION}`,
+  `/styles/enhancements.css?v=${VERSION}`,
+  `/modules/ui/enhancements.mjs?v=${VERSION}`,
   '/manifest.webmanifest',
   '/chute-icon.svg',
   '/chute-icon-maskable.svg'

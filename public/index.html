@@ -1,5 +1,4 @@
 <!doctype html>
-<!-- CI compatibility: Chute Mundo v5.22.0 · Competición /chute-official.mjs?v=5.22.0 -->
 <html lang="es" data-chute-version="6.0.0">
 <head>
   <meta charset="utf-8">
@@ -9,7 +8,7 @@
   <title>Chute Mundo · Competición</title>
   <script src="/version.js"></script>
   <link rel="icon" href="/chute-icon.svg" type="image/svg+xml">
-  <link rel="stylesheet" href="/chute-official.css?v=6.0.0">
+  <link rel="stylesheet" href="/styles/base.css?v=6.0.0">
 </head>
 <body>
   <header class="topbar"><div class="brand"><span class="brand-logo" style="display:grid;place-items:center;border-radius:12px;background:#0e9978;font-weight:900" aria-hidden="true">CM</span><div><strong>Chute Mundo</strong><small>Competición, divisiones, Ranking FIFA y estadísticas · Firebase</small></div></div><div class="top-actions"><span id="syncStatus" class="sync-pill">Preparando historial…</span><button id="authButton" class="top-button">Ingresar</button></div></header>
@@ -23,6 +22,6 @@
     <section id="administracion" class="page" hidden><div class="page-title"><p class="eyebrow">CENTRO DE CONTROL</p><h1>Administración</h1><p>Participantes, reglamento, estado del sistema, respaldos y mantenimiento.</p></div><div class="two-columns"><article class="panel"><p class="eyebrow">FIREBASE</p><h2>Base compartida</h2><p id="cloudInfo" class="muted"></p><div class="actions"><button id="migrateHistory" class="primary" hidden>Restaurar historial oficial</button><button id="syncNow" class="secondary" hidden>Sincronizar ahora</button></div></article><article class="panel"><p class="eyebrow">RESPALDOS</p><h2>Exportar o restaurar</h2><p class="muted">El respaldo contiene equipos, participantes, torneos, partidos y estadísticas.</p><div class="actions"><button id="exportButton" class="primary">Descargar JSON</button><label class="secondary file-label">Importar JSON<input id="importFile" type="file" accept="application/json"></label></div></article></div><article class="panel danger admin-only" hidden><p class="eyebrow">ZONA DE RIESGO</p><h2>Restaurar la base histórica original</h2><p class="muted">Fusiona el respaldo oficial sin eliminar torneos nuevos.</p><button id="restoreOriginal" class="danger-button">Restaurar historial original</button></article></section>
   </main>
   <div id="modal" class="modal" hidden><div class="modal-card"><button class="close-button" data-close-modal aria-label="Cerrar">×</button><div id="modalContent"></div></div></div><div id="toast" class="toast" hidden></div>
-  <script type="module" src="/chute-official.mjs?v=6.0.0"></script>
+  <script type="module" src="/app.mjs?v=6.0.0"></script>
 </body>
 </html>
