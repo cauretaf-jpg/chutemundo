@@ -69,6 +69,7 @@ function ensureMatchEvents(match, homeId, awayId) {
     ];
   } else {
     match.goals = match.goals.map((goal) => ({
+      ...goal,
       id: goal.id || uid('goal'),
       side: goal.side || (goal.teamId === match.away ? 'away' : 'home'),
       teamId: goal.teamId || (goal.side === 'away' ? match.away : match.home),
