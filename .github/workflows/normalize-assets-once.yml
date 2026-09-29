@@ -107,4 +107,5 @@ jobs:
             exit 0
           fi
           git commit -m "Assets: normalizar fotografías y escudos para web"
+          git pull --rebase origin feat/v6-hardening
           git push origin HEAD:feat/v6-hardening
