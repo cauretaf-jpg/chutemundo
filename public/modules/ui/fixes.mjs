@@ -1,7 +1,7 @@
 const core = window.ChuteMundoCore;
 if (!core) throw new Error('Chute Mundo no está listo para las correcciones v5.24.2.');
 
-const VERSION = '5.24.2';
+const VERSION = window.CHUTE_APP_VERSION || '6.0.0';
 let refreshQueued = false;
 
 function loadStyles() {
@@ -9,7 +9,7 @@ function loadStyles() {
   const link = document.createElement('link');
   link.id = 'cmV5242UiFixesStyles';
   link.rel = 'stylesheet';
-  link.href = `/chute-v5242-ui-fixes.css?v=${VERSION}`;
+  link.href = `/styles/fixes.css?v=${VERSION}`;
   document.head.appendChild(link);
 }
 
