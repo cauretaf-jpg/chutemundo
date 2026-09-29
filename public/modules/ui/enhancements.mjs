@@ -278,8 +278,6 @@ function jumpRanking(target) {
 
 function refresh() {
   canonicalVersion();
-  renderDashboard();
-  renderHistoricalRanking();
   renderStorageModel();
   enhanceTournamentForm();
   wirePlayerCards();

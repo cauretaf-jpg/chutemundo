@@ -1,7 +1,7 @@
 const core = window.ChuteMundoCore;
 if (!core) throw new Error('Chute Mundo no está listo para sincronizar el Archivo Histórico v5.21.');
 
-const VERSION = '5.21.0';
+const VERSION = window.CHUTE_APP_VERSION || '6.0.2';
 let refreshQueued = false;
 
 function queueHistoryRefresh() {

@@ -32,7 +32,7 @@ function installStyles() {
   const link = document.createElement('link');
   link.id = 'cmV59Styles';
   link.rel = 'stylesheet';
-  link.href = `/chute-v59-live-profiles.css?v=${VERSION}`;
+  link.href = `/styles/match-center.css?v=${VERSION}`;
   document.head.appendChild(link);
 }
 

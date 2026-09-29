@@ -41,7 +41,7 @@ function installStyles() {
   const link = document.createElement('link');
   link.id = 'cmV521Styles';
   link.rel = 'stylesheet';
-  link.href = `/chute-v521-history.css?v=${VERSION}`;
+  link.href = `/styles/history.css?v=${window.CHUTE_APP_VERSION || VERSION}`;
   document.head.appendChild(link);
 }
 

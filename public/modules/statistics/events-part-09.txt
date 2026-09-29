@@ -18,6 +18,6 @@ function installStyles() {
   const link = document.createElement('link');
   link.id = 'cmV516Styles';
   link.rel = 'stylesheet';
-  link.href = `/chute-v516-events-stats.css?v=${VERSION}`;
+  link.href = `/styles/event-stats.css?v=${VERSION}`;
   document.head.appendChild(link);
 }

@@ -150,7 +150,7 @@
   #inicio > #homeMetrics,
   #inicio > .two-columns,
   #inicio > article.panel { display: none !important; }
-  #inicio > #sourceNotice { margin-top: 16px; }
+  #inicio > #sourceNotice { display: none !important; }
 
   .cm-premium-dashboard { display: grid; gap: 18px; }
   .cm-sport-hero {
