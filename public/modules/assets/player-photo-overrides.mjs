@@ -1,11 +1,11 @@
 const model = window.ChuteDetailModel;
 if (!model) throw new Error('Chute Mundo no está listo para corregir las fotografías de jugadores.');
 
-const VERSION = '5.25.4';
+const VERSION = window.CHUTE_APP_VERSION || '6.0.0';
 const PHOTO_URLS = Object.freeze({
-  arnold: '/player-photos/overrides/arnold-vega.png?v=d49747d5',
-  rocco: '/player-photos/overrides/rocco-caruso.png?v=00fb4cbb',
-  warner: '/player-photos/overrides/warner-ferrara.png?v=4b60b06e'
+  arnold: `/assets/player-photos/overrides/arnold-vega.png?v=${encodeURIComponent(VERSION)}`,
+  rocco: `/assets/player-photos/overrides/rocco-caruso.png?v=${encodeURIComponent(VERSION)}`,
+  warner: `/assets/player-photos/overrides/warner-ferrara.png?v=${encodeURIComponent(VERSION)}`
 });
 
 const previousPhotoUrl = model.photoUrl?.bind(model);
