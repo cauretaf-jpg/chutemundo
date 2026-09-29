@@ -117,5 +117,5 @@ if (matchesPage) new MutationObserver(scheduleRefresh).observe(matchesPage, { ch
 
 ensureStyles();
 refresh();
-window.setInterval(refresh, 1500);
+document.addEventListener('chute:state-changed', scheduleRefresh);
 window.ChuteV591 = { version: VERSION, refresh, filteredRows };
