@@ -4,7 +4,7 @@ function waitForCore() {
 }
 
 const core = await waitForCore();
-const VERSION = '5.13.0';
+const VERSION = window.CHUTE_APP_VERSION || '6.0.0';
 const SCHEMA = 'chute-pc-rosters-2026-07-v1';
 const clone = (value) => typeof structuredClone === 'function' ? structuredClone(value) : JSON.parse(JSON.stringify(value));
 const esc = (value = '') => String(value).replace(/[&<>"']/g, (character) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[character]);
@@ -403,7 +403,7 @@ function installStyles() {
   const link = document.createElement('link');
   link.id = 'cmV513Styles';
   link.rel = 'stylesheet';
-  link.href = `/chute-v513-lineups.css?v=${VERSION}`;
+  link.href = `/styles/lineups.css?v=${VERSION}`;
   document.head.appendChild(link);
 }
 
