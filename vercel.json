@@ -57,7 +57,7 @@
       ]
     },
     {
-      "source": "/(.*).(mjs|js|css|svg|png|jpg|jpeg|webp)",
+      "source": "/(.*)\\.(mjs|js|css|svg|png|jpg|jpeg|webp)",
       "headers": [
         {
           "key": "X-Content-Type-Options",
