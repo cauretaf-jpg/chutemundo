@@ -175,6 +175,11 @@ async function initializeCloud() {
   try { await setPersistence(auth, browserLocalPersistence); } catch (error) { console.warn(error); }
   onAuthStateChanged(auth, async (user) => {
     authUser = user || null;
+    authClaims = {};
+    if (authUser) {
+      try { authClaims = (await getIdTokenResult(authUser, true)).claims || {}; }
+      catch (error) { console.warn('No se pudieron leer los roles de Firebase.', error); }
+    }
     renderAuthState();
     setStatus(isAdmin() ? 'Sesión administradora activa' : (cloudHasHistory ? 'Consulta en tiempo real' : 'Historial recuperado'));
     render();
