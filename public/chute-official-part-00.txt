@@ -44,7 +44,8 @@ const escapeHtml = (value = '') => String(value).replace(/[&<>"']/g, (character)
 
 let legacyState = null;
 let state = emptyState();
-let authUser = null;\nlet authClaims = {};
+let authUser = null;
+let authClaims = {};
 let cloudLoaded = false;
 let cloudHasHistory = false;
 let usingFallback = true;
