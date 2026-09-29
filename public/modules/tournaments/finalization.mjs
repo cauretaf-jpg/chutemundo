@@ -1,1 +1,1 @@
-await window.ChuteSplitLoader({ prefix: 'chute-v517-finalization-part', count: 8, version: '5.17.0', label: 'finalizacion y premios v5.17' });
+await window.ChuteSplitLoader({ prefix: 'modules/tournaments/finalization-part', count: 8, version: window.CHUTE_APP_VERSION || '6.0.0', label: 'finalización y premios' });
