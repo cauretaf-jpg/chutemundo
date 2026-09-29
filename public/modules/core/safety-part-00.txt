@@ -8,7 +8,7 @@ const model = window.ChuteDetailModel;
 if (!model) throw new Error('El modelo detallado no está disponible para el centro de seguridad.');
 
 const { esc } = model;
-const VERSION = '5.10.0';
+const VERSION = window.CHUTE_APP_VERSION || '6.0.2';
 const RETENTION_DAYS = 30;
 const UNDO_KEY = 'chute_mundo_v510_last_undo';
 const originalSetState = core.setState.bind(core);
@@ -28,7 +28,7 @@ function installStyles() {
   const link = document.createElement('link');
   link.id = 'cmV510Styles';
   link.rel = 'stylesheet';
-  link.href = `/chute-v510.css?v=${VERSION}`;
+  link.href = `/styles/dashboard.css?v=${VERSION}`;
   document.head.appendChild(link);
 }
 
