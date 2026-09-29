@@ -22,65 +22,50 @@ jobs:
         with:
           node-version: 22
 
-      - name: Install browser
-        run: |
-          npm install --no-save playwright@1.52.0
-          npx playwright install --with-deps chromium
-
-      - name: Capture live state
+      - name: Capture live Firestore document
         run: |
           node <<'NODE'
           const fs = require('fs');
-          const { chromium } = require('playwright');
+          const endpoint = 'https://firestore.googleapis.com/v1/projects/chutemundobd/databases/(default)/documents/chuteMundo/sharedState';
 
           (async () => {
-            const browser = await chromium.launch({ headless: true });
-            const context = await browser.newContext({ serviceWorkers: 'block' });
-            const page = await context.newPage();
-            const errors = [];
-            page.on('pageerror', (error) => errors.push(String(error)));
+            const response = await fetch(endpoint, { headers: { Accept: 'application/json' } });
+            if (!response.ok) throw new Error(`Firestore HTTP ${response.status}: ${await response.text()}`);
+            const document = await response.json();
+            const rawState = document?.fields?.state?.stringValue;
+            if (!rawState) throw new Error('Firestore no devolvió fields.state.stringValue.');
 
-            try {
-              await page.goto('https://chutemundo.vercel.app/?backup=2026-09-29', { waitUntil: 'networkidle', timeout: 90000 });
-              await page.waitForFunction(() => {
-                const state = window.ChuteMundoCore?.getState?.();
-                return state && Array.isArray(state.teams) && state.teams.length > 0 && Array.isArray(state.tournaments);
-              }, { timeout: 60000 });
-              await page.waitForTimeout(3000);
+            const state = JSON.parse(rawState);
+            if (!Array.isArray(state.teams) || state.teams.length < 1) throw new Error('El respaldo no contiene equipos.');
+            if (!Array.isArray(state.tournaments) || state.tournaments.length < 1) throw new Error('El respaldo no contiene torneos.');
 
-              const snapshot = await page.evaluate(() => ({
-                capturedAt: new Date().toISOString(),
-                source: location.origin,
-                appVersion: window.CHUTE_APP_VERSION || '',
-                syncStatus: document.getElementById('syncStatus')?.textContent?.trim() || '',
-                state: window.ChuteMundoCore.getState()
-              }));
+            const snapshot = {
+              capturedAt: new Date().toISOString(),
+              source: endpoint,
+              firestoreDocument: document.name || '',
+              firestoreVersion: document?.fields?.version?.stringValue || '',
+              updateTime: document.updateTime || '',
+              teams: state.teams.length,
+              tournaments: state.tournaments.length,
+              matches: state.tournaments.reduce((sum, tournament) => sum + (tournament.matches?.length || 0), 0),
+              state
+            };
 
-              if (/no disponible|error/i.test(snapshot.syncStatus)) {
-                throw new Error('Firebase no confirmó una carga válida: ' + snapshot.syncStatus);
-              }
-              if (!snapshot.state.teams?.length || !snapshot.state.tournaments?.length) {
-                throw new Error('El estado capturado está incompleto.');
-              }
-
-              fs.mkdirSync('backups', { recursive: true });
-              fs.writeFileSync('backups/firebase-2026-09-29.json', JSON.stringify(snapshot, null, 2) + '\n');
-              console.log('Firebase backup captured', {
-                syncStatus: snapshot.syncStatus,
-                teams: snapshot.state.teams.length,
-                tournaments: snapshot.state.tournaments.length,
-                matches: snapshot.state.tournaments.reduce((sum, tournament) => sum + (tournament.matches?.length || 0), 0)
-              });
-            } finally {
-              await browser.close();
-            }
+            fs.mkdirSync('backups', { recursive: true });
+            fs.writeFileSync('backups/firebase-2026-09-29.json', JSON.stringify(snapshot, null, 2) + '\n');
+            console.log('Firebase backup captured', {
+              teams: snapshot.teams,
+              tournaments: snapshot.tournaments,
+              matches: snapshot.matches,
+              updateTime: snapshot.updateTime
+            });
           })().catch((error) => {
             console.error(error);
             process.exit(1);
           });
           NODE
 
-      - name: Commit backup
+      - name: Commit backup safely
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
@@ -90,4 +75,5 @@ jobs:
             exit 0
           fi
           git commit -m "Backup: capturar estado vivo de Firebase 2026-09-29"
+          git pull --rebase origin feat/v6-hardening
           git push origin HEAD:feat/v6-hardening
