@@ -13,7 +13,6 @@ await load('/modules/core/safety.mjs');
 await load('/modules/tournaments/admin.mjs');
 await window.ChuteSplitLoader({ prefix: 'modules/matches/live-part', count: 8, version: VERSION, label: 'el centro de partido' });
 await load('/modules/matches/live-access.mjs');
-await load('/modules/dashboard/index.mjs');
 await load('/modules/core/pwa.mjs');
 await load('/modules/tournaments/operations.mjs');
 await load('/modules/matches/share.mjs');
