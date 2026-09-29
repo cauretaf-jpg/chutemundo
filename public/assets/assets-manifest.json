@@ -1,0 +1,680 @@
+{
+  "schema": "chutemundo-assets-v1",
+  "generatedAt": "2026-09-29T16:00:13.402Z",
+  "players": [
+    {
+      "path": "/assets/player-photos/guanaco/bo-de-la-rosa.png",
+      "width": 600,
+      "height": 750,
+      "bytes": 149402,
+      "sha256": "c755346a57ba8f26c44a54393e738922db4882bc601d3c9fbd0ee1fbe366c476"
+    },
+    {
+      "path": "/assets/player-photos/guanaco/carmelo-wilkinson.png",
+      "width": 600,
+      "height": 750,
+      "bytes": 155524,
+      "sha256": "13f1c1b42f19fe4eaabd342e59c716c1bd6d03161faa5536352dfecd8ecccb17"
+    },
+    {
+      "path": "/assets/player-photos/guanaco/chuck-chong.png",
+      "width": 600,
+      "height": 750,
+      "bytes": 192801,
+      "sha256": "6847fbacd1f91d2b09f315a483b5ee89fff4c257aa2da253e7c8e54921b0775e"
+    },
+    {
+      "path": "/assets/player-photos/guanaco/davis-bronson.png",
+      "width": 600,
+      "height": 750,
+      "bytes": 173630,
+      "sha256": "3a5262374a03a09b217963d7065fbad094a2a00fcffceeff72c15a8cfd85f7d5"
+    },
+    {
+      "path": "/assets/player-photos/guanaco/donovan-vinson.png",
+      "width": 600,
+      "height": 750,
+      "bytes": 221883,
+      "sha256": "4222d895dad358a64b024b77476c812b3226cae55c4cd390944204ac8e45fd6d"
+    },
+    {
+      "path": "/assets/player-photos/guanaco/harley-peralta.png",
+      "width": 600,
+      "height": 750,
+      "bytes": 171193,
+      "sha256": "525d9c8a78837a2c257d1f655422df646e5847c965bb2b11e08a6a960c1a2250"
+    },
+    {
+      "path": "/assets/player-photos/guanaco/irwin-medeiros.png",
+      "width": 600,
+      "height": 750,
+      "bytes": 189699,
+      "sha256": "adcb74acd048b8fcb88764098648d5b32bfeaa4192374b22f33caa2953b74c25"
+    },
+    {
+      "path": "/assets/player-photos/guanaco/lonny-ventura.png",
+      "width": 600,
+      "height": 750,
+      "bytes": 225253,
+      "sha256": "f10ecfd4c6b2c64e71aca12806fa122593588cef7c39d9ece81dbaedad91b8f3"
+    },
+    {
+      "path": "/assets/player-photos/guanaco/robbie-solomon.png",
+      "width": 600,
+      "height": 750,
+      "bytes": 231408,
+      "sha256": "ce4accb411a07f7584619abb4de67f8e9b6f10e1cb81b4b2d3f4968d4e941b3d"
+    },
+    {
+      "path": "/assets/player-photos/guanaco/rosendo-acosta.png",
+      "width": 600,
+      "height": 750,
+      "bytes": 195179,
+      "sha256": "a7334df0e774d00fecb28bf58589ac2dc1c6f2d5cfac73deae930980e9f92784"
+    },
+    {
+      "path": "/assets/player-photos/guanaco/sid-koslowski.png",
+      "width": 600,
+      "height": 750,
+      "bytes": 133124,
+      "sha256": "4e4b3959cae3e230dead108e0a0e86b05ef520bd573a4166fc0e05ff96b95aa8"
+    },
+    {
+      "path": "/assets/player-photos/guanaco/sonny-saldana.png",
+      "width": 600,
+      "height": 750,
+      "bytes": 164366,
+      "sha256": "fe14135e7d255d2c94367955b696b1af517c985ba7683e7849b9c1bb91a8f286"
+    },
+    {
+      "path": "/assets/player-photos/guanaco/warner-ferrera.png",
+      "width": 600,
+      "height": 750,
+      "bytes": 206230,
+      "sha256": "7871a6def899f51fbf20f1915b92ec0dcead9deccbf6095e9eb16c6b98a3cefd"
+    },
+    {
+      "path": "/assets/player-photos/guanaco/wilton-blackwood.png",
+      "width": 600,
+      "height": 750,
+      "bytes": 238989,
+      "sha256": "a83d120dfeff82e38acb2c037aef52f4e6dc0fab63258d4dd8e34e628e43b05c"
+    },
+    {
+      "path": "/assets/player-photos/pantera/belinda-sparks.png",
+      "width": 600,
+      "height": 750,
+      "bytes": 167466,
+      "sha256": "6934f2951ff119981d626a8b08e6a691a82b73017a9468c3b8f51cad24fc0731"
+    },
+    {
+      "path": "/assets/player-photos/pantera/cindy-fitzgerald.png",
+      "width": 600,
+      "height": 750,
+      "bytes": 217087,
+      "sha256": "2404f889d5e6509cf4934101a7fa708045457826a49d4e2f8fef235262d73ec5"
+    },
+    {
+      "path": "/assets/player-photos/pantera/jackie-sanchez.png",
+      "width": 600,
+      "height": 750,
+      "bytes": 175064,
+      "sha256": "abf7ec6b849c7f14cd1a97ea7d6f58b059ee08d6a2493f339cf86f7f24b8a3dc"
+    },
+    {
+      "path": "/assets/player-photos/pantera/lina-yamamoto.png",
+      "width": 600,
+      "height": 750,
+      "bytes": 75636,
+      "sha256": "7b0b40bcc3de210491c3214a8d6155fdab76b3d142e263b4c74a384cab97f924"
+    },
+    {
+      "path": "/assets/player-photos/pantera/mandy-wallace.png",
+      "width": 600,
+      "height": 750,
+      "bytes": 184748,
+      "sha256": "971a24eb7c0995a01dcefb0630799df0b9c8ebeb2ec5b7fb7d16564711520bd9"
+    },
+    {
+      "path": "/assets/player-photos/pantera/margaret-castillo.png",
+      "width": 600,
+      "height": 750,
+      "bytes": 177587,
+      "sha256": "5b862cfa42956c1387034d1eee905570ecd0c860a40c56e1ad88da7194cf69e9"
+    },
+    {
+      "path": "/assets/player-photos/pantera/nancy-king.png",
+      "width": 600,
+      "height": 750,
+      "bytes": 194697,
+      "sha256": "58c0166315122ae6eb62d29c2f0fd2bea8df92d65b590cad20c64adb475a50fa"
+    },
+    {
+      "path": "/assets/player-photos/pantera/nora-cruz.png",
+      "width": 600,
+      "height": 750,
+      "bytes": 200058,
+      "sha256": "638d6073bd47fee1c17280b857b41265a872bd7bdc27e268a952f17b663bc735"
+    },
+    {
+      "path": "/assets/player-photos/pantera/rebeca-sanders.png",
+      "width": 600,
+      "height": 750,
+      "bytes": 148783,
+      "sha256": "b45c9686a504f6aa3cd0619d34c814b06275d5cc8520bca58223edc6d22f1851"
+    },
+    {
+      "path": "/assets/player-photos/pantera/rita-malone.png",
+      "width": 600,
+      "height": 750,
+      "bytes": 240803,
+      "sha256": "1cc87797d10ff4c9522365d9addc4acef129e9913cdcb6f0e294795d10518a91"
+    },
+    {
+      "path": "/assets/player-photos/pantera/roxie-jones.png",
+      "width": 600,
+      "height": 750,
+      "bytes": 170005,
+      "sha256": "f03b7128b11bfdc6e373a6cd3ff9126af37cc08df64ab731ae3ac253881e7ea4"
+    },
+    {
+      "path": "/assets/player-photos/pantera/sabrina-mendoza.png",
+      "width": 600,
+      "height": 750,
+      "bytes": 105021,
+      "sha256": "8a0a168a30f491bf203875f816a3ade6c8c8970cf711205057fd5e39d83ff8c4"
+    },
+    {
+      "path": "/assets/player-photos/pantera/sharon-ortiz.png",
+      "width": 600,
+      "height": 750,
+      "bytes": 293815,
+      "sha256": "b4e0a4af30cd64fa221a54aa09b650fece85331c0fa5b31228f7790551c9b047"
+    },
+    {
+      "path": "/assets/player-photos/pantera/sherry-terry.png",
+      "width": 600,
+      "height": 750,
+      "bytes": 230166,
+      "sha256": "1a85d4096e7954b3300108c2be51d6ad831fb78f28ba32abbc81b2213c756bf1"
+    },
+    {
+      "path": "/assets/player-photos/parrilla/alex-meres.png",
+      "width": 600,
+      "height": 750,
+      "bytes": 124343,
+      "sha256": "2072bc867327b620dda340a29b04970fbd7cfc87208d578676408fc3cbffab8f"
+    },
+    {
+      "path": "/assets/player-photos/parrilla/arthur-turok.png",
+      "width": 600,
+      "height": 750,
+      "bytes": 162228,
+      "sha256": "30cfcd6a363af562998a95edb25f911e1d296201e65fbb5092201c257c31d6ff"
+    },
+    {
+      "path": "/assets/player-photos/parrilla/claudio-conde.png",
+      "width": 600,
+      "height": 750,
+      "bytes": 79876,
+      "sha256": "8a73224c8b9aafa0d830952a667b298013807fe1d789fe4d5dbf7d29ea149add"
+    },
+    {
+      "path": "/assets/player-photos/parrilla/el-guaton-nelson.png",
+      "width": 600,
+      "height": 750,
+      "bytes": 162209,
+      "sha256": "7ed842874f6ded4e07de99db72ff869f3ab1efc69ac4310d945e47681ede0664"
+    },
+    {
+      "path": "/assets/player-photos/parrilla/el-profesor.png",
+      "width": 600,
+      "height": 750,
+      "bytes": 117128,
+      "sha256": "5f5474bd9c16b6794590b2a8f64d2f7e52938252df0b752e3d683a2ee62d399d"
+    },
+    {
+      "path": "/assets/player-photos/parrilla/freddy-manfredo.png",
+      "width": 600,
+      "height": 750,
+      "bytes": 189230,
+      "sha256": "8b5e47734b2624629b8fff787f32e9101620b67ceb606958492157b8dc68496e"
+    },
+    {
+      "path": "/assets/player-photos/parrilla/joe-pavo.png",
+      "width": 600,
+      "height": 750,
+      "bytes": 144131,
+      "sha256": "8a1854a702ae5321e3423e55fbcfa55522b63fadb42bdbd7a3c50eced69671c7"
+    },
+    {
+      "path": "/assets/player-photos/parrilla/john-giovanni.png",
+      "width": 600,
+      "height": 750,
+      "bytes": 182982,
+      "sha256": "87d1f7f9bbefbb4cb39197acb98bb41d5986ad2844cbf051e73ace33f26e0a25"
+    },
+    {
+      "path": "/assets/player-photos/parrilla/luis-felipe.png",
+      "width": 600,
+      "height": 750,
+      "bytes": 179040,
+      "sha256": "f046dd4a4747f33ad09d02cd5afa40fc581861d79fbb1a87917b232c4f54b93e"
+    },
+    {
+      "path": "/assets/player-photos/parrilla/nick-cabezon.png",
+      "width": 600,
+      "height": 750,
+      "bytes": 131641,
+      "sha256": "d454fdf609869326c3fe92c374a04ccad3228be2b5fac4878427a8c7c2a04c7c"
+    },
+    {
+      "path": "/assets/player-photos/parrilla/peta-zeta.png",
+      "width": 600,
+      "height": 750,
+      "bytes": 148805,
+      "sha256": "5e21ee06aa636eb5239aa7978223051f7c95f03d1a2621e1f6479c15afc05f30"
+    },
+    {
+      "path": "/assets/player-photos/parrilla/randolf-salazar.png",
+      "width": 600,
+      "height": 750,
+      "bytes": 232214,
+      "sha256": "747da4d0ea32e8e8939c6914c6b1fa45d0cd5a0c4da6e16f42d4339ae7de313c"
+    },
+    {
+      "path": "/assets/player-photos/parrilla/randolph-dluna.png",
+      "width": 600,
+      "height": 750,
+      "bytes": 168399,
+      "sha256": "506016e232c4c9223387abdab98bf372bf44cff1e4b36bdf772a03b385cc5e0f"
+    },
+    {
+      "path": "/assets/player-photos/parrilla/rod-lete.png",
+      "width": 600,
+      "height": 750,
+      "bytes": 110818,
+      "sha256": "df4d8e27c5a8ca22f7ed28f56ba6f45236858253a771943b050853b5a6e6672c"
+    },
+    {
+      "path": "/assets/player-photos/parrilla/rolando-akira.png",
+      "width": 600,
+      "height": 750,
+      "bytes": 252420,
+      "sha256": "3fe0982436fb625378d8672ee4d57e4c44594ad8b97fad7ba9f8f503559bf34e"
+    },
+    {
+      "path": "/assets/player-photos/perla/archie-jackson.png",
+      "width": 600,
+      "height": 750,
+      "bytes": 187507,
+      "sha256": "a379eb68269e488558d83438214d719fb27ea89af580c02689f3cc289337629b"
+    },
+    {
+      "path": "/assets/player-photos/perla/edison-cabrera.png",
+      "width": 600,
+      "height": 750,
+      "bytes": 200713,
+      "sha256": "0ba768325284d91a6b1257a448ab35da59754900c2edf59f9ec9f8784cdaabb2"
+    },
+    {
+      "path": "/assets/player-photos/perla/el-kraken.png",
+      "width": 600,
+      "height": 750,
+      "bytes": 340718,
+      "sha256": "69ab4202a9909ad2685d61e91bd14ebebaebbb6eb3ef07f2e29b7c5cabdfa891"
+    },
+    {
+      "path": "/assets/player-photos/perla/eric-reyes.png",
+      "width": 600,
+      "height": 750,
+      "bytes": 143520,
+      "sha256": "8f9603a5873b38b5a8b70c900fede7fe74fb939898639e60809a1909c270a4c8"
+    },
+    {
+      "path": "/assets/player-photos/perla/eusebio-flowers.png",
+      "width": 600,
+      "height": 750,
+      "bytes": 172464,
+      "sha256": "fe6c2dd500abaa180b1be1da6c8714ae7d6c7d3d646e259467f2f57836bfae5f"
+    },
+    {
+      "path": "/assets/player-photos/perla/jacinto-chavarria.png",
+      "width": 600,
+      "height": 750,
+      "bytes": 122345,
+      "sha256": "e13650ef1e714fe7edff5389d86c8d2f5717a059ace42d18a0d031957d84f806"
+    },
+    {
+      "path": "/assets/player-photos/perla/julio-vega.png",
+      "width": 600,
+      "height": 750,
+      "bytes": 166865,
+      "sha256": "b6e6401a19560247e5034c9179cf011f919cf025c8fb264c4c5e5ff72659d681"
+    },
+    {
+      "path": "/assets/player-photos/perla/lucius-chase.png",
+      "width": 600,
+      "height": 750,
+      "bytes": 188217,
+      "sha256": "17a0bcb85b5a225af06bd891a0a1626d5495c3a53101ad93912fe42e20392b80"
+    },
+    {
+      "path": "/assets/player-photos/perla/marty-love.png",
+      "width": 600,
+      "height": 750,
+      "bytes": 165400,
+      "sha256": "137b1c01593143abb8c79a7c940e3ef433e2a8e6a059139ce00b50e1c03f0d00"
+    },
+    {
+      "path": "/assets/player-photos/perla/melvin-clayton.png",
+      "width": 600,
+      "height": 750,
+      "bytes": 205470,
+      "sha256": "8719993159888212da5fa0e9ec6418b88ab8356453426dfeb33b574b6ab3569d"
+    },
+    {
+      "path": "/assets/player-photos/perla/omar-watson.png",
+      "width": 600,
+      "height": 750,
+      "bytes": 172130,
+      "sha256": "072bf49b16d9b3079e312bf8a1f4709c41e52f6dd0384a21d86bf433ec83ce1b"
+    },
+    {
+      "path": "/assets/player-photos/perla/randolph-salazar.png",
+      "width": 600,
+      "height": 750,
+      "bytes": 232214,
+      "sha256": "747da4d0ea32e8e8939c6914c6b1fa45d0cd5a0c4da6e16f42d4339ae7de313c"
+    },
+    {
+      "path": "/assets/player-photos/perla/sammy-portillo.png",
+      "width": 600,
+      "height": 750,
+      "bytes": 249068,
+      "sha256": "d236030e66fe3ccf066bb851f52e2864f39e2d069cc9ed48d64cffa785bef4db"
+    },
+    {
+      "path": "/assets/player-photos/perla/steven-ramos.png",
+      "width": 600,
+      "height": 750,
+      "bytes": 174111,
+      "sha256": "7e39940f844a9b1327eb433a891326b1f9155217049d5cccac35d3bb1450c600"
+    },
+    {
+      "path": "/assets/player-photos/perla/toyo-takahashi.png",
+      "width": 600,
+      "height": 750,
+      "bytes": 106588,
+      "sha256": "aa31a97a0baf845296be680f4da1aa4bce77003cb7ce4f96fcfef886c9a84473"
+    },
+    {
+      "path": "/assets/player-photos/polpetta/alessandro-zito.png",
+      "width": 600,
+      "height": 750,
+      "bytes": 93387,
+      "sha256": "2fb7e4d160833092dae532848629db1bfb08ae7bbfc019b1efae5c9b9c8f3704"
+    },
+    {
+      "path": "/assets/player-photos/polpetta/donnie-spumoni.png",
+      "width": 600,
+      "height": 750,
+      "bytes": 88356,
+      "sha256": "1b7d18de155e2a5de11b947f986cfa648551f6aa31406707fa6bde70fc1181df"
+    },
+    {
+      "path": "/assets/player-photos/polpetta/enzo-mancini.png",
+      "width": 600,
+      "height": 750,
+      "bytes": 118690,
+      "sha256": "7e625ecea655dddb6df34c22a41990fe1b5b0ccf041bc989919da97251412730"
+    },
+    {
+      "path": "/assets/player-photos/polpetta/fabio-clemenza.png",
+      "width": 600,
+      "height": 750,
+      "bytes": 186605,
+      "sha256": "badab5512f12fd405e863e64fc03d06bee8c37c7f028e669a76e2fad0b322f1d"
+    },
+    {
+      "path": "/assets/player-photos/polpetta/fiorino-panicucci.png",
+      "width": 600,
+      "height": 750,
+      "bytes": 145947,
+      "sha256": "0e7d26a3e4c1085147a6e1b9665d3d99c61dd347ce34a666e017a537588fac19"
+    },
+    {
+      "path": "/assets/player-photos/polpetta/freddo-bellini.png",
+      "width": 600,
+      "height": 750,
+      "bytes": 108366,
+      "sha256": "9a9a226d7b1ad1f31f5430bf6a712b98e6cdaea1205eb7534edfdf830d6040ef"
+    },
+    {
+      "path": "/assets/player-photos/polpetta/giorgio-valentino.png",
+      "width": 600,
+      "height": 750,
+      "bytes": 92348,
+      "sha256": "6aaa0a54c03902359a11af1cc5758acdffc1464315454d13759cd61d6351ac6b"
+    },
+    {
+      "path": "/assets/player-photos/polpetta/giulio-locatelli.png",
+      "width": 600,
+      "height": 750,
+      "bytes": 80574,
+      "sha256": "195793fd05e830e4ce9c2ad92783d590e73dab5c9f1a27412bba9f9ac8179bed"
+    },
+    {
+      "path": "/assets/player-photos/polpetta/mario-de-luca.png",
+      "width": 600,
+      "height": 750,
+      "bytes": 120380,
+      "sha256": "ac161c42bc71f04dc081362487195fe483d6e1ced1a9905fdd58c9e01291959a"
+    },
+    {
+      "path": "/assets/player-photos/polpetta/milo-gorgazzi.png",
+      "width": 600,
+      "height": 750,
+      "bytes": 127201,
+      "sha256": "e41624b19722853969ff1a61d8b3f4f82da1d05b2424d45742616b85ec763e35"
+    },
+    {
+      "path": "/assets/player-photos/polpetta/nicola-pisani.png",
+      "width": 600,
+      "height": 750,
+      "bytes": 186952,
+      "sha256": "e58f2d110cf81dabc9c77c5a389be866fa136bf4f1ea762d2c61307a9586d6d1"
+    },
+    {
+      "path": "/assets/player-photos/polpetta/paolo-fontana.png",
+      "width": 600,
+      "height": 750,
+      "bytes": 112530,
+      "sha256": "1c5bc6e0da9f825d9981908eef6d2bdbbd4937ccff3f8ccab7a31562631e3162"
+    },
+    {
+      "path": "/assets/player-photos/polpetta/rocco-carusso.png",
+      "width": 600,
+      "height": 750,
+      "bytes": 147515,
+      "sha256": "e3cfe84d5754625440c1ee648a86902af36667c4f699bb514bb6159fe941b9fd"
+    },
+    {
+      "path": "/assets/player-photos/polpetta/vito-volta.png",
+      "width": 600,
+      "height": 750,
+      "bytes": 140500,
+      "sha256": "00dda632f9e114b4c42b671ebdfa7b668069621ba1c5311cf608b9768c154b74"
+    },
+    {
+      "path": "/assets/player-photos/trucha/angelo-carboni.png",
+      "width": 600,
+      "height": 750,
+      "bytes": 217763,
+      "sha256": "09017572c73397cce71b0018b078bbcd2d0151aceb51f1b98c8bbd2fdd65f617"
+    },
+    {
+      "path": "/assets/player-photos/trucha/boris-lentz.png",
+      "width": 600,
+      "height": 750,
+      "bytes": 164008,
+      "sha256": "f3c544f44144de790a2e6d05b06fdde94c887ab44ea846804b1576aba131d576"
+    },
+    {
+      "path": "/assets/player-photos/trucha/burt-mccloskey.png",
+      "width": 600,
+      "height": 750,
+      "bytes": 129088,
+      "sha256": "5234a9b45b360c10e7a4193c551202c6ee5ff9145296db071568a15ea98e7657"
+    },
+    {
+      "path": "/assets/player-photos/trucha/dino-richi.png",
+      "width": 600,
+      "height": 750,
+      "bytes": 140643,
+      "sha256": "486e94e6ac3f10ccd34adcceed3c7f621cb199b007324e59d3b8750407adc2fd"
+    },
+    {
+      "path": "/assets/player-photos/trucha/dominic-mortensen.png",
+      "width": 600,
+      "height": 750,
+      "bytes": 306380,
+      "sha256": "5c98610c17b29d03caa2bd817be5f77e0184c5c24b5acc4b9213dba8f2dd2c17"
+    },
+    {
+      "path": "/assets/player-photos/trucha/donald-ortega.png",
+      "width": 600,
+      "height": 750,
+      "bytes": 160963,
+      "sha256": "d18147168f4b2e1c7a239cb85bab09ad43b68979a353eb5c7a8fdd2096d6285f"
+    },
+    {
+      "path": "/assets/player-photos/trucha/eddy-pino.png",
+      "width": 600,
+      "height": 750,
+      "bytes": 184669,
+      "sha256": "efdde6c6c71bbd3a1784028f06bad0155d22f61f3818aff5b8d9a28a0f4df8ab"
+    },
+    {
+      "path": "/assets/player-photos/trucha/eric-perry.png",
+      "width": 600,
+      "height": 750,
+      "bytes": 108284,
+      "sha256": "25d29bfc60e79b0abdd57bc14f4af0d70628383b6f52f08aeafa78c41e001af4"
+    },
+    {
+      "path": "/assets/player-photos/trucha/faustino-soriano.png",
+      "width": 600,
+      "height": 750,
+      "bytes": 171880,
+      "sha256": "f4477cc052cdba7f366d7f87a11e9443e5b0d5fc3db3ab204b17a05d0c6bff25"
+    },
+    {
+      "path": "/assets/player-photos/trucha/jerold-bogan.png",
+      "width": 600,
+      "height": 750,
+      "bytes": 183463,
+      "sha256": "949790e23bc71f9a4126a0d13642a7d71520ed95bdf958a09f3f83e55cebd497"
+    },
+    {
+      "path": "/assets/player-photos/trucha/kelly-rivera.png",
+      "width": 600,
+      "height": 750,
+      "bytes": 168269,
+      "sha256": "8269e14d4f131bdbf9c0c7d7476ebb6822c8de092b59e356993a5190b7a138f6"
+    },
+    {
+      "path": "/assets/player-photos/trucha/mario-luna.png",
+      "width": 600,
+      "height": 750,
+      "bytes": 217704,
+      "sha256": "6ecac35917bef6b39a96d83b29fc1775404c34f89d511430b11a992e02156a6e"
+    },
+    {
+      "path": "/assets/player-photos/trucha/ricky-watkins.png",
+      "width": 600,
+      "height": 750,
+      "bytes": 230502,
+      "sha256": "ae14b86bfca11f87ec70ed660cd30d895769430f5f459481368657b642a01f52"
+    },
+    {
+      "path": "/assets/player-photos/trucha/wilfredo-fernandez.png",
+      "width": 600,
+      "height": 750,
+      "bytes": 162102,
+      "sha256": "8198243493b0a6147b11be25ce819ae4deff37f7e6b196a9015e5812316c17de"
+    },
+    {
+      "path": "/assets/player-photos/overrides/arnold-vega.png",
+      "width": 600,
+      "height": 750,
+      "bytes": 215728,
+      "sha256": "a6a08c553af2af60afeef6f17b84d0ee3673c8c6953ab15901d73e16bb1c775f"
+    },
+    {
+      "path": "/assets/player-photos/overrides/rocco-caruso.png",
+      "width": 600,
+      "height": 750,
+      "bytes": 205717,
+      "sha256": "703402c1491d2c56295d90738f436ef2c0421c4450e1cadf151c083cd8bef1f7"
+    },
+    {
+      "path": "/assets/player-photos/overrides/warner-ferrara.png",
+      "width": 600,
+      "height": 750,
+      "bytes": 196917,
+      "sha256": "94d6311334340df32333fb8a714cac6f453e111ea130fed98fabb6739e013398"
+    }
+  ],
+  "logos": [
+    {
+      "path": "/assets/team-logos/guanaco.png",
+      "width": 512,
+      "height": 512,
+      "bytes": 308324,
+      "sha256": "304cf6af49aa30ffab5a580a13e74251ebeb4e993531bbe8ec384667cb8028fa"
+    },
+    {
+      "path": "/assets/team-logos/pantera.png",
+      "width": 512,
+      "height": 512,
+      "bytes": 230543,
+      "sha256": "034a1934e6c131fffb9caaaa5f0faa4519a17e8fff9e1cc58c3e630838054bfc"
+    },
+    {
+      "path": "/assets/team-logos/parrilla.png",
+      "width": 512,
+      "height": 512,
+      "bytes": 276404,
+      "sha256": "983f6cbae09765094105dd740d057f3303bc07290c8f016cfb02942ca42659b1"
+    },
+    {
+      "path": "/assets/team-logos/perla.png",
+      "width": 512,
+      "height": 512,
+      "bytes": 250661,
+      "sha256": "701e624d31664a39375e52a72c92c5c4eba6d324ebcd5869128c37e6b4726789"
+    },
+    {
+      "path": "/assets/team-logos/polpeta.png",
+      "width": 512,
+      "height": 512,
+      "bytes": 198698,
+      "sha256": "6e7b7cc449318180ddec258a50a03b23059826d661a516f7a02e3accc45834f3"
+    },
+    {
+      "path": "/assets/team-logos/polpetta.png",
+      "width": 512,
+      "height": 512,
+      "bytes": 198698,
+      "sha256": "6e7b7cc449318180ddec258a50a03b23059826d661a516f7a02e3accc45834f3"
+    },
+    {
+      "path": "/assets/team-logos/trucha.png",
+      "width": 512,
+      "height": 512,
+      "bytes": 373791,
+      "sha256": "b6e374f1de67ff46afe452581909590e384513aeb3322381039cfccc73f5a73f"
+    }
+  ]
+}
