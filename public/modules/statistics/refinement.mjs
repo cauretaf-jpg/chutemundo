@@ -1,4 +1,4 @@
-const VERSION = '5.22.0';
+const VERSION = window.CHUTE_APP_VERSION || '6.0.0';
 const core = window.ChuteMundoCore;
 const history = window.ChuteV521History;
 if (!core || !history) throw new Error('Chute Mundo v5.22 requiere el Archivo Histórico v5.21.');
@@ -412,7 +412,7 @@ function installStyles() {
   const link = document.createElement('link');
   link.id = 'cmV522Styles';
   link.rel = 'stylesheet';
-  link.href = `/chute-v522-stats-refinement.css?v=${VERSION}`;
+  link.href = `/styles/statistics.css?v=${VERSION}`;
   document.head.appendChild(link);
 }
 
