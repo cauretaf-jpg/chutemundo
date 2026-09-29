@@ -4,12 +4,12 @@ function waitForCore() {
 }
 
 const core = await waitForCore();
-const VERSION = '4.1.0';
+const VERSION = window.CHUTE_APP_VERSION || '6.0.0';
 
-if (!document.querySelector('link[href*="chute-groups.css"]')) {
+if (!document.querySelector('link[href*="styles/groups.css"]')) {
   const link = document.createElement('link');
   link.rel = 'stylesheet';
-  link.href = `/chute-groups.css?v=${VERSION}`;
+  link.href = `/styles/groups.css?v=${VERSION}`;
   document.head.appendChild(link);
 }
 
