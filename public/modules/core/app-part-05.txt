@@ -181,6 +181,7 @@ async function initializeCloud() {
       catch (error) { console.warn('No se pudieron leer los roles de Firebase.', error); }
     }
     renderAuthState();
+    document.dispatchEvent(new CustomEvent('chute:auth-changed', { detail: { isAdmin: isAdmin(), user: authUser ? { uid: authUser.uid, email: authUser.email || '' } : null } }));
     setStatus(isAdmin() ? 'Sesión administradora activa' : (cloudHasHistory ? 'Consulta en tiempo real' : 'Historial recuperado'));
     render();
   });
