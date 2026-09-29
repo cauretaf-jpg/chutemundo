@@ -159,7 +159,7 @@ async function writeCloudState({ force = false } = {}) {
     stateBytes: new Blob([serializedState]).size,
     version: VERSION,
     updatedAt: serverTimestamp(),
-    updatedBy: ADMIN_EMAIL,
+    updatedBy: authUser?.email || 'admin',
     migratedFrom: 'data.js'
   }, { merge: true });
   cloudHasHistory = true;

@@ -65,6 +65,12 @@ async function persistLive(pair, mutate, successText, { reopen = true } = {}) {
   }
 }
 
+function syncScoreFromGoalEvents(match) {
+  if (match.scoreMode !== 'events') return;
+  match.homeGoals = (match.goals || []).filter(goal => goal.side === 'home').length;
+  match.awayGoals = (match.goals || []).filter(goal => goal.side === 'away').length;
+}
+
 async function adjustScore(pair, side, delta) {
   await persistLive(pair, ({ match }) => {
     const key = side === 'away' ? 'awayGoals' : 'homeGoals';

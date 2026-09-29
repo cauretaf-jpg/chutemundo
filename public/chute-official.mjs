@@ -1,49 +1,47 @@
-// CI compatibility marker: chute-bootstrap.mjs?v=5.22.0
-/* Previous active markers retained only for the protected validation workflow:
-/chute-v521-history.mjs?v=5.22.0
-/chute-v521-history-sync.mjs?v=5.22.0
-/chute-v522-stats-refinement.mjs?v=5.22.0
-/chute-v520-stats-guard.mjs?v=5.22.0
-*/
-await import('/chute-bootstrap.mjs?v=5.25.0');
-await import('/chute-v511-assets.mjs?v=5.11.0');
-await import('/chute-official-loader.mjs?v=5.25.0');
-await import('/password-reset.mjs?v=3.0.3');
-await import('/chute-detail.mjs?v=5.25.0');
-await import('/chute-v522-photo-fix.mjs?v=5.22.4');
-await import('/chute-v5254-player-photo-fix.mjs?v=5.25.4');
-await import('/chute-v510-safety.mjs?v=5.10.0');
-await import('/chute-v583-tournament-admin.mjs?v=5.8.3');
-await window.ChuteSplitLoader({ prefix: 'chute-v59-part', count: 8, version: '5.9.0', label: 'el centro v5.9' });
-await import('/chute-v591-live-access.mjs?v=5.9.1');
-await import('/chute-v510-dashboard.mjs?v=5.10.0');
-await import('/chute-v511-core.mjs?v=5.11.1');
-await import('/chute-v511-tournaments.mjs?v=5.11.1');
-await import('/chute-v511-match-share.mjs?v=5.11.0');
-await import('/chute-v5121-storage-preflight.mjs?v=5.12.1');
-await import('/chute-v512-integrity.mjs?v=5.12.0');
-await import('/chute-v5121-search-fix.mjs?v=5.12.1');
-await import('/chute-v5121-backup-fix.mjs?v=5.12.1');
-await import('/chute-v513-lineups.mjs?v=5.13.0');
-await import('/chute-v514-unified-match.mjs?v=5.14.0');
-await import('/chute-v515-match-center.mjs?v=5.15.0');
-await import('/chute-v516-events-stats.mjs?v=5.16.1');
-await import('/chute-v5162-playoff-seeding.mjs?v=5.16.3');
-await import('/chute-v517-finalization.mjs?v=5.17.0');
-await import('/chute-v521-history.mjs?v=5.25.0');
-await import('/chute-v521-history-sync.mjs?v=5.25.0');
-await import('/chute-v522-stats-refinement.mjs?v=5.25.0');
-await import('/chute-v522-historical-dates.mjs?v=5.22.2');
-await import('/chute-v523-control-center.mjs?v=5.25.0');
-await import('/chute-v524-form-dirty-guard.mjs?v=5.25.0');
-await import('/chute-v524-tournaments.mjs?v=5.25.0');
-await import('/chute-v524-tournament-render-guard.mjs?v=5.25.0');
-await import('/chute-v5241-history-collapse.mjs?v=5.25.0');
-await import('/chute-v520-stats-guard.mjs?v=5.25.0');
-await import('/chute-v5242-ui-fixes.mjs?v=5.25.0');
-await import('/chute-v525-fifa-ranking.mjs?v=5.25.0');
-await import('/chute-v5252-historical-player-stats.mjs?v=5.25.2');
+const VERSION = window.CHUTE_APP_VERSION || '6.0.0';
+const load = (path) => import(`${path}?v=${encodeURIComponent(VERSION)}`);
+
+await load('/chute-bootstrap.mjs');
+await load('/chute-v511-assets.mjs');
+await load('/chute-official-loader.mjs');
+await load('/password-reset.mjs');
+await load('/chute-detail.mjs');
+await load('/chute-v522-photo-fix.mjs');
+await load('/chute-v5254-player-photo-fix.mjs');
+await load('/chute-v510-safety.mjs');
+await load('/chute-v583-tournament-admin.mjs');
+await window.ChuteSplitLoader({ prefix: 'chute-v59-part', count: 8, version: VERSION, label: 'el centro de partido' });
+await load('/chute-v591-live-access.mjs');
+await load('/chute-v510-dashboard.mjs');
+await load('/chute-v511-core.mjs');
+await load('/chute-v511-tournaments.mjs');
+await load('/chute-v511-match-share.mjs');
+await load('/chute-v5121-storage-preflight.mjs');
+await load('/chute-v512-integrity.mjs');
+await load('/chute-v5121-search-fix.mjs');
+await load('/chute-v5121-backup-fix.mjs');
+await load('/chute-v513-lineups.mjs');
+await load('/chute-v514-unified-match.mjs');
+await load('/chute-v515-match-center.mjs');
+await load('/chute-v516-events-stats.mjs');
+await load('/chute-v5162-playoff-seeding.mjs');
+await load('/chute-v517-finalization.mjs');
+await load('/chute-v521-history.mjs');
+await load('/chute-v521-history-sync.mjs');
+await load('/chute-v522-stats-refinement.mjs');
+await load('/chute-v522-historical-dates.mjs');
+await load('/chute-v523-control-center.mjs');
+await load('/chute-v524-form-dirty-guard.mjs');
+await load('/chute-v524-tournaments.mjs');
+await load('/chute-v524-tournament-render-guard.mjs');
+await load('/chute-v5241-history-collapse.mjs');
+await load('/chute-v520-stats-guard.mjs');
+await load('/chute-v5242-ui-fixes.mjs');
+await load('/chute-v525-fifa-ranking.mjs');
+await load('/chute-v5252-historical-player-stats.mjs');
+await load('/chute-v6.mjs');
+
 window.ChuteVersion?.apply?.();
 document.dispatchEvent(new CustomEvent('chute:boot-complete', {
-  detail: { version: window.ChuteVersion?.version || '5.25.0', core: window.ChuteMundoCore }
+  detail: { version: VERSION, core: window.ChuteMundoCore }
 }));

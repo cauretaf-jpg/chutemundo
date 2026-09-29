@@ -25,15 +25,13 @@
 
 async function loadLegacyState() {
   const [historyResponse, tournament8Response] = await Promise.all([
-    fetch(`https://raw.githubusercontent.com/cauretaf-jpg/chutemundo/main/data.js?v=${VERSION}`, { cache: 'no-store' }),
-    fetch(`/tournament-8.json?v=4.1.1`, { cache: 'no-store' })
+    fetch('/official-history.json?v=' + encodeURIComponent(window.CHUTE_APP_VERSION || '6.0.0'), { cache: 'no-store' }),
+    fetch('/tournament-8.json?v=4.1.1', { cache: 'no-store' })
   ]);
-  if (!historyResponse.ok) throw new Error(`No se pudo leer data.js (${historyResponse.status}).`);
+  if (!historyResponse.ok) throw new Error(`No se pudo leer el historial oficial (${historyResponse.status}).`);
   if (!tournament8Response.ok) throw new Error(`No se pudo leer el 8vo torneo (${tournament8Response.status}).`);
 
-  const sourceText = await historyResponse.text();
-  const baseData = new Function(`${sourceText}\nreturn DEFAULT_DATA;`)();
-  const normalized = normalizeState(baseData);
+  const normalized = normalizeState(await historyResponse.json());
   const tournament8 = normalizeTournament(await tournament8Response.json());
   const existingIndex = normalized.tournaments.findIndex((tournament) => tournament.id === tournament8.id);
   if (existingIndex >= 0) normalized.tournaments[existingIndex] = tournament8;
@@ -52,7 +50,11 @@ function persistLocal() {
 }
 
 function isAdmin() {
-  return Boolean(authUser?.email && authUser.email.toLowerCase() === ADMIN_EMAIL);
+  return Boolean(authUser && (
+    authClaims?.admin === true ||
+    authClaims?.role === 'admin' ||
+    (authUser.email && authUser.email.toLowerCase() === LEGACY_ADMIN_EMAIL)
+  ));
 }
 
 function canEdit() {
