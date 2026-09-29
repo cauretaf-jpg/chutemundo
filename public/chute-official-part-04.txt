@@ -111,16 +111,17 @@ function closeModal() {
 }
 
 function openLoginModal() {
-  openModal(`<h2>Ingreso administrador</h2><p>Utiliza la cuenta autorizada para modificar torneos y resultados.</p><form id="loginForm"><label>Correo<input value="${ADMIN_EMAIL}" disabled></label><label>Contraseña<input id="loginPassword" type="password" required minlength="6" autocomplete="current-password"></label><div class="modal-actions"><button type="button" class="secondary" data-close-modal>Cancelar</button><button class="primary" type="submit">Ingresar</button></div></form>`);
+  openModal(`<h2>Ingreso administrador</h2><p>Utiliza una cuenta de Firebase autorizada para modificar torneos y resultados.</p><form id="loginForm"><label>Correo<input id="loginEmail" type="email" required autocomplete="username"></label><label>Contraseña<input id="loginPassword" type="password" required minlength="6" autocomplete="current-password"></label><div class="modal-actions"><button type="button" class="secondary" data-close-modal>Cancelar</button><button class="primary" type="submit">Ingresar</button></div></form>`);
   $('#loginForm').addEventListener('submit', async (event) => {
     event.preventDefault();
     try {
-      await signInWithEmailAndPassword(auth, ADMIN_EMAIL, $('#loginPassword').value);
+      const email = $('#loginEmail').value.trim();
+      await signInWithEmailAndPassword(auth, email, $('#loginPassword').value);
       closeModal();
       showToast('Sesión iniciada.');
     } catch (error) {
       console.error(error);
-      showToast('No se pudo iniciar sesión. Revisa la contraseña.');
+      showToast('No se pudo iniciar sesión. Revisa las credenciales y permisos.');
     }
   });
 }
