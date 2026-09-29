@@ -2,7 +2,7 @@ const core = window.ChuteMundoCore;
 const model = window.ChuteDetailModel;
 if (!core || !model) throw new Error('Chute Mundo no está listo para el Centro de Control v5.23.');
 
-const VERSION = '5.23.0';
+const VERSION = window.CHUTE_APP_VERSION || '6.0.0';
 const HOME_DEFAULT = 'participante_alvaro';
 const AWAY_DEFAULT = 'participante_carlos';
 const esc = model.esc || ((value = '') => String(value).replace(/[&<>"']/g, (character) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[character])));
@@ -244,6 +244,6 @@ document.addEventListener('change', (event) => {
 document.addEventListener('submit', (event) => { if (event.target.id === 'cmV523ParticipantForm') { event.preventDefault(); void addPerson(event.target); } }, true);
 document.addEventListener('chute:state', schedule); document.addEventListener('chute:ready', schedule); document.addEventListener('chute:boot-complete', schedule);
 
-const style = document.createElement('link'); style.rel = 'stylesheet'; style.href = `/chute-v523-participants-admin.css?v=${VERSION}`; style.id = 'cmV523ParticipantsAdminStyles'; if (!document.getElementById(style.id)) document.head.appendChild(style);
+const style = document.createElement('link'); style.rel = 'stylesheet'; style.href = `/styles/admin.css?v=${VERSION}`; style.id = 'cmV523ParticipantsAdminStyles'; if (!document.getElementById(style.id)) document.head.appendChild(style);
 ensureDefaults(); schedule(); window.setInterval(schedule, 900);
 window.ChuteV523ControlCenter = Object.freeze({ VERSION, HOME_DEFAULT, AWAY_DEFAULT, ensureDefaults, participantStats, readiness, schedule });
