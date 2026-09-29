@@ -1,6 +1,6 @@
-document.title = 'Chute Mundo v5.8.1 · Competición oficial';
+document.title = 'Chute Mundo · Competición oficial';
 const heroVersion = document.querySelector('.hero .eyebrow');
-if (heroVersion) heroVersion.textContent = 'CHUTE MUNDO v5.8.1';
+if (heroVersion) heroVersion.textContent = 'CHUTE MUNDO';
 const brandDetail = document.querySelector('.brand small');
 if (brandDetail) brandDetail.textContent = 'Competición, análisis histórico, divisiones, disciplina, sedes, planteles y estadísticas · Firebase';
 const description = document.querySelector('meta[name="description"]');
@@ -49,35 +49,35 @@ function installV581CompatibilityStyles() {
 installV581CompatibilityStyles();
 
 for (const [href, marker] of [
-  ['/chute-detail.css?v=5.8.1', 'chute-detail.css'],
-  ['/chute-premium.css?v=5.8.1', 'chute-premium.css'],
-  ['/chute-premium-overrides.css?v=5.8.1', 'chute-premium-overrides.css'],
-  ['/chute-tournament-hub.css?v=5.8.1', 'chute-tournament-hub.css'],
-  ['/chute-matches-v52.css?v=5.8.1', 'chute-matches-v52.css'],
-  ['/chute-v53-adjustments.css?v=5.8.1', 'chute-v53-adjustments.css'],
-  ['/chute-v54.css?v=5.8.1', 'chute-v54.css'],
-  ['/chute-v55.css?v=5.8.1', 'chute-v55.css'],
-  ['/chute-v56.css?v=5.8.1', 'chute-v56.css']
+  ['/styles/detail.css?v=5.8.1', 'chute-detail.css'],
+  ['/styles/premium.css?v=5.8.1', 'chute-premium.css'],
+  ['/styles/premium-overrides.css?v=5.8.1', 'chute-premium-overrides.css'],
+  ['/styles/tournament-hub.css?v=5.8.1', 'chute-tournament-hub.css'],
+  ['/styles/matches.css?v=5.8.1', 'chute-matches-v52.css'],
+  ['/styles/adjustments.css?v=5.8.1', 'chute-v53-adjustments.css'],
+  ['/styles/divisions.css?v=5.8.1', 'chute-v54.css'],
+  ['/styles/match-tools.css?v=5.8.1', 'chute-v55.css'],
+  ['/styles/discipline.css?v=5.8.1', 'chute-v56.css']
 ]) loadStyle(href, marker);
 
-await import('/chute-runtime-v58.mjs?v=5.8.1');
-await import('/chute-mutation-guard.mjs?v=5.8.1');
-await import('/chute-detail-model.mjs?v=5.8.1');
+await import('/modules/core/runtime.mjs?v=5.8.1');
+await import('/modules/core/mutation-guard.mjs?v=5.8.1');
+await import('/modules/detail/model.mjs?v=5.8.1');
 await Promise.all([
-  import('/chute-detail-ui.mjs?v=5.8.1'),
-  import('/chute-detail-events.mjs?v=5.8.1'),
-  import('/chute-detail-diagnostics.mjs?v=5.8.1'),
-  import('/chute-group-editor.mjs?v=5.8.1')
+  import('/modules/detail/ui.mjs?v=5.8.1'),
+  import('/modules/detail/events.mjs?v=5.8.1'),
+  import('/modules/detail/diagnostics.mjs?v=5.8.1'),
+  import('/modules/tournaments/group-editor.mjs?v=5.8.1')
 ]);
-await import('/chute-data-hygiene.mjs?v=5.8.1');
-await import('/chute-premium-ui.mjs?v=5.8.1');
-await import('/chute-tournament-hub.mjs?v=5.8.1');
-await import('/chute-matches-v52.mjs?v=5.8.1');
-await import('/chute-v54.mjs?v=5.8.1');
-await import('/chute-v54-form-guard.mjs?v=5.8.1');
-await import('/chute-v56-discipline.mjs?v=5.8.1');
-await import('/chute-v55-event-guard.mjs?v=5.8.1');
-await import('/chute-v55.mjs?v=5.8.1');
+await import('/modules/data/hygiene.mjs?v=5.8.1');
+await import('/modules/ui/premium.mjs?v=5.8.1');
+await import('/modules/tournaments/hub.mjs?v=5.8.1');
+await import('/modules/matches/list.mjs?v=5.8.1');
+await import('/modules/tournaments/divisions.mjs?v=5.8.1');
+await import('/modules/tournaments/division-form-guard.mjs?v=5.8.1');
+await import('/modules/discipline/index.mjs?v=5.8.1');
+await import('/modules/matches/event-guard.mjs?v=5.8.1');
+await import('/modules/matches/tools.mjs?v=5.8.1');
 
 function installMobileBracketControls() {
   const media = window.matchMedia('(max-width:700px)');
@@ -258,8 +258,8 @@ function loadStatistics() {
 function loadHistoricalAnalysis() {
   if (analysisPromise) return analysisPromise;
   statisticsStatus('loading', 'analysis');
-  loadStyle('/chute-v58.css?v=5.18.2', 'chute-v58.css');
-  analysisPromise = import('/chute-v58-analysis.mjs?v=5.18.2').then(() => {
+  loadStyle('/styles/analysis.css?v=5.18.2', 'chute-v58.css');
+  analysisPromise = import('/modules/statistics/analysis.mjs?v=5.18.2').then(() => {
     const statsPage = document.getElementById('estadisticas');
     if (statsPage?.hidden) window.ChuteMundoCore?.navigate?.('estadisticas');
     window.ChuteAnalysisV58?.refresh?.();
