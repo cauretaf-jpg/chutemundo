@@ -1,6 +1,7 @@
-document.title = 'Chute Mundo · Competición oficial';
+const VERSION = window.CHUTE_APP_VERSION || '6.0.0';
+document.title = `Chute Mundo v${VERSION} · Competición oficial`;
 const heroVersion = document.querySelector('.hero .eyebrow');
-if (heroVersion) heroVersion.textContent = 'CHUTE MUNDO';
+if (heroVersion) heroVersion.textContent = `CHUTE MUNDO v${VERSION}`;
 const brandDetail = document.querySelector('.brand small');
 if (brandDetail) brandDetail.textContent = 'Competición, análisis histórico, divisiones, disciplina, sedes, planteles y estadísticas · Firebase';
 const description = document.querySelector('meta[name="description"]');
@@ -48,36 +49,37 @@ function installV581CompatibilityStyles() {
 
 installV581CompatibilityStyles();
 
-for (const [href, marker] of [
-  ['/styles/detail.css?v=5.8.1', 'chute-detail.css'],
-  ['/styles/premium.css?v=5.8.1', 'chute-premium.css'],
-  ['/styles/premium-overrides.css?v=5.8.1', 'chute-premium-overrides.css'],
-  ['/styles/tournament-hub.css?v=5.8.1', 'chute-tournament-hub.css'],
-  ['/styles/matches.css?v=5.8.1', 'chute-matches-v52.css'],
-  ['/styles/adjustments.css?v=5.8.1', 'chute-v53-adjustments.css'],
-  ['/styles/divisions.css?v=5.8.1', 'chute-v54.css'],
-  ['/styles/match-tools.css?v=5.8.1', 'chute-v55.css'],
-  ['/styles/discipline.css?v=5.8.1', 'chute-v56.css']
-]) loadStyle(href, marker);
+for (const [path, marker] of [
+  ['/styles/detail.css', 'styles/detail.css'],
+  ['/styles/premium.css', 'styles/premium.css'],
+  ['/styles/premium-overrides.css', 'styles/premium-overrides.css'],
+  ['/styles/tournament-hub.css', 'styles/tournament-hub.css'],
+  ['/styles/matches.css', 'styles/matches.css'],
+  ['/styles/adjustments.css', 'styles/adjustments.css'],
+  ['/styles/divisions.css', 'styles/divisions.css'],
+  ['/styles/match-tools.css', 'styles/match-tools.css'],
+  ['/styles/discipline.css', 'styles/discipline.css']
+]) loadStyle(`${path}?v=${encodeURIComponent(VERSION)}`, marker);
 
-await import('/modules/core/runtime.mjs?v=5.8.1');
-await import('/modules/core/mutation-guard.mjs?v=5.8.1');
-await import('/modules/detail/model.mjs?v=5.8.1');
+const load = (path) => import(`${path}?v=${encodeURIComponent(VERSION)}`);
+await load('/modules/core/runtime.mjs');
+await load('/modules/core/mutation-guard.mjs');
+await load('/modules/detail/model.mjs');
 await Promise.all([
-  import('/modules/detail/ui.mjs?v=5.8.1'),
-  import('/modules/detail/events.mjs?v=5.8.1'),
-  import('/modules/detail/diagnostics.mjs?v=5.8.1'),
-  import('/modules/tournaments/group-editor.mjs?v=5.8.1')
+  load('/modules/detail/ui.mjs'),
+  load('/modules/detail/events.mjs'),
+  load('/modules/detail/diagnostics.mjs'),
+  load('/modules/tournaments/group-editor.mjs')
 ]);
-await import('/modules/data/hygiene.mjs?v=5.8.1');
-await import('/modules/ui/premium.mjs?v=5.8.1');
-await import('/modules/tournaments/hub.mjs?v=5.8.1');
-await import('/modules/matches/list.mjs?v=5.8.1');
-await import('/modules/tournaments/divisions.mjs?v=5.8.1');
-await import('/modules/tournaments/division-form-guard.mjs?v=5.8.1');
-await import('/modules/discipline/index.mjs?v=5.8.1');
-await import('/modules/matches/event-guard.mjs?v=5.8.1');
-await import('/modules/matches/tools.mjs?v=5.8.1');
+await load('/modules/data/hygiene.mjs');
+await load('/modules/ui/premium.mjs');
+await load('/modules/tournaments/hub.mjs');
+await load('/modules/matches/list.mjs');
+await load('/modules/tournaments/divisions.mjs');
+await load('/modules/tournaments/division-form-guard.mjs');
+await load('/modules/discipline/index.mjs');
+await load('/modules/matches/event-guard.mjs');
+await load('/modules/matches/tools.mjs');
 
 function installMobileBracketControls() {
   const media = window.matchMedia('(max-width:700px)');
@@ -185,7 +187,7 @@ function installMobileBracketControls() {
   media.addEventListener?.('change', scheduleRefresh);
   window.addEventListener('resize', scheduleRefresh, { passive: true });
   refresh();
-  window.ChuteMobileV581 = { refresh, version: '5.8.1' };
+  window.ChuteMobileV581 = { refresh, version: VERSION };
 }
 
 installMobileBracketControls();
@@ -258,8 +260,8 @@ function loadStatistics() {
 function loadHistoricalAnalysis() {
   if (analysisPromise) return analysisPromise;
   statisticsStatus('loading', 'analysis');
-  loadStyle('/styles/analysis.css?v=5.18.2', 'chute-v58.css');
-  analysisPromise = import('/modules/statistics/analysis.mjs?v=5.18.2').then(() => {
+  loadStyle(`/styles/analysis.css?v=${encodeURIComponent(VERSION)}`, 'styles/analysis.css');
+  analysisPromise = load('/modules/statistics/analysis.mjs').then(() => {
     const statsPage = document.getElementById('estadisticas');
     if (statsPage?.hidden) window.ChuteMundoCore?.navigate?.('estadisticas');
     window.ChuteAnalysisV58?.refresh?.();
