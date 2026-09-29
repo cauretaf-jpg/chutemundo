@@ -8,7 +8,7 @@ const model = window.ChuteDetailModel;
 if (!model) throw new Error('El modelo detallado no está disponible para el centro de jornada.');
 
 const { esc, logo } = model;
-const VERSION = '5.10.0';
+const VERSION = window.CHUTE_APP_VERSION || '6.0.0';
 let lastSignature = '';
 let refreshQueued = false;
 
@@ -211,7 +211,7 @@ function installStyles() {
   const link = document.createElement('link');
   link.id = 'cmV510Styles';
   link.rel = 'stylesheet';
-  link.href = `/chute-v510.css?v=${VERSION}`;
+  link.href = `/styles/dashboard.css?v=${VERSION}`;
   document.head.appendChild(link);
 }
 
