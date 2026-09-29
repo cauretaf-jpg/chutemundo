@@ -44,7 +44,7 @@ jobs:
           test -s public/manifest.webmanifest
           test -s scripts/audit-v6.mjs
           test -s scripts/smoke-v6.mjs
-          grep -q "CHUTE_APP_VERSION = '6.0.0'" public/version.js
+          grep -q "const VERSION = '6.0.0'" public/version.js\n          grep -q "CHUTE_APP_VERSION = VERSION" public/version.js
           grep -q "/chute-v6.mjs" public/chute-official.mjs
           grep -q "data-chute-version=\"6.0.0\"" public/index.html
           ! grep -q "setInterval(refresh, 1500)" public/chute-v591-live-access.mjs
