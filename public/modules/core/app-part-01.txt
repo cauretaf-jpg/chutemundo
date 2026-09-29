@@ -19,6 +19,8 @@
     discipline: source.discipline || { records: [] },
     divisions: source.divisions || { A: [], B: [] },
     fifaRanking: Array.isArray(source.fifaRanking) ? source.fifaRanking : [],
+    playerIds: source.playerIds && typeof source.playerIds === 'object' ? source.playerIds : {},
+    playerIdentitySchema: source.playerIdentitySchema || 'player-ids-v1',
     activity: Array.isArray(source.activity) ? source.activity : []
   };
 }
