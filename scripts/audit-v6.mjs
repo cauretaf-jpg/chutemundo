@@ -15,7 +15,7 @@ const vercel = read('vercel.json');
 const officialCore = read('public/chute-official-part-00.txt');
 const officialHistoryLoader = read('public/chute-official-part-01.txt');
 
-ok(version.includes("CHUTE_APP_VERSION = '6.0.0'"), 'version.js no declara v6.0.0.');
+ok(version.includes("const VERSION = '6.0.0'") && version.includes('CHUTE_APP_VERSION = VERSION'), 'version.js no declara v6.0.0.');
 ok(index.includes('/version.js'), 'index.html no carga la versión canónica.');
 ok(index.includes('/chute-official.mjs?v=6.0.0'), 'index.html no carga el entrypoint v6.');
 ok(official.includes('chute-v6.mjs'), 'El entrypoint no carga la capa v6.');
