@@ -7,7 +7,7 @@ const core = await waitForCore();
 const model = window.ChuteDetailModel;
 if (!model) throw new Error('El modelo detallado no está disponible para el centro de partido v5.15.');
 
-const VERSION = '5.15.0';
+const VERSION = window.CHUTE_APP_VERSION || '6.0.0';
 const clone = (value) => typeof structuredClone === 'function' ? structuredClone(value) : JSON.parse(JSON.stringify(value));
 const esc = (value = '') => String(value).replace(/[&<>"']/g, (character) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[character]);
 const minuteNumber = (value) => value === 'Penales' ? 120 : Math.max(0, Number.parseInt(String(value ?? '0'), 10) || 0);
@@ -433,7 +433,7 @@ function installStyles() {
   const link = document.createElement('link');
   link.id = 'cmV515Styles';
   link.rel = 'stylesheet';
-  link.href = `/chute-v515-match-center.css?v=${VERSION}`;
+  link.href = `/styles/match-center.css?v=${VERSION}`;
   document.head.appendChild(link);
 }
 
