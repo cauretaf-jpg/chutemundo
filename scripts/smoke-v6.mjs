@@ -4,6 +4,11 @@ const browser = await chromium.launch({ headless: true });
 const context = await browser.newContext({ viewport: { width: 390, height: 844 }, serviceWorkers: 'block' });
 const page = await context.newPage();
 const errors = [];
+const badResources = [];
+page.on('response', (response) => {
+  const url = response.url();
+  if (response.status() >= 400 && /\.(?:css|mjs|js|txt)(?:\?|$)/i.test(url)) badResources.push({ status: response.status(), url });
+});
 page.on('pageerror', (error) => errors.push(String(error)));
 page.on('console', (message) => { if (message.type() === 'error') errors.push(message.text()); });
 
@@ -34,6 +39,7 @@ try {
   if (boot.width > boot.viewport + 3) throw new Error('Existe desborde horizontal móvil: ' + JSON.stringify(boot));
   if (boot.playerIds < 1) throw new Error('No se construyó el registro permanente de jugadores.');
   if (boot.legacyResources.length) throw new Error('El navegador cargó recursos versionados antiguos: ' + JSON.stringify(boot.legacyResources));
+  if (badResources.length) throw new Error('Recursos críticos con error HTTP: ' + JSON.stringify(badResources));
 
   await page.evaluate(() => window.ChuteMundoCore.navigate('administracion'));
   await page.waitForSelector('#cmV6StorageModel', { state: 'visible' });
@@ -123,7 +129,25 @@ try {
   if (!statsMobile.historyCss.includes('/styles/history.css')) throw new Error('El stylesheet del Archivo Histórico no está cargado: ' + JSON.stringify(statsMobile));
   if (statsMobile.duplicateIntro) throw new Error('Persisten paneles estadísticos duplicados: ' + JSON.stringify(statsMobile));
 
-  console.log('ChuteMundo 6.0.2 smoke OK', { boot, ids: ids.count, homeMobile, teamsMobile, statsMobile });
+  const pageLayouts = {};
+  for (const pageId of ['torneos','partidos','equipos','jugadores','estadisticas','disciplina','administracion']) {
+    await page.evaluate((id) => window.ChuteMundoCore.navigate(id), pageId);
+    await page.waitForTimeout(40);
+    pageLayouts[pageId] = await page.evaluate((id) => {
+      const node = document.getElementById(id);
+      const rect = node?.getBoundingClientRect();
+      return {
+        visible: Boolean(node && !node.hidden && getComputedStyle(node).display !== 'none'),
+        right: rect?.right || 0,
+        viewport: document.documentElement.clientWidth
+      };
+    }, pageId);
+    if (!pageLayouts[pageId].visible) throw new Error('Página no visible: ' + pageId + ' ' + JSON.stringify(pageLayouts[pageId]));
+    if (pageLayouts[pageId].right > pageLayouts[pageId].viewport + 3) throw new Error('Página con desborde horizontal: ' + pageId + ' ' + JSON.stringify(pageLayouts[pageId]));
+  }
+  if (badResources.length) throw new Error('Recursos críticos con error HTTP tras recorrer la app: ' + JSON.stringify(badResources));
+
+  console.log('ChuteMundo 6.0.2 smoke OK', { boot, ids: ids.count, homeMobile, teamsMobile, statsMobile, pageLayouts });
 } finally {
   await context.close();
   await browser.close();
