@@ -1,0 +1,78 @@
+  return event.teamId || (event.side === 'away' ? context.away : context.home);
+}
+
+function appearedInMatch(match, side, name) {
+  if (match.participationTracked) {
+    const lineup = match.lineups?.[side];
+    if (lineup?.starters?.includes(name)) return true;
+    if ((lineup?.changes || []).some((change) => change.playerIn === name)) return true;
+  }
+  return (match.goals || []).some((event) => event.playerName === name || event.assistName === name)
+    || (match.cards || []).some((event) => event.playerName === name)
+    || (match.penaltyShootout || []).some((event) => event.playerName === name);
+}
+
+function legacyValue(rows, teamId, name, kind) {
+  let value = 0;
+  for (const row of rows || []) {
+    if (Array.isArray(row)) {
+      const [rowName, rowTeam, , amount] = row;
+      if (rowName === name && (!rowTeam || rowTeam === teamId)) value = Math.max(value, Number(amount || 0));
+    } else if (row && typeof row === 'object') {
+      const rowName = row.name || row.playerName || row.player;
+      const rowTeam = row.teamId || row.team;
+      const amount = row.value ?? row[kind] ?? row.total ?? 0;
+      if (rowName === name && (!rowTeam || rowTeam === teamId)) value = Math.max(value, Number(amount || 0));
+    }
+  }
+  return value;
+}
+
+function hasPriorRecord(source, tournament, teamId, name) {
+  const currentIndex = source.tournaments?.findIndex((item) => item.id === tournament.id) ?? -1;
+  const earlier = currentIndex >= 0 ? source.tournaments.slice(0, currentIndex) : (source.tournaments || []).filter((item) => item.id !== tournament.id);
+  return earlier.some((item) => {
+    if (legacyValue(item.playerScorers, teamId, name, 'goals') || legacyValue(item.playerAssists, teamId, name, 'assists')) return true;
+    return (item.matches || []).some((match) => {
+      const context = matchContext(item, match);
+      if (!context) return false;
+      const side = context.home === teamId ? 'home' : context.away === teamId ? 'away' : null;
+      return Boolean(side && appearedInMatch(match, side, name));
+    });
+  });
+}
+
+function buildPlayerRows(tournament, source = core.getState()) {
+  const rows = [];
+  const matches = (tournament.matches || []).filter((match) => match.stage !== 'bye' && played(match));
+  const teamFallback = new Map();
+  for (const teamId of tournament.teamIds || []) {
+    const teamMatches = matches.map((match) => resultInfo(tournament, match)).filter((info) => info && [info.home, info.away].includes(teamId));
+    const fallback = { appearances: teamMatches.length, goalsConceded: 0, cleanSheets: 0, wins: 0, draws: 0, losses: 0, shootoutWins: 0 };
+    for (const info of teamMatches) {
+      const conceded = info.home === teamId ? info.awayGoals : info.homeGoals;
+      fallback.goalsConceded += conceded;
+      if (conceded === 0) fallback.cleanSheets += 1;
+      if (info.winner === teamId) {
+        fallback.wins += 1;
+        if (info.decidedByPenalties) fallback.shootoutWins += 1;
+      } else if (info.winner) fallback.losses += 1;
+      else fallback.draws += 1;
+    }
+    teamFallback.set(teamId, fallback);
+  }
+
+  for (const teamId of tournament.teamIds || []) {
+    const team = teamById(teamId, source);
+    for (const entry of team?.players || []) {
+      const name = playerName(entry);
+      if (!name) continue;
+      const base = statsApi.playerStats(teamId, name, source, tournament.id);
+      const row = {
+        ...base,
+        team,
+        teamId,
+        name,
+        position: playerPosition(entry) || base.position || 'Jugador',
+        goalkeeper: normalize(playerPosition(entry)).includes('arquero') || normalize(playerPosition(entry)).includes('portero'),
+        decisiveGoals: 0,

@@ -1,0 +1,67 @@
+  return `<section id="cmV59ProfilesRoot" class="cm-v59-profiles"><header><div><p class="eyebrow">IDENTIDAD E HISTORIA</p><h2>Perfiles de Chute Mundo</h2><p>Consulta el rendimiento de cada jugador y club a partir de los registros oficiales.</p></div><div class="cm-v59-profile-counts"><span>${teams().length} clubes</span><span>${allPlayers().length} jugadores</span></div></header><div class="cm-v59-profile-tools"><div class="cm-v59-profile-tabs"><button type="button" class="${profileState.mode === 'players' ? 'active' : ''}" data-cm-v59-profile-mode="players">Jugadores</button><button type="button" class="${profileState.mode === 'teams' ? 'active' : ''}" data-cm-v59-profile-mode="teams">Equipos</button></div><label>Buscar<input id="cmV59ProfileSearch" value="${esc(profileState.query)}" placeholder="Jugador, equipo o posición"></label></div><div id="cmV59ProfileContent">${content}</div></section>`;
+}
+
+function renderProfiles() {
+  const page = document.getElementById('equipos');
+  if (!page) return;
+  const dataSignature = JSON.stringify({
+    mode: profileState.mode, query: profileState.query, expanded: profileState.expanded,
+    teams: teams().map((team) => [team.id, team.name, team.coach, team.players?.length || 0]),
+    tournaments: tournaments().map((tournament) => [tournament.id, tournament.status, tournament.champion, tournament.runnerUp, tournament.third, (tournament.matches || []).map((match) => [match.id, match.homeGoals, match.awayGoals, match.goals?.length || 0, match.cards?.length || 0])])
+  });
+  let root = document.getElementById('cmV59ProfilesRoot');
+  if (root && profilesSignature === dataSignature) return;
+  profilesSignature = dataSignature;
+  const markup = profilesMarkup();
+  if (root) root.outerHTML = markup;
+  else page.querySelector('.page-title')?.insertAdjacentHTML('afterend', markup);
+}
+
+function injectLiveButtons() {
+  document.querySelectorAll('.cm-v59-live-launch').forEach((button) => {
+    if (!core.canEdit()) button.remove();
+  });
+  if (!core.canEdit()) return;
+  document.querySelectorAll('[data-edit-match]').forEach((edit) => {
+    const pair = edit.dataset.editMatch;
+    const parent = edit.parentElement;
+    if (pair && parent && !parent.querySelector(`[data-cm-v59-live="${CSS.escape(pair)}"]`)) {
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.className = 'mini-button cm-v59-live-launch';
+      button.dataset.cmV59Live = pair;
+      button.textContent = 'Modo partido';
+      parent.appendChild(button);
+    }
+  });
+  document.querySelectorAll('[data-cm-hub-match]').forEach((open) => {
+    const pair = open.dataset.cmHubMatch;
+    const parent = open.parentElement;
+    if (pair && parent && !parent.querySelector(`[data-cm-v59-live="${CSS.escape(pair)}"]`)) {
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.className = 'cm-v59-live-launch';
+      button.dataset.cmV59Live = pair;
+      button.textContent = 'Modo partido';
+      parent.appendChild(button);
+    }
+  });
+}
+
+function refresh() {
+  refreshQueued = false;
+  renderProfiles();
+  injectLiveButtons();
+}
+
+function scheduleRefresh() {
+  if (refreshQueued) return;
+  refreshQueued = true;
+  requestAnimationFrame(refresh);
+}
+
+document.addEventListener('click', (event) => {
+  const live = event.target.closest('[data-cm-v59-live]');
+  if (live) { event.preventDefault(); event.stopPropagation(); renderLiveModal(live.dataset.cmV59Live); return; }
+  const score = event.target.closest('[data-cm-v59-score]');
+  if (score) { const root = score.closest('[data-cm-v59-live-pair]'); const [side, delta] = score.dataset.cmV59Score.split(':'); void adjustScore(root.dataset.cmV59LivePair, side, Number(delta)); return; }

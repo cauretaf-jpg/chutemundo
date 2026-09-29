@@ -1,0 +1,159 @@
+function awardTeamFromName(name, source = state()) {
+  return resolveTeamId('', name, source);
+}
+
+function playerAwardRecords(tournaments, source = state()) {
+  const records = [];
+  for (const tournament of tournaments) {
+    const seen = new Set();
+    const details = tournament?.awardDetails && typeof tournament.awardDetails === 'object' ? tournament.awardDetails : {};
+    for (const [category, value] of Object.entries(details)) {
+      if (!value || typeof value !== 'object') continue;
+      const name = String(value.playerName || value.name || '').trim();
+      if (!name) continue;
+      const teamId = resolveTeamId(value.teamId || value.team || '', name, source);
+      if (!teamId || (selectedTeam !== 'all' && teamId !== selectedTeam)) continue;
+      const key = `${category}__${norm(name)}`;
+      seen.add(key);
+      records.push({
+        type: 'player',
+        category,
+        title: AWARD_LABELS[category] || value.title || category,
+        name,
+        teamId,
+        tournament,
+        official: tournament.awardsStatus === 'official' || tournament.status === 'historical',
+        reason: String(value.reason || '')
+      });
+    }
+    const legacy = tournament?.awards && typeof tournament.awards === 'object' ? tournament.awards : {};
+    for (const [category, rawName] of Object.entries(legacy)) {
+      const name = typeof rawName === 'string' ? rawName.trim() : String(rawName?.playerName || rawName?.name || '').trim();
+      if (!name || seen.has(`${category}__${norm(name)}`)) continue;
+      const teamId = awardTeamFromName(name, source);
+      if (!teamId || (selectedTeam !== 'all' && teamId !== selectedTeam)) continue;
+      records.push({
+        type: 'player',
+        category,
+        title: AWARD_LABELS[category] || category,
+        name,
+        teamId,
+        tournament,
+        official: tournament.status === 'historical',
+        reason: ''
+      });
+    }
+  }
+  return records;
+}
+
+function collectiveAwardRecords(tournaments, source = state()) {
+  const records = [];
+  for (const tournament of tournaments) {
+    const collections = [tournament?.teamAwards, tournament?.collectiveAwards, tournament?.awardsTeams].filter(Boolean);
+    for (const collection of collections) {
+      const entries = Array.isArray(collection) ? collection.map((value, index) => [String(index), value]) : Object.entries(collection || {});
+      for (const [key, value] of entries) {
+        let teamId = '';
+        let title = key;
+        if (typeof value === 'string') teamId = resolveTeamId(value, '', source);
+        else if (value && typeof value === 'object') {
+          teamId = resolveTeamId(value.teamId || value.team || value.winner || '', '', source);
+          title = value.title || value.name || value.award || key;
+        }
+        if (!teamId || (selectedTeam !== 'all' && teamId !== selectedTeam)) continue;
+        records.push({ type: 'team', title: String(title || 'Premio colectivo'), teamId, tournament });
+      }
+    }
+  }
+  return records;
+}
+
+function playerHonoursRows(tournaments, source = state()) {
+  const map = new Map();
+  for (const record of playerAwardRecords(tournaments, source)) {
+    const key = norm(record.name);
+    const current = map.get(key) || {
+      name: record.name,
+      teamId: record.teamId,
+      teams: new Set(),
+      teamCounts: new Map(),
+      total: 0,
+      categories: new Map(),
+      tournaments: new Set()
+    };
+    current.total += 1;
+    current.teams.add(record.teamId);
+    current.teamCounts.set(record.teamId, number(current.teamCounts.get(record.teamId)) + 1);
+    current.categories.set(record.category, number(current.categories.get(record.category)) + 1);
+    current.tournaments.add(record.tournament.id);
+    map.set(key, current);
+  }
+  return [...map.values()].map((row) => ({
+    ...row,
+    teamId: [...row.teamCounts].sort((left, right) => right[1] - left[1])[0]?.[0] || row.teamId
+  })).sort((left, right) => right.total - left.total || left.name.localeCompare(right.name, 'es'));
+}
+
+function teamHonoursRows(tournaments, source = state()) {
+  const standings = teamStandings(tournaments, source);
+  const playerAwards = playerAwardRecords(tournaments, source);
+  const collective = collectiveAwardRecords(tournaments, source);
+  const playerCounts = new Map();
+  const collectiveCounts = new Map();
+  playerAwards.forEach((record) => playerCounts.set(record.teamId, number(playerCounts.get(record.teamId)) + 1));
+  collective.forEach((record) => collectiveCounts.set(record.teamId, number(collectiveCounts.get(record.teamId)) + 1));
+  return standings.map((row) => ({
+    ...row,
+    playerAwards: number(playerCounts.get(row.teamId)),
+    collectiveAwards: number(collectiveCounts.get(row.teamId)),
+    podiums: row.titles + row.runners + row.thirds,
+    distinctions: row.titles + row.runners + row.thirds + number(playerCounts.get(row.teamId)) + number(collectiveCounts.get(row.teamId))
+  })).sort((left, right) =>
+    right.titles - left.titles ||
+    right.podiums - left.podiums ||
+    right.distinctions - left.distinctions ||
+    right.points - left.points
+  );
+}
+
+function awardCountForPlayer(name, category, tournaments, source = state()) {
+  return playerAwardRecords(tournaments, source).filter((record) => norm(record.name) === norm(name) && (!category || record.category === category)).length;
+}
+
+function archiveRows(tournaments, source = state()) {
+  return [...tournaments].reverse().map((tournament) => {
+    const matches = matchRows([tournament]);
+    const goals = matches.reduce((sum, row) => sum + number(row.match.homeGoals) + number(row.match.awayGoals), 0);
+    const awards = playerAwardRecords([tournament], source);
+    const award = (category) => awards.find((record) => record.category === category)?.name || '';
+    return {
+      tournament,
+      era: eraOf(tournament, source),
+      format: formatGroup(tournament),
+      status: statusGroup(tournament),
+      teams: tournamentParticipants(tournament).size,
+      matches: matches.length,
+      goals,
+      champion: tournament.champion || '',
+      runnerUp: tournament.runnerUp || '',
+      third: tournament.third || '',
+      scorer: award('scorer') || tournamentMetricRows(tournament, 'goals', source).sort((a, b) => b.value - a.value)[0]?.name || '',
+      mvp: award('mvp'),
+      goalkeeper: award('goalkeeper')
+    };
+  });
+}
+
+function playerTeamsLabel(row, source = state()) {
+  const ids = [...(row.teams || [])];
+  if (!ids.length && row.teamId) ids.push(row.teamId);
+  return ids.map((teamId) => teamName(teamId, source)).join(' · ') || 'Equipo sin identificar';
+}
+
+function awardBreakdown(row) {
+  return [...(row.categories || new Map())]
+    .sort((left, right) => right[1] - left[1])
+    .map(([category, count]) => `${AWARD_LABELS[category] || category}: ${count}`)
+    .join(' · ');
+}

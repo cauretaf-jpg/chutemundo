@@ -1,0 +1,35 @@
+.cm-v55-division-filter{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:12px 0 18px;padding:12px 14px;border:1px solid rgba(212,175,55,.28);border-radius:14px;background:rgba(255,255,255,.04)}
+.cm-v55-division-filter span{font-size:.78rem;font-weight:900;letter-spacing:.08em;text-transform:uppercase;color:#d6c27a}
+.cm-v55-division-filter select{min-width:220px;max-width:100%;background:#fff;color:#153328;border:1px solid rgba(16,62,47,.2);border-radius:10px;padding:10px 12px;font-weight:800}
+.cm-v55-venue-admin{margin-top:18px}
+.cm-v55-venue-admin-head{display:flex;align-items:flex-start;justify-content:space-between;gap:18px;margin-bottom:16px}
+.cm-v55-venue-admin-head h2{margin:0 0 5px}
+.cm-v55-venue-admin-head p{margin:0;max-width:720px}
+.cm-v55-venue-admin-head>span{white-space:nowrap;border-radius:999px;padding:7px 11px;background:rgba(212,175,55,.15);color:#d6c27a;font-weight:900}
+.cm-v55-venue-form{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:12px;align-items:end;margin-bottom:16px}
+.cm-v55-venue-form label{margin:0}
+.cm-v55-venue-list{display:grid;gap:10px}
+.cm-v55-venue-list article{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:13px 14px;border:1px solid rgba(255,255,255,.1);border-radius:13px;background:rgba(255,255,255,.035)}
+.cm-v55-venue-list article.is-default{border-color:rgba(212,175,55,.5);background:rgba(212,175,55,.08)}
+.cm-v55-venue-list article>div:first-child{display:grid;gap:3px}
+.cm-v55-venue-list article small{color:var(--muted,#86998f)}
+.cm-v55-venue-list article>div:last-child{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end}
+.cm-v55-venue-list button{padding:8px 10px;border-radius:9px}
+.cm-v55-venue-label{grid-column:span 1}
+.cm-v55-venue-control{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px;align-items:center}
+.cm-v55-venue-control button{white-space:nowrap;padding:10px 12px;border-radius:10px;border:1px solid rgba(212,175,55,.4);background:rgba(212,175,55,.1);color:#d6c27a;font-weight:900}
+.cm-v55-venue-label>small{display:block;margin-top:6px;color:var(--muted,#83978d);font-size:.75rem}
+.cm-v55-quick-venue{margin-top:8px;padding:10px;border:1px solid rgba(255,255,255,.1);border-radius:12px;background:rgba(255,255,255,.04)}
+.cm-v55-quick-venue[hidden]{display:none}
+.cm-v55-quick-venue>div{display:flex;gap:8px;margin-top:8px}
+.cm-v55-quick-venue button{padding:8px 10px;border-radius:9px}
+.cm-v55-auto-time{display:block;margin-top:6px;color:#d6c27a;font-weight:800}
+.cm-match-editor select[data-cm-official-minute="true"]{font-weight:900;text-align:center}
+.cm-hub-match[hidden],.cm-hub-round[hidden]{display:none!important}
+@media (max-width:700px){
+  .cm-v55-division-filter{align-items:stretch;flex-direction:column}
+  .cm-v55-division-filter select{width:100%;min-width:0}
+  .cm-v55-venue-admin-head,.cm-v55-venue-list article{align-items:stretch;flex-direction:column}
+  .cm-v55-venue-form,.cm-v55-venue-control{grid-template-columns:1fr}
+  .cm-v55-venue-list article>div:last-child{justify-content:flex-start}
+}

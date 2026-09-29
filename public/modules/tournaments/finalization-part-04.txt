@@ -1,0 +1,78 @@
+      <aside class="cm-v517-quality-summary"><div><b>${quality.filter((item) => item.level === 'critical').length}</b><span>bloqueos</span></div><div><b>${quality.filter((item) => item.level === 'warning').length}</b><span>advertencias</span></div><button type="button" data-cm-v517-quality>Revisar torneo antes de finalizar</button></aside>
+    </section>`;
+  }
+  syncAwardsVisibility();
+  if (calculation.official) scheduleOfficialAwards(tournament.id, calculation);
+}
+
+function syncAwardsVisibility() {
+  const hub = document.getElementById('cmTournamentHub');
+  if (!hub) return;
+  const button = hub.querySelector('[data-cm-v517-awards-tab]');
+  const panel = hub.querySelector('[data-cm-v517-awards-panel]');
+  if (!button || !panel) return;
+  const nativeActive = hub.querySelector('.cm-hub-tabs button.active:not([data-cm-v517-awards-tab])');
+  if (nativeActive) {
+    button.classList.remove('active');
+    panel.classList.remove('active');
+  }
+  const active = button.classList.contains('active') && !nativeActive;
+  panel.hidden = !active;
+  panel.style.display = active ? 'block' : 'none';
+  panel.setAttribute('aria-hidden', active ? 'false' : 'true');
+}
+
+function showAwards() {
+  const hub = document.getElementById('cmTournamentHub');
+  if (!hub) return;
+  const button = hub.querySelector('[data-cm-v517-awards-tab]');
+  const panel = hub.querySelector('[data-cm-v517-awards-panel]');
+  hub.querySelectorAll('.cm-hub-tabs button').forEach((item) => item.classList.toggle('active', item === button));
+  hub.querySelectorAll('.cm-hub-panel').forEach((item) => item.classList.toggle('active', item === panel));
+  if (panel) { panel.hidden = false; panel.style.display = 'block'; panel.setAttribute('aria-hidden', 'false'); }
+}
+
+function pairFromElement(element) {
+  const candidates = [
+    element?.dataset?.cmHubMatch,
+    element?.dataset?.cmV591Live,
+    element?.dataset?.cmV510Live,
+    element?.dataset?.cmV59LivePair,
+    element?.dataset?.editMatch,
+    element?.closest?.('[data-cm-v59-live-pair]')?.dataset?.cmV59LivePair
+  ];
+  return candidates.find((value) => String(value || '').includes('__')) || '';
+}
+
+function contextFromPair(pair, source = core.getState()) {
+  const [tournamentId, matchId] = String(pair || '').split('__');
+  const tournament = source.tournaments?.find((item) => item.id === tournamentId);
+  const match = tournament?.matches?.find((item) => item.id === matchId);
+  return tournament && match ? resultInfo(tournament, match) : null;
+}
+
+function penaltyBadge(info, compact = false, pair = '') {
+  return `<div class="cm-v517-penalty-result ${compact ? 'is-compact' : ''}" ${pair ? `data-cm-v517-penalty-for="${esc(pair)}"` : ''}><span>Definido por penales</span><b>${info.homePens}–${info.awayPens}</b><small>Gana ${esc(core.teamName(info.winner))}</small></div>`;
+}
+
+function upsertPenaltyBadge(host, info, compact, pair) {
+  if (!host || !info?.decidedByPenalties) return;
+  const selector = pair ? `[data-cm-v517-penalty-for="${CSS.escape(pair)}"]` : '.cm-v517-penalty-result';
+  const expected = penaltyBadge(info, compact, pair);
+  const existing = host.querySelector(selector);
+  if (!existing) host.insertAdjacentHTML('beforeend', expected);
+  else if (existing.outerHTML !== expected) existing.outerHTML = expected;
+}
+
+function decoratePenaltyResults() {
+  const validPairs = new Set();
+  const selectors = '[data-cm-hub-match],[data-cm-v591-live],[data-cm-v510-live],[data-edit-match]';
+  document.querySelectorAll(selectors).forEach((control) => {
+    const pair = pairFromElement(control);
+    const info = contextFromPair(pair);
+    if (!info?.decidedByPenalties) return;
+    validPairs.add(pair);
+    const card = control.closest('.cm-hub-match,.cm-hub-bracket-game,.match-card,.cm-v59-match-card,.cm-v510-primary-card') || control.parentElement;
+    if (!card) return;
+    const score = card.querySelector('.cm-hub-match-score,.cm-v59-match-score,.score-box,.cm-v510-next-match > span');
+    upsertPenaltyBadge(score || control.parentElement, info, true, pair);

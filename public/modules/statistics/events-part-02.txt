@@ -1,0 +1,45 @@
+      updatePlayerSelects(side, 'card');
+    }
+    const changeForm = live.querySelector(`[data-cm-v513-side="${side}"] .cm-v513-change-form`);
+    if (changeForm) {
+      if (!changeForm.querySelector(`[data-cm-v516-sub-minute="${side}"]`)) changeForm.insertAdjacentHTML('afterbegin', `<label class="cm-v516-event-minute">Minuto del cambio<select data-cm-v516-sub-minute="${side}">${minuteOptions(defaultMinute)}</select></label>`);
+      const button = changeForm.querySelector('[data-cm-v513-substitute], [data-cm-v514-substitute], [data-cm-v515-substitute], [data-cm-v516-substitute]');
+      if (button) {
+        button.removeAttribute('data-cm-v513-substitute');
+        button.removeAttribute('data-cm-v514-substitute');
+        button.removeAttribute('data-cm-v515-substitute');
+        button.dataset.cmV516Substitute = side;
+        button.textContent = 'Confirmar cambio';
+      }
+      renderSideForMinute(side);
+    }
+  }
+}
+
+function shootoutMarkup(context) {
+  if (!isKnockout(context)) return '';
+  const match = context.match;
+  const attempts = match.penaltyShootout || [];
+  const homeScore = attempts.filter((item) => item.side === 'home' && item.result === 'scored').length;
+  const awayScore = attempts.filter((item) => item.side === 'away' && item.result === 'scored').length;
+  if (!scoreTied(match)) return `<section class="cm-v516-shootout is-locked"><header><div><p class="eyebrow">PLAY-OFF</p><h3>Tanda de penales</h3></div><span>No requerida</span></header><p>La tanda solo se habilita si el marcador continúa empatado después de 120 minutos.</p></section>`;
+  if (!match.shootoutStarted) return `<section class="cm-v516-shootout"><header><div><p class="eyebrow">PLAY-OFF</p><h3>Tanda de penales</h3></div><span>Empate</span></header><p>Los penales no forman parte del marcador de los 120 minutos. Se registran individualmente para decidir al ganador.</p><button type="button" data-cm-v516-start-shootout>Iniciar tanda después de 120′</button></section>`;
+  const side = (key, teamId) => `<article><header>${model.logo(teamId, 'cm-v516-shootout-logo')}<div><small>${key === 'home' ? 'LOCAL' : 'VISITA'}</small><strong>${esc(core.teamName(teamId))}</strong></div><b>${key === 'home' ? homeScore : awayScore}</b></header><label>Lanzador<select data-cm-v516-penalty-player="${key}">${groupedShootoutOptions(teamId, match.lineups?.[key])}</select></label><label>Resultado<select data-cm-v516-penalty-result="${key}"><option value="scored">Anotado</option><option value="missed">Fallado</option></select></label><button type="button" data-cm-v516-add-penalty="${key}">Registrar penal</button></article>`;
+  const history = attempts.length ? attempts.map((item) => `<li><b>${item.order}</b><span>${item.result === 'scored' ? '✅' : '❌'} <strong>${esc(item.playerName)}</strong><small>${esc(core.teamName(item.teamId))}</small></span></li>`).join('') : '<li class="is-empty">Aún no hay lanzamientos registrados.</li>';
+  return `<section class="cm-v516-shootout is-active"><header><div><p class="eyebrow">DEFINICIÓN</p><h3>Tanda de penales</h3></div><span>${homeScore}–${awayScore}</span></header><div class="cm-v516-shootout-grid">${side('home', context.home)}${side('away', context.away)}</div><ol>${history}</ol></section>`;
+}
+
+function decorateShootout(live, context) {
+  let section = live.querySelector('#cmV516Shootout');
+  const markup = shootoutMarkup(context);
+  if (!markup) { section?.remove(); return; }
+  const signature = JSON.stringify({ tied: scoreTied(context.match), started: context.match.shootoutStarted, attempts: context.match.penaltyShootout || [], homeGoals: context.match.homeGoals, awayGoals: context.match.awayGoals });
+  if (section?.dataset.signature === signature) return;
+  const wrapper = `<div id="cmV516Shootout" data-signature="${esc(signature)}">${markup}</div>`;
+  if (section) section.outerHTML = wrapper;
+  else live.querySelector('.cm-v59-live-timeline')?.insertAdjacentHTML('beforebegin', wrapper);
+  const homeInput = document.getElementById('cmV59HomePens');
+  const awayInput = document.getElementById('cmV59AwayPens');
+  if (homeInput) homeInput.value = context.match.homePens ?? 0;
+  if (awayInput) awayInput.value = context.match.awayPens ?? 0;
+}

@@ -1,0 +1,72 @@
+  const link = document.createElement('link');
+  link.id = 'cmV517Styles';
+  link.rel = 'stylesheet';
+  link.href = `/chute-v517-finalization.css?v=${VERSION}`;
+  document.head.appendChild(link);
+}
+
+function refresh() {
+  refreshQueued = false;
+  renderAwardsPanel();
+  decoratePenaltyResults();
+  decorateTournamentTools();
+  syncAwardsVisibility();
+}
+
+function scheduleRefresh() {
+  if (refreshQueued) return;
+  refreshQueued = true;
+  requestAnimationFrame(refresh);
+}
+
+document.addEventListener('click', (event) => {
+  const awards = event.target.closest?.('[data-cm-v517-awards-tab]');
+  if (awards) {
+    event.preventDefault();
+    showAwards();
+    return;
+  }
+  const nativeTab = event.target.closest?.('#cmTournamentHub .cm-hub-tabs button:not([data-cm-v517-awards-tab])');
+  if (nativeTab) {
+    const panel = document.querySelector('[data-cm-v517-awards-panel]');
+    const button = document.querySelector('[data-cm-v517-awards-tab]');
+    button?.classList.remove('active');
+    panel?.classList.remove('active');
+    if (panel) { panel.hidden = true; panel.style.display = 'none'; panel.setAttribute('aria-hidden', 'true'); }
+  }
+  if (event.target.closest?.('[data-cm-v517-quality]')) {
+    const tournament = tournamentFromHub();
+    if (tournament) openQuality(tournament);
+  }
+  if (event.target.closest?.('[data-cm-v517-finish]')) {
+    event.preventDefault();
+    event.stopImmediatePropagation();
+    const tournament = tournamentFromHub();
+    if (tournament) openQuality(tournament);
+  }
+  const confirmFinish = event.target.closest?.('[data-cm-v517-confirm-finish]');
+  if (confirmFinish) {
+    event.preventDefault();
+    void finalizeTournament(confirmFinish.dataset.cmV517ConfirmFinish);
+  }
+  setTimeout(scheduleRefresh, 40);
+}, true);
+
+new MutationObserver(scheduleRefresh).observe(document.body, { childList: true, subtree: true });
+installStyles();
+if ('serviceWorker' in navigator) navigator.serviceWorker.register(`/sw.js?v=${VERSION}`).catch((error) => console.warn('No se pudo actualizar la PWA v5.17.', error));
+document.title = 'Chute Mundo v5.17 · Resultados, premios y cierre';
+document.querySelector('.hero .eyebrow')?.replaceChildren('CHUTE MUNDO v5.17');
+scheduleRefresh();
+
+window.ChuteV517Finalization = {
+  version: VERSION,
+  penaltyScore,
+  resultInfo,
+  buildPlayerRows,
+  computeAwards,
+  qualityIssues,
+  renderAwardsPanel,
+  decoratePenaltyResults,
+  finalizeTournament
+};

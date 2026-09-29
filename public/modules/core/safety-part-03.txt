@@ -1,0 +1,94 @@
+function openUndo() {
+  const snapshot = undoSnapshot();
+  if (!snapshot) return core.showToast('No hay un cambio disponible para deshacer.');
+  core.openModal(`<div class="cm-v510-confirm"><p class="eyebrow">DESHACER CAMBIO</p><h2>${esc(snapshot.description)}</h2><p>Se restaurará el estado anterior guardado en este dispositivo. La operación se sincronizará con Firebase.</p><small>${esc(dateTime(snapshot.at))}</small><div><button type="button" class="secondary" data-close-modal>Cancelar</button><button type="button" class="primary" data-cm-v510-confirm-undo>Deshacer ahora</button></div></div>`);
+}
+
+async function restore(trashId) {
+  if (!core.canEdit()) return document.getElementById('authButton')?.click();
+  const previous = clone(core.getState());
+  try {
+    const next = restoreTournamentState(previous, trashId);
+    core.closeModal();
+    await commit(previous, next, 'Torneo restaurado y sincronizado.');
+  } catch (error) { core.showToast(error.message); }
+}
+
+async function permanent(trashId) {
+  if ((document.getElementById('cmV510PermanentText')?.value.trim() || '') !== 'ELIMINAR') return core.showToast('Escribe ELIMINAR para confirmar.');
+  const previous = clone(core.getState());
+  try {
+    const next = permanentlyDeleteState(previous, trashId);
+    core.closeModal();
+    await commit(previous, next, 'Torneo eliminado definitivamente.');
+  } catch (error) { core.showToast(error.message); }
+}
+
+async function undoLast() {
+  if (!core.canEdit()) return document.getElementById('authButton')?.click();
+  const snapshot = undoSnapshot();
+  if (!snapshot) return core.showToast('No hay un cambio disponible para deshacer.');
+  const current = clone(core.getState());
+  const restored = clone(snapshot.state);
+  addActivity(restored, `Se deshizo el cambio: ${snapshot.description}.`, 'undo');
+  core.closeModal();
+  restoring = true;
+  originalSetState(restored);
+  restoring = false;
+  try {
+    await core.saveCloud();
+    localStorage.removeItem(UNDO_KEY);
+    lastTransition = null;
+    core.showToast('Cambio deshecho y sincronizado.');
+    scheduleRender();
+  } catch (error) {
+    restoring = true;
+    originalSetState(current);
+    restoring = false;
+    core.showToast(`No se pudo deshacer: ${error.code || error.message || 'error desconocido'}.`);
+  }
+}
+
+document.addEventListener('click', (event) => {
+  const legacyDelete = event.target.closest('[data-cm-delete-tournament]');
+  if (legacyDelete) { event.preventDefault(); event.stopImmediatePropagation(); openTrash(legacyDelete.dataset.cmDeleteTournament); return; }
+  const confirmTrash = event.target.closest('[data-cm-v510-confirm-trash]');
+  if (confirmTrash) { event.preventDefault(); event.stopImmediatePropagation(); void moveToTrash(confirmTrash.dataset.cmV510ConfirmTrash); return; }
+  const restoreButton = event.target.closest('[data-cm-v510-restore]');
+  if (restoreButton && !restoreButton.disabled) { event.preventDefault(); openRestore(restoreButton.dataset.cmV510Restore); return; }
+  const permanentButton = event.target.closest('[data-cm-v510-permanent]');
+  if (permanentButton && !permanentButton.disabled) { event.preventDefault(); openPermanent(permanentButton.dataset.cmV510Permanent); return; }
+  const confirmRestore = event.target.closest('[data-cm-v510-confirm-restore]');
+  if (confirmRestore) { event.preventDefault(); void restore(confirmRestore.dataset.cmV510ConfirmRestore); return; }
+  const confirmPermanent = event.target.closest('[data-cm-v510-confirm-permanent]');
+  if (confirmPermanent) { event.preventDefault(); void permanent(confirmPermanent.dataset.cmV510ConfirmPermanent); return; }
+  if (event.target.closest('[data-cm-v510-undo]')) { event.preventDefault(); openUndo(); return; }
+  if (event.target.closest('[data-cm-v510-confirm-undo]')) { event.preventDefault(); void undoLast(); }
+}, true);
+
+const adminPage = document.getElementById('administracion');
+if (adminPage) new MutationObserver(scheduleRender).observe(adminPage, { childList: true, subtree: true, attributes: true, attributeFilter: ['hidden'] });
+const tournamentsPage = document.getElementById('torneos');
+if (tournamentsPage) new MutationObserver(() => { decorateDeleteButtons(); scheduleRender(); }).observe(tournamentsPage, { childList: true, subtree: true, attributes: true, attributeFilter: ['hidden'] });
+
+function refresh() {
+  render();
+  decorateDeleteButtons();
+}
+
+installStyles();
+refresh();
+window.setInterval(refresh, 1600);
+window.ChuteV510Safety = {
+  version: VERSION,
+  retentionDays: RETENTION_DAYS,
+  addActivity,
+  deletionGuard,
+  moveTournamentToTrashState,
+  restoreTournamentState,
+  permanentlyDeleteState,
+  undoSnapshot,
+  openTrash,
+  moveToTrash,
+  refresh
+};

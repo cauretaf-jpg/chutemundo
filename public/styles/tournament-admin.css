@@ -1,0 +1,33 @@
+.cm-v583-tournament-actions{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.cm-v583-tournament-actions.is-catalog{padding:0 18px 18px}
+.cm-v583-tournament-actions.is-hub{justify-content:flex-end;margin-left:auto}
+.cm-v583-tournament-actions button{border:0;border-radius:999px;padding:9px 13px;font-weight:850;cursor:pointer}
+.cm-v583-action-edit{background:#e7f3ed;color:#086247}
+.cm-v583-action-edit:hover{background:#d7ebe1}
+.cm-v583-action-delete{background:#fff0f1;color:#a4313b}
+.cm-v583-action-delete:hover{background:#fbdfe2}
+.cm-v583-protected,.cm-v583-official-badge{display:inline-flex;align-items:center;min-height:34px;padding:7px 11px;border:1px solid #e1d39b;border-radius:999px;background:#fff7d8;color:#70530a;font-size:.74rem;font-weight:850}
+.cm-v583-admin-modal{display:grid;gap:18px;color:#15241d}
+.cm-v583-modal-heading{display:flex;justify-content:space-between;gap:18px;align-items:flex-start}
+.cm-v583-modal-heading h2,.cm-v583-danger-heading h2{margin:.25rem 0 .35rem}
+.cm-v583-modal-heading p,.cm-v583-danger-heading p{margin:0;color:#64736d;line-height:1.5}
+.cm-v583-admin-modal form{display:grid;gap:15px}
+.cm-v583-admin-modal label{display:grid;gap:7px;font-weight:800;color:#34463e}
+.cm-v583-admin-modal input,.cm-v583-admin-modal select,.cm-v583-admin-modal textarea{width:100%;border:1px solid #cfdcd5;border-radius:12px;background:#fff;color:#16261f;padding:11px 12px;font:inherit}
+.cm-v583-admin-modal textarea{resize:vertical;min-height:110px}
+.cm-v583-admin-modal input:focus,.cm-v583-admin-modal select:focus,.cm-v583-admin-modal textarea:focus{outline:0;border-color:#258b68;box-shadow:0 0 0 4px rgba(37,139,104,.11)}
+.cm-v583-form-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.cm-v583-readonly-summary{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
+.cm-v583-readonly-summary span{display:grid;gap:4px;padding:13px;border:1px solid #dde6e1;border-radius:14px;background:#f7faf8;color:#65756e;font-size:.72rem;text-transform:uppercase;letter-spacing:.04em}
+.cm-v583-readonly-summary b{font-size:1rem;color:#18372b;text-transform:none;letter-spacing:0}
+.cm-v583-structure-note,.cm-v583-delete-note{margin:0;padding:12px 14px;border-radius:12px;background:#f4f7f5;color:#63726c;font-size:.86rem;line-height:1.5}
+.cm-v583-modal-actions{display:flex;justify-content:flex-end;gap:10px;margin-top:2px}
+.cm-v583-modal-actions button{min-height:42px;border-radius:12px;padding:10px 16px;font-weight:850}
+.cm-v583-danger-heading{display:grid;grid-template-columns:46px 1fr;gap:13px;align-items:start}
+.cm-v583-danger-heading>span{display:grid;place-items:center;width:46px;height:46px;border-radius:50%;background:#b13b45;color:#fff;font-size:1.4rem;font-weight:950}
+.cm-v583-delete-summary{display:grid;gap:4px;padding:15px;border:1px solid #e8c5c8;border-radius:14px;background:#fff7f7}
+.cm-v583-delete-summary strong{color:#7d2931}
+.cm-v583-delete-summary span{color:#725c5f;font-size:.86rem}
+.cm-v583-confirm-delete{border:0;background:#a9343e;color:#fff}
+.cm-v583-confirm-delete:hover{background:#8f2932}
+@media(max-width:760px){.cm-v583-tournament-actions.is-hub{width:100%;justify-content:flex-start;margin-left:0}.cm-v583-tournament-actions.is-catalog{padding:0 14px 15px}.cm-v583-tournament-actions button{flex:1}.cm-v583-protected{width:100%;justify-content:center}.cm-v583-modal-heading{display:grid}.cm-v583-form-grid{grid-template-columns:1fr}.cm-v583-readonly-summary{grid-template-columns:1fr 1fr}.cm-v583-modal-actions{display:grid;grid-template-columns:1fr}.cm-v583-modal-actions button{width:100%}}

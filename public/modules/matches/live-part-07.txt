@@ -1,0 +1,49 @@
+  const goal = event.target.closest('[data-cm-v59-add-goal]');
+  if (goal) { const root = goal.closest('[data-cm-v59-live-pair]'); void addGoal(root.dataset.cmV59LivePair, goal.dataset.cmV59AddGoal); return; }
+  const card = event.target.closest('[data-cm-v59-add-card]');
+  if (card) { const root = card.closest('[data-cm-v59-live-pair]'); void addCard(root.dataset.cmV59LivePair, card.dataset.cmV59AddCard); return; }
+  const undo = event.target.closest('[data-cm-v59-undo]');
+  if (undo && !undo.disabled) { const root = undo.closest('[data-cm-v59-live-pair]'); void undoLast(root.dataset.cmV59LivePair); return; }
+  const save = event.target.closest('[data-cm-v59-save-live]');
+  if (save) { const root = save.closest('[data-cm-v59-live-pair]'); void saveLiveData(root.dataset.cmV59LivePair); return; }
+  const finish = event.target.closest('[data-cm-v59-finish]');
+  if (finish) { const root = finish.closest('[data-cm-v59-live-pair]'); void finishMatch(root.dataset.cmV59LivePair); return; }
+  const player = event.target.closest('[data-cm-v59-player]');
+  if (player) { openPlayerProfile(player.dataset.cmV59Player); return; }
+  const team = event.target.closest('[data-cm-v59-team]');
+  if (team) { openTeamProfile(team.dataset.cmV59Team); return; }
+  const mode = event.target.closest('[data-cm-v59-profile-mode]');
+  if (mode) { profileState.mode = mode.dataset.cmV59ProfileMode; profileState.expanded = false; renderProfiles(); return; }
+  if (event.target.closest('[data-cm-v59-show-all]')) { profileState.expanded = true; renderProfiles(); return; }
+  setTimeout(scheduleRefresh, 0);
+}, true);
+
+document.addEventListener('input', (event) => {
+  if (event.target.id !== 'cmV59ProfileSearch') return;
+  profileState.query = event.target.value;
+  profileState.expanded = Boolean(profileState.query);
+  renderProfiles();
+  const input = document.getElementById('cmV59ProfileSearch');
+  input?.focus();
+  input?.setSelectionRange(input.value.length, input.value.length);
+});
+
+const observedPages = [document.getElementById('partidos'), document.getElementById('torneos'), document.getElementById('equipos')].filter(Boolean);
+observedPages.forEach((page) => new MutationObserver(scheduleRefresh).observe(page, { childList: true, subtree: true, attributes: true, attributeFilter: ['hidden'] }));
+
+installStyles();
+document.title = 'Chute Mundo v5.9 · Competición oficial';
+const heroVersion = document.querySelector('.hero .eyebrow');
+if (heroVersion) heroVersion.textContent = 'CHUTE MUNDO v5.9';
+refresh();
+window.setInterval(refresh, 1600);
+window.ChuteV59 = {
+  version: VERSION,
+  refresh,
+  openLiveMatch: renderLiveModal,
+  openPlayerProfile,
+  openTeamProfile,
+  playerProfileData,
+  teamProfileData,
+  officialMinutes: [...OFFICIAL_MINUTES]
+};

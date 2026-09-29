@@ -1,0 +1,157 @@
+function waitForCore() {
+  if (window.ChuteMundoCore) return Promise.resolve(window.ChuteMundoCore);
+  return new Promise((resolve) => document.addEventListener('chute:ready', (event) => resolve(event.detail), { once: true }));
+}
+
+const core = await waitForCore();
+const model = window.ChuteDetailModel;
+if (!model) throw new Error('El modelo detallado no está disponible para Chute Mundo v5.9.');
+
+const { esc, logo, photo, playerName, playerPosition, ensureMatchEvents, syncLegacyLogs } = model;
+const VERSION = '5.9.0';
+const OFFICIAL_MINUTES = ['0', '10', '20', '30', '45', '50', '60', '70', '80', '90', '105', '120', 'Penales'];
+const profileState = { mode: 'players', query: '', expanded: false };
+let refreshQueued = false;
+let busy = false;
+let profilesSignature = '';
+
+const clone = (value) => typeof structuredClone === 'function' ? structuredClone(value) : JSON.parse(JSON.stringify(value));
+const state = () => core.getState();
+const tournaments = () => state().tournaments || [];
+const teams = () => state().teams || [];
+const played = (match) => core.matchPlayed(match);
+const norm = (value = '') => String(value).normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+const playerKey = (teamId, name) => `${teamId}__${encodeURIComponent(name)}`;
+const parsePlayerKey = (value = '') => {
+  const separator = value.indexOf('__');
+  return separator < 0 ? { teamId: '', name: '' } : { teamId: value.slice(0, separator), name: decodeURIComponent(value.slice(separator + 2)) };
+};
+
+function installStyles() {
+  if (document.getElementById('cmV59Styles')) return;
+  const link = document.createElement('link');
+  link.id = 'cmV59Styles';
+  link.rel = 'stylesheet';
+  link.href = `/chute-v59-live-profiles.css?v=${VERSION}`;
+  document.head.appendChild(link);
+}
+
+function addActivity(targetState, text) {
+  targetState.activity = Array.isArray(targetState.activity) ? targetState.activity : [];
+  targetState.activity.unshift({ id: core.uid('activity'), text, at: Date.now() });
+  targetState.activity = targetState.activity.slice(0, 50);
+}
+
+function context(pair, sourceState = state()) {
+  const [tournamentId, matchId] = String(pair || '').split('__');
+  const tournament = (sourceState.tournaments || []).find((item) => item.id === tournamentId);
+  const match = tournament?.matches?.find((item) => item.id === matchId);
+  if (!tournament || !match) return null;
+  const home = match.home || core.resolveHome(tournament, match);
+  const away = match.away || core.resolveAway(tournament, match);
+  if (!home || !away) return null;
+  ensureMatchEvents(match, home, away);
+  return { tournament, match, home, away, pair: `${tournamentId}__${matchId}` };
+}
+
+function winnerId(tournament, match) {
+  if (!played(match)) return null;
+  const home = match.home || core.resolveHome(tournament, match);
+  const away = match.away || core.resolveAway(tournament, match);
+  const hg = Number(match.homeGoals);
+  const ag = Number(match.awayGoals);
+  if (hg > ag) return home;
+  if (ag > hg) return away;
+  if (match.homePens !== null && match.homePens !== undefined && match.awayPens !== null && match.awayPens !== undefined) {
+    if (Number(match.homePens) > Number(match.awayPens)) return home;
+    if (Number(match.awayPens) > Number(match.homePens)) return away;
+  }
+  return null;
+}
+
+function roster(teamId) {
+  return core.teamById(teamId)?.players || [];
+}
+
+function playerOptions(teamId, selected = '', allowEmpty = false) {
+  const empty = allowEmpty ? '<option value="">Sin asistencia</option>' : '<option value="">Selecciona</option>';
+  return empty + roster(teamId).map((player) => {
+    const name = playerName(player);
+    return `<option value="${esc(name)}" ${name === selected ? 'selected' : ''}>${esc(name)}</option>`;
+  }).join('');
+}
+
+function currentDate() {
+  return new Date().toLocaleDateString('en-CA');
+}
+
+function currentTime() {
+  return new Date().toTimeString().slice(0, 5);
+}
+
+function minuteLabel(value) {
+  return value === 'Penales' ? 'Penales' : `${value}′`;
+}
+
+function eventMinuteOrder(value) {
+  const minute = String(value || '');
+  if (minute === 'Penales') return 999;
+  return Number.parseInt(minute, 10) || 0;
+}
+
+function liveTimeline(ctx) {
+  const events = [
+    ...(ctx.match.goals || []).map((item, index) => ({ ...item, kind: 'goal', sort: eventMinuteOrder(item.minute), index })),
+    ...(ctx.match.cards || []).map((item, index) => ({ ...item, kind: 'card', sort: eventMinuteOrder(item.minute), index }))
+  ].sort((a, b) => a.sort - b.sort || Number(a.createdAt || 0) - Number(b.createdAt || 0));
+  if (!events.length) return '<div class="cm-v59-live-empty">Todavía no hay eventos registrados.</div>';
+  return events.map((item) => {
+    const teamId = item.teamId || (item.side === 'away' ? ctx.away : ctx.home);
+    const icon = item.kind === 'goal' ? '⚽' : item.type === 'red' ? '🟥' : '🟨';
+    const extra = item.kind === 'goal' && item.assistName ? ` · Asistencia: ${esc(item.assistName)}` : item.reason === 'double_yellow' ? ' · Doble amarilla' : '';
+    return `<div class="cm-v59-live-event"><span class="cm-v59-live-minute">${esc(minuteLabel(item.minute || '0'))}</span>${photo(teamId, item.playerName, 'cm-v59-event-face')}<div><strong>${icon} ${esc(item.playerName)}</strong><small>${esc(core.teamName(teamId))}${extra}</small></div></div>`;
+  }).join('');
+}
+
+function liveSide(ctx, side) {
+  const teamId = side === 'home' ? ctx.home : ctx.away;
+  const team = core.teamById(teamId);
+  return `<section class="cm-v59-live-side" data-side="${side}">
+    <header>${logo(teamId, 'cm-v59-live-logo')}<div><span>${side === 'home' ? 'LOCAL' : 'VISITA'}</span><h3>${esc(team?.name || 'Equipo')}</h3></div></header>
+    <div class="cm-v59-live-event-form">
+      <p>Registrar gol</p>
+      <label>Goleador<select id="cmV59Scorer-${side}">${playerOptions(teamId)}</select></label>
+      <label>Asistencia<select id="cmV59Assist-${side}">${playerOptions(teamId, '', true)}</select></label>
+      <button type="button" class="cm-v59-goal-button" data-cm-v59-add-goal="${side}">⚽ Agregar gol</button>
+    </div>
+    <div class="cm-v59-live-event-form compact">
+      <p>Registrar tarjeta</p>
+      <label>Jugador<select id="cmV59CardPlayer-${side}">${playerOptions(teamId)}</select></label>
+      <label>Tipo<select id="cmV59CardType-${side}"><option value="yellow">🟨 Amarilla</option><option value="red">🟥 Roja directa</option></select></label>
+      <button type="button" class="cm-v59-card-button" data-cm-v59-add-card="${side}">Agregar tarjeta</button>
+    </div>
+  </section>`;
+}
+
+function liveEventTimestamp(item) {
+  const part = String(item?.id || '').split('_')[1] || '';
+  return Number.parseInt(part, 36) || 0;
+}
+
+function lastUndoableEvent(ctx) {
+  return [...(ctx.match.goals || []), ...(ctx.match.cards || [])]
+    .filter((item) => /^(livegoal|livecard)_/.test(String(item.id || '')))
+    .sort((a, b) => liveEventTimestamp(b) - liveEventTimestamp(a))[0] || null;
+}
+
+function renderLiveModal(pair) {
+  const ctx = context(pair);
+  if (!ctx) return core.showToast('El partido todavía depende de otra fase o ya no existe.');
+  if (!core.canEdit()) return core.showToast('Inicia sesión como administrador para usar el modo partido.');
+  const goalHome = (ctx.match.goals || []).filter((goal) => goal.side === 'home').length;
+  const goalAway = (ctx.match.goals || []).filter((goal) => goal.side === 'away').length;
+  const homeScore = ctx.match.homeGoals ?? goalHome;
+  const awayScore = ctx.match.awayGoals ?? goalAway;
+  const knockout = ctx.match.stage === 'knockout';
+  const undoable = lastUndoableEvent(ctx);
+  core.openModal(`<div class="cm-v59-live" data-cm-v59-live-pair="${esc(pair)}">

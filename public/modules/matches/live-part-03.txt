@@ -1,0 +1,62 @@
+      const minute = eventMinuteOrder(goal.minute);
+      if (minute >= 80) lateGoals += 1;
+      if (winningIds.has(goal.id)) winningGoals += 1;
+      const round = norm(row.match.round);
+      if (round === 'final') finalGoals += 1;
+      if (round.includes('play-off') || round.includes('playoff') || round.includes('semifinal') || round.includes('cuarto')) playoffGoals += 1;
+      recent.push({ kind: 'goal', tournament: row.tournament.name, opponent: core.teamName(goal.side === 'away' ? row.home : row.away), minute: goal.minute });
+    }
+    for (const goal of row.match.goals || []) {
+      const goalTeam = goal.teamId || (goal.side === 'away' ? row.away : row.home);
+      if (goalTeam === teamId && goal.assistName === name) recent.push({ kind: 'assist', tournament: row.tournament.name, opponent: core.teamName(goal.side === 'away' ? row.home : row.away), minute: goal.minute });
+    }
+  }
+  const tournamentRows = tournaments().map((tournament) => ({ tournament, ...playerTournamentStats(teamId, name, tournament) })).filter((row) => row.goals || row.assists || row.yellows || row.reds);
+  const best = [...tournamentRows].sort((a, b) => (b.goals + b.assists) - (a.goals + a.assists) || b.goals - a.goals)[0] || null;
+  return {
+    team, name, position: playerPosition(rosterEntry) || 'Jugador',
+    ...base, lateGoals, winningGoals, finalGoals, playoffGoals,
+    tournamentRows, best, recent: recent.slice(-6).reverse()
+  };
+}
+
+function teamProfileData(teamId) {
+  const team = core.teamById(teamId);
+  const stats = { pj: 0, pg: 0, pe: 0, pp: 0, gf: 0, gc: 0, titles: 0, runners: 0, thirds: 0 };
+  const form = [];
+  const h2h = new Map();
+  let biggest = null;
+  for (const tournament of tournaments()) {
+    if (tournament.champion === teamId) stats.titles += 1;
+    if (tournament.runnerUp === teamId) stats.runners += 1;
+    if (tournament.third === teamId) stats.thirds += 1;
+  }
+  for (const row of allMatchRows()) {
+    if (!played(row.match) || ![row.home, row.away].includes(teamId)) continue;
+    const isHome = row.home === teamId;
+    const opponentId = isHome ? row.away : row.home;
+    const gf = isHome ? Number(row.match.homeGoals) : Number(row.match.awayGoals);
+    const gc = isHome ? Number(row.match.awayGoals) : Number(row.match.homeGoals);
+    const winner = winnerId(row.tournament, row.match);
+    const result = winner === teamId ? 'G' : winner === opponentId ? 'P' : 'E';
+    stats.pj += 1; stats.gf += gf; stats.gc += gc;
+    if (result === 'G') stats.pg += 1; else if (result === 'P') stats.pp += 1; else stats.pe += 1;
+    form.push({ result, opponentId, score: `${gf}-${gc}`, tournament: row.tournament.name });
+    const rival = h2h.get(opponentId) || { opponentId, pj: 0, pg: 0, pe: 0, pp: 0, gf: 0, gc: 0 };
+    rival.pj += 1; rival.gf += gf; rival.gc += gc;
+    if (result === 'G') rival.pg += 1; else if (result === 'P') rival.pp += 1; else rival.pe += 1;
+    h2h.set(opponentId, rival);
+    if (result === 'G' && (!biggest || gf - gc > biggest.margin)) biggest = { margin: gf - gc, gf, gc, opponentId, tournament: row.tournament.name };
+  }
+  const players = model.playerStatistics(core).filter((row) => row.teamId === teamId).sort((a, b) => b.contributions - a.contributions || b.goals - a.goals);
+  return { team, ...stats, dg: stats.gf - stats.gc, form: form.slice(-5).reverse(), h2h: [...h2h.values()].sort((a, b) => b.pj - a.pj), biggest, leader: players[0] || null, roster: roster(teamId) };
+}
+
+function metric(value, label) {
+  return `<article><b>${esc(value)}</b><span>${esc(label)}</span></article>`;
+}
+
+function openPlayerProfile(key) {
+  const { teamId, name } = parsePlayerKey(key);
+  const data = playerProfileData(teamId, name);
+  if (!data.team || !name) return core.showToast('No se encontró el perfil del jugador.');

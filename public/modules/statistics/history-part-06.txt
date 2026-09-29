@@ -1,0 +1,68 @@
+function eternalPanel(tournaments, source = state()) {
+  const rows = teamStandings(tournaments, source);
+  const metrics = heroMetrics(tournaments, source);
+  return `<section class="cm-v521-panel" data-cm-v521-panel="eternal">
+    <div class="cm-v521-panel-intro"><div><span>CLASIFICACIÓN HISTÓRICA</span><h2>La Tabla Eterna</h2><p>Todos los puntos obtenidos en partidos oficiales. Los empates definidos por penales conservan un punto para cada equipo y registran la tanda por separado.</p></div>${metricStrip(metrics)}</div>
+    <article class="cm-v521-card">${sectionHeader('HISTORIA DE CLUBES', 'Clasificación acumulada', filterLabel(source, tournaments), rows.length)}
+      ${table(['#', 'Equipo', 'Torneos', 'PJ', 'PG', 'PE', 'PP', 'GF', 'GC', 'DG', 'Pts', 'Pen.', 'Rend.', 'Títulos'], rows.map((row, index) => `<tr>
+        <td>${medal(index)}</td><td>${teamCell(row.teamId, source)}</td><td>${row.tournaments.size}</td><td>${row.pj}</td><td>${row.pg}</td><td>${row.pe}</td><td>${row.pp}</td>
+        <td>${row.gf}</td><td>${row.gc}</td><td>${row.dg > 0 ? '+' : ''}${row.dg}</td><td><strong class="cm-v521-points">${row.points}</strong></td><td>${row.penWins}</td>
+        <td><span class="cm-v521-percent">${Math.round(row.performance)}%</span></td><td><strong>${row.titles}</strong></td>
+      </tr>`), 'No existen partidos oficiales para este filtro.', 'is-eternal')}</article>
+  </section>`;
+}
+
+function goalsRanking(tournaments, source = state()) {
+  const rows = careerMetricRows(tournaments, 'goals', source);
+  return `<div class="cm-v521-ranking-panel" data-cm-v521-ranking-panel="goals">
+    ${podium(rows, (row) => `${row.value} goles`, source, 'No hay goles individuales registrados.')}
+    <article class="cm-v521-card">${sectionHeader('GOLEADORES HISTÓRICOS', 'Los Grandes Artilleros', 'Carrera acumulada en todos los torneos incluidos.', rows.length)}
+      ${table(['#', 'Jugador', 'Goles', 'PJ', 'G/PJ', 'Torneos', 'Mejor torneo', 'Botas de Oro'], rows.map((row, index) => `<tr>
+        <td>${medal(index)}</td><td>${playerCell(row, source)}</td><td><strong class="cm-v521-stat-value">${row.value}</strong></td>
+        <td>${row.appearances || '<span class="cm-v521-missing">S/R</span>'}</td><td>${row.average === null ? '<span class="cm-v521-missing">S/R</span>' : row.average.toFixed(2)}</td>
+        <td>${row.tournaments.size}</td><td>${esc(row.bestTournament?.name || 'Sin registro')} ${row.bestTournament ? `<small>(${row.bestTournament.value})</small>` : ''}</td>
+        <td>${awardCountForPlayer(row.name, 'scorer', tournaments, source)}</td>
+      </tr>`), 'No hay goleadores registrados para este filtro.')}</article>
+  </div>`;
+}
+
+function assistsRanking(tournaments, source = state()) {
+  const rows = careerMetricRows(tournaments, 'assists', source);
+  return `<div class="cm-v521-ranking-panel" data-cm-v521-ranking-panel="assists">
+    ${podium(rows, (row) => `${row.value} asistencias`, source, 'No hay asistencias registradas.')}
+    <article class="cm-v521-card">${sectionHeader('CREADORES HISTÓRICOS', 'Los Arquitectos del Gol', 'Asistencias acumuladas y rendimiento creativo.', rows.length)}
+      ${table(['#', 'Jugador', 'Asist.', 'PJ', 'A/PJ', 'Torneos', 'Mejor torneo', 'Premios'], rows.map((row, index) => `<tr>
+        <td>${medal(index)}</td><td>${playerCell(row, source)}</td><td><strong class="cm-v521-stat-value">${row.value}</strong></td>
+        <td>${row.appearances || '<span class="cm-v521-missing">S/R</span>'}</td><td>${row.average === null ? '<span class="cm-v521-missing">S/R</span>' : row.average.toFixed(2)}</td>
+        <td>${row.tournaments.size}</td><td>${esc(row.bestTournament?.name || 'Sin registro')} ${row.bestTournament ? `<small>(${row.bestTournament.value})</small>` : ''}</td>
+        <td>${awardCountForPlayer(row.name, 'assist', tournaments, source)}</td>
+      </tr>`), 'No hay asistencias registradas para este filtro.')}</article>
+  </div>`;
+}
+
+function keepersRanking(tournaments, source = state()) {
+  const rows = goalkeeperCareerRows(tournaments, source);
+  const teams = teamCleanSheetRows(tournaments, source);
+  return `<div class="cm-v521-ranking-panel" data-cm-v521-ranking-panel="keepers">
+    ${podium(rows, (row) => `${row.cleanSheets} porterías imbatidas`, source, 'No hay porteros con participación registrada.')}
+    <article class="cm-v521-card">${sectionHeader('ARQUEROS HISTÓRICOS', 'El Muro Histórico', 'Solo utiliza partidos con alineación o participación confirmada.', rows.length)}
+      ${table(['#', 'Portero', 'PJ', 'Imbatidas', '%', 'GC', 'GC/PJ', 'G-E-P', 'Torneos', 'Guantes de Oro'], rows.map((row, index) => `<tr>
+        <td>${medal(index)}</td><td>${playerCell(row, source)}</td><td>${row.appearances}</td><td><strong class="cm-v521-stat-value">${row.cleanSheets}</strong></td>
+        <td>${Math.round(row.cleanSheetPct)}%</td><td>${row.goalsConceded}</td><td>${row.average.toFixed(2)}</td><td>${row.wins}-${row.draws}-${row.losses}</td>
+        <td>${row.tournaments.size}</td><td>${awardCountForPlayer(row.name, 'goalkeeper', tournaments, source)}</td>
+      </tr>`), selectedEra === ERA_LEAGUES ? 'La Era de ligas no posee alineaciones suficientes para identificar porteros.' : 'No hay porteros registrados para este filtro.')}</article>
+    <article class="cm-v521-card">${sectionHeader('DEFENSA COLECTIVA', 'Las Fortalezas Defensivas', 'Porterías imbatidas de equipos, disponibles incluso sin alineaciones individuales.', teams.length)}
+      ${table(['#', 'Equipo', 'PJ', 'Porterías imbatidas', '% imbatida', 'GC', 'GC/PJ'], teams.map((row, index) => `<tr>
+        <td>${medal(index)}</td><td>${teamCell(row.teamId, source)}</td><td>${row.pj}</td><td><strong class="cm-v521-stat-value">${row.cleanSheets}</strong></td>
+        <td>${Math.round(row.cleanSheetPct)}%</td><td>${row.gc}</td><td>${row.pj ? (row.gc / row.pj).toFixed(2) : '0.00'}</td>
+      </tr>`), 'No hay resultados defensivos para este filtro.')}</article>
+  </div>`;
+}
+
+function rankingsPanel(tournaments, source = state()) {
+  return `<section class="cm-v521-panel" data-cm-v521-panel="rankings">
+    <div class="cm-v521-panel-intro"><div><span>JUGADORES Y PORTEROS</span><h2>Rankings Históricos</h2><p>Clasificaciones acumuladas de goles, asistencias y porterías imbatidas.</p></div></div>
+    <nav class="cm-v521-subtabs" aria-label="Rankings históricos">${RANKING_TABS.map(([id, label, description]) => `<button type="button" data-cm-v521-ranking="${id}" class="${selectedRanking === id ? 'active' : ''}"><b>${label}</b><small>${description}</small></button>`).join('')}</nav>
+    <div class="cm-v521-ranking-content">${goalsRanking(tournaments, source)}${assistsRanking(tournaments, source)}${keepersRanking(tournaments, source)}</div>
+  </section>`;
+}

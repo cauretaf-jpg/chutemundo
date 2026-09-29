@@ -1,0 +1,45 @@
+}
+
+function tournamentStatsRows(teamId, name, source) {
+  const ids = [...new Set(matchRows(source).map((row) => row.tournamentId))];
+  return ids.map((id) => ({ id, name: id === 'friendly' ? 'Amistosos' : source.tournaments?.find((item) => item.id === id)?.name || 'Torneo', stats: playerStats(teamId, name, source, id) }))
+    .filter((row) => row.stats.appearances || row.stats.goals || row.stats.assists || row.stats.yellows || row.stats.reds || row.stats.penaltyAttempts);
+}
+
+function decoratePlayerProfile() {
+  if (!lastPlayerKey) return;
+  const modal = document.querySelector('.cm-v59-profile-modal');
+  if (!modal) return;
+  const { teamId, name } = playerKeyParts(lastPlayerKey);
+  if (!teamId || modal.querySelector('h2')?.textContent?.trim() !== name) return;
+  const source = core.getState();
+  const stats = playerStats(teamId, name, source);
+  const signature = JSON.stringify(stats);
+  if (modal.dataset.cmV516Stats === signature) return;
+  modal.dataset.cmV516Stats = signature;
+  const metrics = modal.querySelector('.cm-v59-profile-metrics');
+  if (metrics) {
+    metrics.innerHTML = stats.goalkeeper
+      ? `${metric(stats.appearances, 'Partidos jugados')}${metric(stats.goalsConceded, 'Goles recibidos')}${metric(stats.goalsConcededAverage, 'Promedio recibidos')}${metric(stats.cleanSheets, 'Vallas invictas')}${metric(stats.wins, 'Victorias')}${metric(stats.draws, 'Empates')}${metric(stats.losses, 'Derrotas')}${metric(`${stats.yellows}/${stats.reds}`, 'Amarillas / rojas')}${metric(stats.penaltiesScored, 'Penales anotados')}`
+      : `${metric(stats.appearances, 'Partidos jugados')}${metric(stats.minutes, 'Minutos')}${metric(stats.goals, 'Goles')}${metric(stats.assists, 'Asistencias')}${metric(stats.contributions, 'G+A')}${metric(stats.entries, 'Ingresos')}${metric(stats.substituted, 'Veces sustituido')}${metric(`${stats.penaltiesScored}/${stats.penaltyAttempts}`, 'Penales anotados')}${metric(stats.penaltiesMissed, 'Penales fallados')}${metric(`${stats.yellows}/${stats.reds}`, 'Amarillas / rojas')}`;
+    modal.querySelector('.cm-v516-stats-note')?.remove();
+    metrics.insertAdjacentHTML('afterend', '<p class="cm-v516-stats-note">La participación se calcula desde partidos con alineaciones y cambios registrados. Los penales corresponden únicamente a tandas de Play-Off.</p>');
+  }
+  const rows = tournamentStatsRows(teamId, name, source);
+  const firstSection = modal.querySelector('.cm-v59-profile-columns section');
+  if (firstSection) {
+    firstSection.querySelector('h3')?.replaceChildren(stats.goalkeeper ? 'Rendimiento de portero por torneo' : 'Rendimiento por torneo');
+    const tableWrap = firstSection.querySelector('.cm-v59-table-wrap');
+    if (tableWrap) {
+      const body = rows.length ? rows.map((row) => stats.goalkeeper
+        ? `<tr><td>${esc(row.name)}</td><td>${row.stats.appearances}</td><td>${row.stats.goalsConceded}</td><td>${row.stats.cleanSheets}</td><td>${row.stats.wins}</td><td>${row.stats.draws}</td><td>${row.stats.losses}</td><td>${row.stats.penaltiesScored}</td></tr>`
+        : `<tr><td>${esc(row.name)}</td><td>${row.stats.appearances}</td><td>${row.stats.minutes}</td><td>${row.stats.goals}</td><td>${row.stats.assists}</td><td>${row.stats.penaltiesScored}</td><td>${row.stats.yellows}</td><td>${row.stats.reds}</td></tr>`).join('') : `<tr><td colspan="8">Sin datos registrados.</td></tr>`;
+      tableWrap.innerHTML = stats.goalkeeper
+        ? `<table><thead><tr><th>Torneo</th><th>PJ</th><th>GC</th><th>VI</th><th>PG</th><th>PE</th><th>PP</th><th>Pen.</th></tr></thead><tbody>${body}</tbody></table>`
+        : `<table><thead><tr><th>Torneo</th><th>PJ</th><th>Min.</th><th>G</th><th>A</th><th>Pen.</th><th>TA</th><th>TR</th></tr></thead><tbody>${body}</tbody></table>`;
+    }
+  }
+  modal.querySelectorAll('.cm-v513-participation').forEach((item) => item.remove());
+  [...modal.querySelectorAll('.cm-v59-profile-metrics article')].filter((item) => item.textContent.includes('Titularidades')).forEach((item) => item.remove());
+}
+

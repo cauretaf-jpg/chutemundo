@@ -1,0 +1,78 @@
+  });
+  document.querySelectorAll('[data-cm-v517-penalty-for]').forEach((badge) => {
+    if (!validPairs.has(badge.dataset.cmV517PenaltyFor) && !badge.closest('[data-cm-v59-live-pair]')) badge.remove();
+  });
+
+  const live = document.querySelector('[data-cm-v59-live-pair]');
+  if (live) {
+    const pair = live.dataset.cmV59LivePair;
+    const info = contextFromPair(pair);
+    const score = live.querySelector('.cm-v59-live-scoreboard,.cm-v59-live-score');
+    if (info?.decidedByPenalties) upsertPenaltyBadge(score, info, false, pair);
+    else score?.querySelector(`[data-cm-v517-penalty-for="${CSS.escape(pair)}"]`)?.remove();
+  }
+
+  const latest = (core.getState().tournaments || []).flatMap((tournament) => (tournament.matches || []).map((match) => resultInfo(tournament, match)))
+    .filter((info) => info?.decidedByPenalties)
+    .sort((a, b) => Number(b.match.updatedAt || b.match.registrationStartedAt || Date.parse(b.match.date || '') || 0) - Number(a.match.updatedAt || a.match.registrationStartedAt || Date.parse(a.match.date || '') || 0));
+  document.querySelectorAll('.cm-v510-results p').forEach((paragraph) => {
+    const text = normalize(paragraph.textContent);
+    const info = latest.find((row) => text.includes(normalize(core.teamName(row.home))) && text.includes(normalize(core.teamName(row.away))) && text.includes(normalize(`${row.homeGoals} ${row.awayGoals}`)));
+    const pair = info?.pair || '';
+    if (info) upsertPenaltyBadge(paragraph, info, true, pair);
+  });
+}
+
+function qualityIssues(tournament, calculation = computeAwards(tournament)) {
+  const issues = [];
+  const matches = (tournament.matches || []).filter((match) => match.stage !== 'bye');
+  for (const match of matches) {
+    const context = matchContext(tournament, match);
+    const label = `${match.round || 'Partido'} · ${context ? `${core.teamName(context.home)} vs ${core.teamName(context.away)}` : 'cruce por definir'}`;
+    if (!context) issues.push({ level: 'critical', text: `${label}: faltan participantes.` });
+    if (!played(match)) { issues.push({ level: 'critical', text: `${label}: partido pendiente.` }); continue; }
+    const detailedGoals = (match.goals || []).length;
+    const scoreboardGoals = Number(match.homeGoals || 0) + Number(match.awayGoals || 0);
+    if (detailedGoals && detailedGoals !== scoreboardGoals) issues.push({ level: 'critical', text: `${label}: el marcador no coincide con los goles detallados.` });
+    if ((match.goals || []).some((goal) => !String(goal.playerName || '').trim())) issues.push({ level: 'critical', text: `${label}: existe un gol sin autor.` });
+    if (!match.date) issues.push({ level: 'warning', text: `${label}: no tiene fecha.` });
+    if (!match.venue) issues.push({ level: 'warning', text: `${label}: no tiene sede.` });
+    if (!match.participationTracked) issues.push({ level: 'warning', text: `${label}: no tiene participación o alineaciones confirmadas.` });
+    if (match.stage === 'knockout' && Number(match.homeGoals) === Number(match.awayGoals)) {
+      const penalties = penaltyScore(match);
+      if (!penalties.active || penalties.home === penalties.away) issues.push({ level: 'critical', text: `${label}: el empate de Play-Off no tiene una tanda válida que defina al ganador.` });
+    }
+  }
+  if (!calculation.awards.mvp.playerName) issues.push({ level: 'warning', text: 'Premios: no existen datos suficientes para determinar al mejor jugador.' });
+  if (!calculation.awards.goalkeeper.playerName) issues.push({ level: 'warning', text: 'Premios: no existen datos suficientes para determinar al mejor arquero.' });
+  return issues;
+}
+
+function qualityMarkup(tournament, issues) {
+  const critical = issues.filter((item) => item.level === 'critical');
+  const warning = issues.filter((item) => item.level === 'warning');
+  return `<div class="cm-v517-quality-modal"><p class="eyebrow">CONTROL DE CALIDAD</p><h2>Revisión antes de finalizar</h2><p>${issues.length ? 'Revisa los siguientes puntos antes de convertir el torneo en histórico.' : 'El torneo está completo y preparado para cerrarse.'}</p><div class="cm-v517-quality-kpis"><span><b>${critical.length}</b> bloqueos</span><span><b>${warning.length}</b> advertencias</span></div><div class="cm-v517-quality-list">${issues.length ? issues.map((item) => `<article class="is-${item.level}"><b>${item.level === 'critical' ? 'Bloqueo' : 'Advertencia'}</b><span>${esc(item.text)}</span></article>`).join('') : '<article class="is-ok"><b>Correcto</b><span>No se detectaron inconsistencias.</span></article>'}</div><div class="modal-actions"><button type="button" class="secondary" data-close-modal>Volver</button>${critical.length ? '' : `<button type="button" class="primary" data-cm-v517-confirm-finish="${esc(tournament.id)}">${warning.length ? 'Finalizar con advertencias' : 'Finalizar torneo'}</button>`}</div></div>`;
+}
+
+function openQuality(tournament) {
+  const calculation = computeAwards(tournament);
+  const issues = qualityIssues(tournament, calculation);
+  core.openModal(qualityMarkup(tournament, issues));
+}
+
+async function finalizeTournament(tournamentId) {
+  if (savingAwards || !core.canEdit()) return;
+  const previous = clone(core.getState());
+  const next = clone(previous);
+  const tournament = next.tournaments?.find((item) => item.id === tournamentId);
+  if (!tournament) return;
+  const issues = qualityIssues(tournament, computeAwards(tournament, next));
+  if (issues.some((item) => item.level === 'critical')) return core.showToast('El torneo todavía tiene bloqueos pendientes.');
+  savingAwards = true;
+  try {
+    const updated = window.ChuteV511Tournaments.changeStatus(next, tournamentId, 'historical');
+    const target = updated.tournaments.find((item) => item.id === tournamentId);
+    const calculation = computeAwards(target, updated);
+    target.awards = legacyAwards(calculation);
+    target.awardDetails = calculation.awards;
+    target.awardsStatus = 'official';
