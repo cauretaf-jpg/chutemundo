@@ -1,0 +1,93 @@
+name: One-time backup live Firebase state
+
+on:
+  push:
+    branches: [feat/v6-hardening]
+    paths:
+      - '.github/workflows/backup-firebase-once.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feat/v6-hardening
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Install browser
+        run: |
+          npm install --no-save playwright@1.52.0
+          npx playwright install --with-deps chromium
+
+      - name: Capture live state
+        run: |
+          node <<'NODE'
+          const fs = require('fs');
+          const { chromium } = require('playwright');
+
+          (async () => {
+            const browser = await chromium.launch({ headless: true });
+            const context = await browser.newContext({ serviceWorkers: 'block' });
+            const page = await context.newPage();
+            const errors = [];
+            page.on('pageerror', (error) => errors.push(String(error)));
+
+            try {
+              await page.goto('https://chutemundo.vercel.app/?backup=2026-09-29', { waitUntil: 'networkidle', timeout: 90000 });
+              await page.waitForFunction(() => {
+                const state = window.ChuteMundoCore?.getState?.();
+                return state && Array.isArray(state.teams) && state.teams.length > 0 && Array.isArray(state.tournaments);
+              }, { timeout: 60000 });
+              await page.waitForTimeout(3000);
+
+              const snapshot = await page.evaluate(() => ({
+                capturedAt: new Date().toISOString(),
+                source: location.origin,
+                appVersion: window.CHUTE_APP_VERSION || '',
+                syncStatus: document.getElementById('syncStatus')?.textContent?.trim() || '',
+                state: window.ChuteMundoCore.getState()
+              }));
+
+              if (/no disponible|error/i.test(snapshot.syncStatus)) {
+                throw new Error('Firebase no confirmó una carga válida: ' + snapshot.syncStatus);
+              }
+              if (!snapshot.state.teams?.length || !snapshot.state.tournaments?.length) {
+                throw new Error('El estado capturado está incompleto.');
+              }
+
+              fs.mkdirSync('backups', { recursive: true });
+              fs.writeFileSync('backups/firebase-2026-09-29.json', JSON.stringify(snapshot, null, 2) + '\n');
+              console.log('Firebase backup captured', {
+                syncStatus: snapshot.syncStatus,
+                teams: snapshot.state.teams.length,
+                tournaments: snapshot.state.tournaments.length,
+                matches: snapshot.state.tournaments.reduce((sum, tournament) => sum + (tournament.matches?.length || 0), 0)
+              });
+            } finally {
+              await browser.close();
+            }
+          })().catch((error) => {
+            console.error(error);
+            process.exit(1);
+          });
+          NODE
+
+      - name: Commit backup
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add backups/firebase-2026-09-29.json
+          if git diff --cached --quiet; then
+            echo "Backup unchanged."
+            exit 0
+          fi
+          git commit -m "Backup: capturar estado vivo de Firebase 2026-09-29"
+          git push origin HEAD:feat/v6-hardening
