@@ -1,7 +1,7 @@
 const core = window.ChuteMundoCore;
 if (!core) throw new Error('Chute Mundo no está listo para Torneos v5.24.');
 
-const VERSION = '5.24.0';
+const VERSION = window.CHUTE_APP_VERSION || '6.0.0';
 const MOBILE = window.matchMedia('(max-width: 720px)');
 const esc = (value = '') => String(value).replace(/[&<>"']/g, (character) => ({
   '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
@@ -20,7 +20,7 @@ function loadStyles() {
   const link = document.createElement('link');
   link.id = 'cmV524TournamentStyles';
   link.rel = 'stylesheet';
-  link.href = `/chute-v524-tournaments.css?v=${VERSION}`;
+  link.href = `/styles/tournaments.css?v=${VERSION}`;
   document.head.appendChild(link);
 }
 
