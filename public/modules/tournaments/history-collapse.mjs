@@ -2,7 +2,7 @@ const core = window.ChuteMundoCore;
 const tournamentsUi = window.ChuteV524Tournaments;
 if (!core || !tournamentsUi) throw new Error('Chute Mundo no está listo para el archivo plegable v5.24.1.');
 
-const VERSION = '5.24.1';
+const VERSION = window.CHUTE_APP_VERSION || '6.0.0';
 const esc = (value = '') => String(value).replace(/[&<>"']/g, (character) => ({
   '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
 }[character]));
@@ -18,7 +18,7 @@ function loadStyles() {
   const link = document.createElement('link');
   link.id = 'cmV5241HistoryStyles';
   link.rel = 'stylesheet';
-  link.href = `/chute-v5241-history-collapse.css?v=${VERSION}`;
+  link.href = `/styles/history-collapse.css?v=${VERSION}`;
   document.head.appendChild(link);
 }
 
