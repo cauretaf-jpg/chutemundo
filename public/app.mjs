@@ -6,6 +6,7 @@ await load('/modules/core/assets.mjs');
 await load('/modules/core/split-loader.mjs');
 await load('/modules/auth/password-reset.mjs');
 await load('/modules/detail/index.mjs');
+await load('/modules/data/player-ids.mjs');
 await load('/modules/assets/photo-aliases.mjs');
 await load('/modules/assets/player-photo-overrides.mjs');
 await load('/modules/core/safety.mjs');
