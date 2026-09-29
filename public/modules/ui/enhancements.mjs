@@ -34,7 +34,7 @@ function ensureStyle() {
   const link = document.createElement('link');
   link.id = 'cmV6Css';
   link.rel = 'stylesheet';
-  link.href = `/chute-v6.css?v=${VERSION}`;
+  link.href = `/styles/enhancements.css?v=${VERSION}`;
   document.head.appendChild(link);
 }
 
