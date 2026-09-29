@@ -1,1 +1,1 @@
-await window.ChuteSplitLoader({ prefix: 'chute-v516-events-stats-part', count: 12, version: '5.16.1', label: 'eventos y estadisticas v5.16.1' });
+await window.ChuteSplitLoader({ prefix: 'modules/statistics/events-part', count: 12, version: window.CHUTE_APP_VERSION || '6.0.0', label: 'eventos y estadísticas' });
