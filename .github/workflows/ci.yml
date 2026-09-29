@@ -1,0 +1,79 @@
+name: ChuteMundo CI
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main, feat/v6-hardening]
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Validate architecture and syntax
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm run check:official
+          while IFS= read -r file; do node --check "$file"; done < <(find public -type f \( -name '*.mjs' -o -name '*.js' \) | sort)
+          cat public/modules/core/app-part-*.txt > /tmp/core-app.mjs
+          cat public/modules/core/safety-part-*.txt > /tmp/core-safety.mjs
+          cat public/modules/matches/live-part-*.txt > /tmp/live.mjs
+          cat public/modules/statistics/events-part-*.txt > /tmp/events.mjs
+          cat public/modules/tournaments/finalization-part-*.txt > /tmp/finalization.mjs
+          cat public/modules/statistics/history-part-*.txt > /tmp/history.mjs
+          node --check /tmp/core-app.mjs
+          node --check /tmp/core-safety.mjs
+          node --check /tmp/live.mjs
+          node --check /tmp/events.mjs
+          node --check /tmp/finalization.mjs
+          node --check /tmp/history.mjs
+          if grep -R -n -E "['\"\x60]/chute-v[0-9]" public/app.mjs public/modules; then
+            echo "Se encontraron rutas versionadas antiguas en el runtime semántico."
+            exit 1
+          fi
+
+      - name: Install browser test dependencies
+        run: |
+          npm install --no-save serve@14.2.4 playwright@1.52.0
+          npx playwright install --with-deps chromium
+
+      - name: Browser smoke test
+        run: |
+          npx serve public -l 4173 --no-clipboard > /tmp/chute-server.log 2>&1 &
+          sleep 3
+          node scripts/smoke-v6.mjs 2>&1 | tee /tmp/chute-smoke-v6.log
+
+      - name: Upload diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: chutemundo-ci-diagnostics
+          path: |
+            /tmp/chute-smoke-v6.log
+            /tmp/chute-server.log
+          retention-days: 7
+
+      - name: Package validated production bundle
+        if: github.ref == 'refs/heads/main' && success()
+        run: |
+          mkdir -p production-bundle
+          cp -R public/. production-bundle/
+          cp vercel.json production-bundle/
+          find production-bundle -type f | sort > production-bundle-files.txt
+
+      - name: Upload production bundle
+        if: github.ref == 'refs/heads/main' && success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: chutemundo-production-bundle
+          path: |
+            production-bundle/**
+            production-bundle-files.txt
+          include-hidden-files: true
+          retention-days: 14
