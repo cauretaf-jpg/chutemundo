@@ -8,7 +8,7 @@ const model = window.ChuteDetailModel;
 if (!model) throw new Error('El modelo detallado no está disponible para administrar torneos.');
 
 const { esc } = model;
-const VERSION = '5.8.3';
+const VERSION = window.CHUTE_APP_VERSION || '6.0.0';
 let refreshQueued = false;
 let saving = false;
 
@@ -21,7 +21,7 @@ function installStyles() {
   const link = document.createElement('link');
   link.id = 'cmV583TournamentAdminStyles';
   link.rel = 'stylesheet';
-  link.href = `/chute-v583-tournament-admin.css?v=${VERSION}`;
+  link.href = `/styles/tournament-admin.css?v=${VERSION}`;
   document.head.appendChild(link);
 }
 
