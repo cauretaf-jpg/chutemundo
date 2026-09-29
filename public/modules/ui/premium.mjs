@@ -405,6 +405,11 @@ function enhanceTournamentDetail() {
 }
 
 function ensureMobileNavigation() {
+  if (document.getElementById('cmV6MobileNav')) {
+    document.getElementById('cmMobileNav')?.remove();
+    document.getElementById('cmMoreSheet')?.remove();
+    return;
+  }
   if (document.getElementById('cmMobileNav')) return;
   const nav = document.createElement('nav');
   nav.id = 'cmMobileNav';
