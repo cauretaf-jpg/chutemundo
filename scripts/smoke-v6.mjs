@@ -29,7 +29,7 @@ try {
       .filter((url) => /\/chute-v\d/i.test(new URL(url).pathname))
   }));
 
-  if (boot.version !== '6.0.0' || !boot.title.includes('6.0.0')) throw new Error('Versión canónica incorrecta: ' + JSON.stringify(boot));
+  if (boot.version !== '6.0.1' || !boot.title.includes('6.0.1')) throw new Error('Versión canónica incorrecta: ' + JSON.stringify(boot));
   if (!boot.mobileNav) throw new Error('No se creó la navegación móvil.');
   if (boot.width > boot.viewport + 3) throw new Error('Existe desborde horizontal móvil: ' + JSON.stringify(boot));
   if (boot.playerIds < 1) throw new Error('No se construyó el registro permanente de jugadores.');
@@ -55,7 +55,66 @@ try {
   const critical = errors.filter((message) => !/favicon|firestore|permission-denied|Failed to load resource|ERR_|network|service worker|FirebaseError/i.test(message));
   if (critical.length) throw new Error(critical.join(' | '));
 
-  console.log('ChuteMundo 6 smoke OK', { boot, ids: ids.count });
+  await page.evaluate(() => window.ChuteMundoCore.navigate('inicio'));
+  await page.waitForSelector('#cmV510Journey', { state: 'visible' });
+  const homeMobile = await page.evaluate(() => {
+    const journey = document.getElementById('cmV510Journey');
+    const logo = journey?.querySelector('.cm-v510-team-logo');
+    const leaders = journey?.querySelector('.cm-v510-leaders');
+    const button = journey?.querySelector('.cm-v510-journey-head > button');
+    const rect = journey?.getBoundingClientRect();
+    const logoRect = logo?.getBoundingClientRect();
+    const buttonStyle = button ? getComputedStyle(button) : null;
+    return {
+      journeyRight: rect?.right || 0,
+      viewport: document.documentElement.clientWidth,
+      logoWidth: logoRect?.width || 0,
+      leadersDisplay: leaders ? getComputedStyle(leaders).display : '',
+      buttonRadius: buttonStyle?.borderRadius || ''
+    };
+  });
+  if (homeMobile.journeyRight > homeMobile.viewport + 3) throw new Error('El Centro de Jornada desborda el viewport: ' + JSON.stringify(homeMobile));
+  if (homeMobile.logoWidth > 80) throw new Error('El logo del próximo partido es demasiado grande: ' + JSON.stringify(homeMobile));
+  if (homeMobile.leadersDisplay !== 'grid') throw new Error('El bloque Líderes perdió su layout: ' + JSON.stringify(homeMobile));
+  if (!homeMobile.buttonRadius || homeMobile.buttonRadius === '0px') throw new Error('El botón Abrir torneo perdió estilos: ' + JSON.stringify(homeMobile));
+
+  await page.evaluate(() => window.ChuteMundoCore.navigate('equipos'));
+  await page.waitForSelector('#teamList .cm-team-card', { state: 'visible' });
+  const teamsMobile = await page.evaluate(() => {
+    const card = document.querySelector('#teamList .cm-team-card');
+    const logo = card?.querySelector('img');
+    const rect = card?.getBoundingClientRect();
+    const logoRect = logo?.getBoundingClientRect();
+    return {
+      cardRight: rect?.right || 0,
+      viewport: document.documentElement.clientWidth,
+      logoWidth: logoRect?.width || 0,
+      radius: card ? getComputedStyle(card).borderRadius : ''
+    };
+  });
+  if (teamsMobile.cardRight > teamsMobile.viewport + 3) throw new Error('Una tarjeta de equipo desborda el viewport: ' + JSON.stringify(teamsMobile));
+  if (teamsMobile.logoWidth > 130) throw new Error('Un escudo de equipo se renderiza sobredimensionado: ' + JSON.stringify(teamsMobile));
+  if (!teamsMobile.radius || teamsMobile.radius === '0px') throw new Error('Las tarjetas de equipos perdieron estilos: ' + JSON.stringify(teamsMobile));
+
+  await page.evaluate(() => window.ChuteMundoCore.navigate('estadisticas'));
+  await page.waitForSelector('#cmV521History', { state: 'visible' });
+  const statsMobile = await page.evaluate(() => {
+    const history = document.getElementById('cmV521History');
+    const rect = history?.getBoundingClientRect();
+    return {
+      height: rect?.height || 0,
+      right: rect?.right || 0,
+      viewport: document.documentElement.clientWidth,
+      visibleChildren: history ? [...history.children].filter((node) => {
+        const style = getComputedStyle(node);
+        return style.display !== 'none' && style.visibility !== 'hidden';
+      }).length : 0
+    };
+  });
+  if (statsMobile.height < 180 || statsMobile.visibleChildren < 1) throw new Error('Estadísticas quedó visualmente vacío: ' + JSON.stringify(statsMobile));
+  if (statsMobile.right > statsMobile.viewport + 3) throw new Error('Estadísticas desborda el viewport: ' + JSON.stringify(statsMobile));
+
+  console.log('ChuteMundo 6.0.1 smoke OK', { boot, ids: ids.count, homeMobile, teamsMobile, statsMobile });
 } finally {
   await context.close();
   await browser.close();

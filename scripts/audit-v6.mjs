@@ -26,9 +26,9 @@ const core1 = read('public/modules/core/app-part-01.txt');
 const rules = read('firestore.rules');
 const vercel = read('vercel.json');
 
-ok(version.includes("const VERSION = '6.0.0'") && version.includes('CHUTE_APP_VERSION = VERSION'), 'version.js no declara v6.0.0.');
+ok(version.includes("const VERSION = '6.0.1'") && version.includes('CHUTE_APP_VERSION = VERSION'), 'version.js no declara v6.0.1.');
 ok(index.includes('/version.js'), 'index.html no carga la versión canónica.');
-ok(index.includes('/app.mjs?v=6.0.0'), 'index.html no carga app.mjs.');
+ok(index.includes('/app.mjs?v=6.0.1'), 'index.html no carga app.mjs.');
 ok(!index.includes('/chute-official.mjs'), 'index.html todavía carga el entrypoint versionado antiguo.');
 ok(app.includes('/modules/core/bootstrap.mjs') && app.includes('/modules/statistics/fifa.mjs'), 'app.mjs no usa la arquitectura modular.');
 ok(app.includes('/modules/data/player-ids.mjs'), 'app.mjs no activa IDs permanentes de jugadores.');

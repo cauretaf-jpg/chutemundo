@@ -260,9 +260,7 @@ const home = document.getElementById('inicio');
 if (home) new MutationObserver(scheduleRender).observe(home, { childList: true, subtree: true, attributes: true, attributeFilter: ['hidden'] });
 
 installStyles();
-document.title = 'Chute Mundo v5.10 · Competición oficial';
-const heroVersion = document.querySelector('.hero .eyebrow');
-if (heroVersion) heroVersion.textContent = 'CHUTE MUNDO v5.10';
 render();
-window.setInterval(render, 1600);
+document.addEventListener('chute:state-changed', scheduleRender);
+document.addEventListener('chute:boot-complete', scheduleRender);
 window.ChuteV510Dashboard = { version: VERSION, activeTournament, nextPending, standings, individualLeaders, disciplineSnapshot, refresh: render };
