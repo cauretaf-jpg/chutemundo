@@ -4,7 +4,7 @@ const CACHE = `chute-mundo-v${VERSION}`;
 const APP_SHELL = [
   '/',
   '/index.html',
-  '/version.js',
+  '/version.js',\n  '/firebase-config.json',\n  '/official-history.json',
   `/chute-official.css?v=${VERSION}`,
   `/chute-official.mjs?v=${VERSION}`,
   `/chute-v6.css?v=${VERSION}`,
