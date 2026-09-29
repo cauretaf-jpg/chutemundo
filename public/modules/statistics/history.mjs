@@ -1,1 +1,1 @@
-await window.ChuteSplitLoader({ prefix: 'chute-v521-history-part', count: 10, version: '5.21.0', label: 'el Archivo Histórico v5.21' });
+await window.ChuteSplitLoader({ prefix: 'modules/statistics/history-part', count: 10, version: window.CHUTE_APP_VERSION || '6.0.0', label: 'el Archivo Histórico' });
