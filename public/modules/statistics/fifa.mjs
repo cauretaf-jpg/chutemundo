@@ -2,7 +2,7 @@ const core = window.ChuteMundoCore;
 const detailModel = window.ChuteDetailModel || {};
 if (!core) throw new Error('Chute Mundo no está listo para el Ranking FIFA v5.25.');
 
-const VERSION = '5.25.0';
+const VERSION = window.CHUTE_APP_VERSION || '6.0.0';
 const BASE_RATING = 1000;
 const K_FACTOR = 24;
 const FRIENDLY_FACTOR = 0.25;
@@ -20,7 +20,7 @@ function loadStyles() {
   const link = document.createElement('link');
   link.id = 'cmV525FifaStyles';
   link.rel = 'stylesheet';
-  link.href = `/chute-v525-fifa-ranking.css?v=${VERSION}`;
+  link.href = `/styles/fifa.css?v=${VERSION}`;
   document.head.appendChild(link);
 }
 
