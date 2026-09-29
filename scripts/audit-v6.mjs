@@ -26,11 +26,13 @@ const core1 = read('public/modules/core/app-part-01.txt');
 const rules = read('firestore.rules');
 const vercel = read('vercel.json');
 
-ok(version.includes("const VERSION = '6.0.1'") && version.includes('CHUTE_APP_VERSION = VERSION'), 'version.js no declara v6.0.1.');
+ok(version.includes("const VERSION = '6.0.2'") && version.includes('CHUTE_APP_VERSION = VERSION'), 'version.js no declara v6.0.2.');
 ok(index.includes('/version.js'), 'index.html no carga la versión canónica.');
-ok(index.includes('/app.mjs?v=6.0.1'), 'index.html no carga app.mjs.');
+ok(index.includes('/app.mjs?v=6.0.2'), 'index.html no carga app.mjs.');
 ok(!index.includes('/chute-official.mjs'), 'index.html todavía carga el entrypoint versionado antiguo.');
 ok(app.includes('/modules/core/bootstrap.mjs') && app.includes('/modules/statistics/fifa.mjs'), 'app.mjs no usa la arquitectura modular.');
+ok(!app.includes('/modules/dashboard/index.mjs'), 'Inicio todavía carga el dashboard redundante Centro de Jornada.');
+ok(read('public/modules/statistics/history-part-09.txt').includes('/styles/history.css'), 'El Archivo Histórico no carga su stylesheet semántico.');
 ok(app.includes('/modules/data/player-ids.mjs'), 'app.mjs no activa IDs permanentes de jugadores.');
 ok(splitLoader.includes("prefix: 'modules/core/app-part'"), 'El núcleo dividido sigue usando el prefijo antiguo.');
 ok(bootstrap.includes('window.CHUTE_APP_VERSION'), 'Bootstrap no consume la versión canónica.');
@@ -45,7 +47,7 @@ ok(vercel.includes('max-age=31536000'), 'Vercel no define caché larga para acti
 ok(!fs.existsSync('supabaseClient.js') && !fs.existsSync('supabase/schema.sql'), 'Supabase sigue en el runtime activo.');
 ok(!fs.existsSync('data.js') && !fs.existsSync('app.js') && !fs.existsSync('index.html'), 'El runtime legado raíz sigue activo.');
 
-const runtimeFiles = ['public/app.mjs', ...walk('public/modules').filter((file) => /\.(?:mjs|js)$/.test(file))];
+const runtimeFiles = ['public/app.mjs', ...walk('public/modules').filter((file) => /\.(?:mjs|js|txt)$/.test(file))];
 const legacyPath = /['"`]\/chute-v\d/i;
 for (const file of runtimeFiles) {
   const source = read(file);
