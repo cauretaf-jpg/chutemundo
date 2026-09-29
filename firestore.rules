@@ -1,11 +1,17 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Chute Mundo v2: lectura pública de estadísticas y escritura solo del administrador.
+    function isChuteAdmin() {
+      return request.auth != null && (
+        request.auth.token.admin == true ||
+        request.auth.token.role == 'admin' ||
+        request.auth.token.email == 'cauretaf@gmail.com'
+      );
+    }
+
     match /chuteMundo/sharedState {
       allow read: if true;
-      allow create, update, delete: if request.auth != null
-        && request.auth.token.email == 'cauretaf@gmail.com';
+      allow create, update, delete: if isChuteAdmin();
     }
   }
 }
