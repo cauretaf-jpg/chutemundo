@@ -1,69 +1,74 @@
-// CI compatibility: const CACHE = 'chute-mundo-v5.22.0'
-// CI compatibility: chute-v522-stats-refinement.mjs?v=5.22.0
-const CACHE = 'chute-mundo-v5.25.0';
-const CORE = [
-  '/', '/index.html',
-  '/chute-bootstrap.mjs?v=5.25.0',
-  '/chute-official.css?v=5.16.0', '/chute-official.mjs?v=5.25.0', '/chute-official-loader.mjs?v=5.25.0',
-  '/chute-detail.mjs?v=5.25.0', '/chute-v522-photo-fix.mjs?v=5.22.4', '/chute-v5254-player-photo-fix.mjs?v=5.25.4', '/chute-v522-historical-dates.mjs?v=5.22.2',
-  '/player-photos/perla/randolph-salazar.png?v=bb2a2d76',
-  '/player-photos/overrides/arnold-vega.png?v=d49747d5',
-  '/player-photos/overrides/rocco-caruso.png?v=00fb4cbb',
-  '/player-photos/overrides/warner-ferrara.png?v=4b60b06e',
-  '/chute-v513-lineups.mjs?v=5.13.0', '/chute-v513-lineups.css?v=5.13.0',
-  '/chute-v514-unified-match.mjs?v=5.14.0', '/chute-v514-unified-match.css?v=5.14.0',
-  '/chute-v515-match-center.mjs?v=5.15.0', '/chute-v515-match-center.css?v=5.15.0',
-  '/chute-v516-events-stats.mjs?v=5.16.1', '/chute-v516-events-stats.css?v=5.16.1',
-  ...Array.from({ length: 12 }, (_, index) => `/chute-v516-events-stats-part-${String(index).padStart(2, '0')}.txt?v=5.16.1`),
-  '/chute-v5162-playoff-seeding.mjs?v=5.16.3',
-  '/chute-v517-finalization.mjs?v=5.17.0', '/chute-v517-finalization.css?v=5.17.0',
-  ...Array.from({ length: 8 }, (_, index) => `/chute-v517-finalization-part-${String(index).padStart(2, '0')}.txt?v=5.17.0`),
-  '/chute-v521-history.mjs?v=5.25.0', '/chute-v521-history.css?v=5.21.0', '/chute-v521-history-sync.mjs?v=5.25.0',
-  ...Array.from({ length: 10 }, (_, index) => `/chute-v521-history-part-${String(index).padStart(2, '0')}.txt?v=5.21.0`),
-  '/chute-v522-stats-refinement.mjs?v=5.25.0', '/chute-v522-stats-refinement.css?v=5.22.0',
-  '/chute-v523-control-center.mjs?v=5.25.0', '/chute-v523-participants-admin.css?v=5.23.0',
-  '/chute-v524-form-dirty-guard.mjs?v=5.25.0', '/chute-v524-tournaments.mjs?v=5.25.0', '/chute-v524-tournaments.css?v=5.25.0', '/chute-v524-tournament-render-guard.mjs?v=5.25.0',
-  '/chute-v5241-history-collapse.mjs?v=5.25.0', '/chute-v5241-history-collapse.css?v=5.25.0',
-  '/chute-v520-stats-guard.mjs?v=5.25.0',
-  '/chute-v5242-ui-fixes.mjs?v=5.25.0', '/chute-v5242-ui-fixes.css?v=5.25.0',
-  '/chute-v525-fifa-ranking.mjs?v=5.25.0', '/chute-v525-fifa-ranking.css?v=5.25.0',
-  '/chute-v5252-historical-player-stats.mjs?v=5.25.2',
-  '/manifest.webmanifest', '/chute-icon.svg', '/chute-icon-maskable.svg'
+importScripts('/version.js');
+const VERSION = self.CHUTE_APP_VERSION || '6.0.0';
+const CACHE = `chute-mundo-v${VERSION}`;
+const APP_SHELL = [
+  '/',
+  '/index.html',
+  '/version.js',
+  `/chute-official.css?v=${VERSION}`,
+  `/chute-official.mjs?v=${VERSION}`,
+  `/chute-v6.css?v=${VERSION}`,
+  `/chute-v6.mjs?v=${VERSION}`,
+  '/manifest.webmanifest',
+  '/chute-icon.svg',
+  '/chute-icon-maskable.svg'
 ];
 
-self.addEventListener('install', (event) => {
-  event.waitUntil(caches.open(CACHE).then((cache) => cache.addAll(CORE)).then(() => self.skipWaiting()));
+self.addEventListener('install', event => {
+  event.waitUntil(caches.open(CACHE).then(cache => cache.addAll(APP_SHELL)).then(() => self.skipWaiting()));
 });
 
-self.addEventListener('activate', (event) => {
+self.addEventListener('activate', event => {
   event.waitUntil(Promise.all([
-    caches.keys().then((keys) => Promise.all(keys.filter((key) => key !== CACHE).map((key) => caches.delete(key)))),
+    caches.keys().then(keys => Promise.all(keys.filter(key => key.startsWith('chute-mundo-') && key !== CACHE).map(key => caches.delete(key)))),
     self.clients.claim()
   ]));
 });
 
-self.addEventListener('message', (event) => {
+self.addEventListener('message', event => {
   if (event.data?.type === 'SKIP_WAITING') self.skipWaiting();
 });
 
-function networkFirst(request, fallback) {
-  return fetch(request, { cache: 'no-store' }).then((response) => {
-    if (response.ok) caches.open(CACHE).then((cache) => cache.put(request, response.clone()));
+async function networkFirst(request, fallbackUrl = '') {
+  try {
+    const response = await fetch(request);
+    if (response.ok) {
+      const cache = await caches.open(CACHE);
+      cache.put(request, response.clone());
+    }
     return response;
-  }).catch(() => caches.match(request).then((cached) => cached || fallback && caches.match(fallback, { ignoreSearch: true })));
+  } catch {
+    return (await caches.match(request)) || (fallbackUrl ? await caches.match(fallbackUrl, { ignoreSearch:true }) : undefined) || Response.error();
+  }
 }
 
-self.addEventListener('fetch', (event) => {
+async function cacheFirst(request) {
+  const cached = await caches.match(request);
+  if (cached) return cached;
+  const response = await fetch(request);
+  if (response.ok) {
+    const cache = await caches.open(CACHE);
+    cache.put(request, response.clone());
+  }
+  return response;
+}
+
+self.addEventListener('fetch', event => {
   if (event.request.method !== 'GET') return;
   const url = new URL(event.request.url);
-  if (url.origin !== location.origin) return;
+  if (url.origin !== self.location.origin) return;
+
   if (event.request.mode === 'navigate') {
     event.respondWith(networkFirst(event.request, '/index.html'));
     return;
   }
-  if (/\.(?:mjs|js|css|txt)$/.test(url.pathname)) {
-    event.respondWith(networkFirst(event.request));
+
+  if (/\.(?:png|jpg|jpeg|webp|svg|woff2?)$/i.test(url.pathname)) {
+    event.respondWith(cacheFirst(event.request));
     return;
   }
-  event.respondWith(caches.match(event.request).then((cached) => cached || networkFirst(event.request)));
+
+  if (/\.(?:mjs|js|css|txt|json)$/i.test(url.pathname)) {
+    event.respondWith(networkFirst(event.request));
+  }
 });
