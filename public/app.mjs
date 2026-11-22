@@ -1,4 +1,4 @@
-const VERSION = window.CHUTE_APP_VERSION || '6.2.0';
+const VERSION = window.CHUTE_APP_VERSION || '6.2.1';
 const load = (path) => import(`${path}?v=${encodeURIComponent(VERSION)}`);
 
 await load('/modules/core/bootstrap.mjs');
