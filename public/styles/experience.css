@@ -212,6 +212,12 @@
 .cm62-root .cm62-admin-tile{appearance:none;text-align:left;cursor:pointer;font:inherit}
 .cm62-root .cm62-admin-tile:hover{background:#f3faf5}
 
+
+.cm62-card-icon{display:inline-block;flex-shrink:0;width:19px;height:27px;border-radius:3px;box-shadow:0 2px 5px rgba(0,0,0,.13)}
+.cm62-card-icon.is-yellow{background:#f9cf28}
+.cm62-card-icon.is-red{background:#d54a51}
+.cm62-result:focus-visible,.cm62-tile:focus-visible{outline-offset:2px}
+
 @media(max-width:1050px){
  .cm62-clubs-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
  .cm62-players-grid{grid-template-columns:repeat(3,minmax(0,1fr))}
