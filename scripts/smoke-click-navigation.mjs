@@ -74,6 +74,13 @@ try {
       await clickAndCheck(page, '#cm62Root .cm62-tabs a[href$="/carrera"]', playerRoute + '/carrera', device.name + ': Carrera de jugador');
 
       await clickAndCheck(page, '#cm62Root button[data-cm62-back]', playerRoute, device.name + ': botón Volver contextual');
+      await page.evaluate(() => window.ChuteExperience.navigate('/equipos'));
+      const catalogClub = await page.locator('#cm62Root a.cm62-club-card').first().getAttribute('data-cm62-route', { timeout: 3000 });
+      await clickAndCheck(page, '#cm62Root a.cm62-club-card', catalogClub, device.name + ': tarjeta de club → ficha');
+      await page.evaluate(() => window.ChuteExperience.navigate('/estadisticas'));
+      const archiveRoute = await page.locator('#cm62Root .cm62-archive-grid a.cm62-tile').first().getAttribute('data-cm62-route', { timeout: 3000 });
+      await clickAndCheck(page, '#cm62Root .cm62-archive-grid a.cm62-tile', archiveRoute, device.name + ': tarjeta de estadísticas → sección');
+
 
       if (device.name === 'desktop') {
         await clickAndCheck(page, '.nav-button[data-page="estadisticas"]', '/estadisticas', device.name + ': navegación superior a estadísticas');
