@@ -30,7 +30,7 @@ try {
         width:document.documentElement.scrollWidth,
         viewport:document.documentElement.clientWidth
       }));
-      if(status.version!=='6.2.0')failures.push(size.name+': versión incorrecta '+JSON.stringify(status));
+      if(status.version!=='6.2.1')failures.push(size.name+': versión incorrecta '+JSON.stringify(status));
       if(!status.rootVisible||status.oldPageVisible)failures.push(size.name+': fuente antigua visible o experiencia oculta');
       if(status.titleCount!==1)failures.push(size.name+': Inicio contiene títulos principales duplicados');
       if(status.width>status.viewport+3)failures.push(size.name+': Inicio desborda '+JSON.stringify(status));
