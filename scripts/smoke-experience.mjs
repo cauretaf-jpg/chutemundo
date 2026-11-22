@@ -92,9 +92,9 @@ try {
           failures.push(size.name+': ruta '+route+' falló '+JSON.stringify(view));
       }
       if(size.name==='mobile-standard'){
-        await page.evaluate(()=>window.ChuteExperience.navigate('/torneos/'+encodeURIComponent(keys.t)));
+        await page.evaluate((ids)=>window.ChuteExperience.navigate('/torneos/'+encodeURIComponent(ids.t)),keys);
         await page.screenshot({path:'/tmp/chute-6-2-torneo.png',fullPage:true});
-        await page.evaluate(()=>window.ChuteExperience.navigate('/equipos/'+encodeURIComponent(keys.club)));
+        await page.evaluate((ids)=>window.ChuteExperience.navigate('/equipos/'+encodeURIComponent(ids.club)),keys);
         await page.screenshot({path:'/tmp/chute-6-2-club.png',fullPage:true});
       }
       await page.evaluate(()=>window.ChuteExperience.navigate('/torneos'));
