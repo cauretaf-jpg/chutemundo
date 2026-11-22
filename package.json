@@ -1,6 +1,6 @@
 {
   "name": "chutemundo",
-  "version": "6.2.0",
+  "version": "6.2.1",
   "private": true,
   "description": "Chute Mundo: plataforma deportiva con torneos, partidos, Firebase, Ranking FIFA/ELO, ranking histórico, perfiles y estadísticas.",
   "scripts": {
