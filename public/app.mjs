@@ -3,7 +3,7 @@ const load = (path) => import(`${path}?v=${encodeURIComponent(VERSION)}`);
 
 await load('/modules/core/bootstrap.mjs');
 await load('/modules/core/assets.mjs');
-await load('/modules/core/split-loader.mjs');
+await load('/modules/core/app.mjs');
 await load('/modules/auth/password-reset.mjs');
 await load('/modules/detail/index.mjs');
 await load('/modules/data/player-ids.mjs');
@@ -11,7 +11,7 @@ await load('/modules/assets/photo-aliases.mjs');
 await load('/modules/assets/player-photo-overrides.mjs');
 await load('/modules/core/safety.mjs');
 await load('/modules/tournaments/admin.mjs');
-await window.ChuteSplitLoader({ prefix: 'modules/matches/live-part', count: 8, version: VERSION, label: 'el centro de partido' });
+await load('/modules/matches/live.mjs');
 await load('/modules/matches/live-access.mjs');
 await load('/modules/core/pwa.mjs');
 await load('/modules/tournaments/operations.mjs');
