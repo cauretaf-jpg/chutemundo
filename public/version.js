@@ -1,5 +1,5 @@
 (() => {
-  const VERSION = '6.1.0';
+  const VERSION = '6.2.0';
   const RELEASE_DATE = '2026-11-22';
   globalThis.CHUTE_APP_VERSION = VERSION;
   globalThis.CHUTE_RELEASE_DATE = RELEASE_DATE;
