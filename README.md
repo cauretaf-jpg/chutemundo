@@ -1,61 +1,75 @@
-# Chute Mundo
+# ChuteMundo
 
-ChuteMundo es la plataforma deportiva del universo **Chute**. Administra torneos, partidos, equipos, jugadores, divisiones, estadísticas, clásicos, disciplina y rankings históricos.
+ChuteMundo es la plataforma deportiva del universo Chute. Gestiona torneos, partidos, equipos, jugadores, divisiones, estadísticas, disciplina, clásicos, rankings y archivo histórico.
 
 ## Versión actual
 
-**Chute Mundo 6.0.0 — consolidación**
+**ChuteMundo 6.1.0 — consolidación modular**
 
-La versión 6 mantiene compatibilidad con el historial existente y consolida la aplicación alrededor de una sola fuente oficial de datos, una versión canónica, una navegación móvil y una lectura estadística más clara.
+La versión 6.1 elimina la última capa importante de deuda técnica heredada: el runtime ya no se arma desde fragmentos `.txt` ni módulos creados dinámicamente con `Blob`. Toda la aplicación activa se ejecuta desde módulos JavaScript reales organizados por dominio.
 
-### Cambios principales
+## Arquitectura
 
-- Firebase queda definido como **fuente oficial**.
-- `localStorage` queda como caché y recuperación local.
-- JSON queda como respaldo portable.
-- Supabase se retira del runtime activo y queda documentado como experimento archivado.
-- Se separan **Ranking FIFA/ELO**, **Ranking histórico** y **Tabla histórica**.
-- Nuevo dashboard con próximo partido, últimos resultados y jugador de mayor contribución.
-- Perfiles ampliados de jugadores.
-- Navegación móvil inferior.
-- Fotografías normalizadas visualmente mediante un contenedor común.
-- Formulario de torneos con configuración avanzada plegable.
-- Marcadores nuevos distinguen entre modo manual y modo derivado de eventos.
-- El acceso administrador queda preparado para claims/roles de Firebase, conservando temporalmente compatibilidad con la cuenta administradora histórica.
-- La PWA usa una caché de shell más pequeña y caché runtime para módulos y activos.
-- CI principal consolidado en `audit-v6` y `smoke-v6`.
+```text
+public/
+  app.mjs
+  modules/
+    admin/
+    assets/
+    auth/
+    core/
+    data/
+    detail/
+    discipline/
+    matches/
+    statistics/
+    tournaments/
+    ui/
+  styles/
+```
+
+Reglas de arquitectura:
+
+- Firebase es la fuente oficial compartida.
+- `localStorage` es caché y recuperación, no fuente de verdad.
+- JSON se usa para respaldo y migraciones controladas.
+- No se permiten archivos `.txt` dentro del runtime.
+- No se permiten rutas activas `/chute-v*`.
+- Las nuevas funciones deben incorporarse al dominio correspondiente, no como parches versionados.
 
 ## Navegación
 
-- **Inicio:** estado actual de la competición.
-- **Torneos:** competencias activas, futuras e históricas.
-- **Partidos:** calendario y centro de partido.
-- **Equipos:** clubes y planteles.
-- **Jugadores:** fichas individuales y rendimiento.
-- **Estadísticas:** FIFA/ELO, ranking histórico, tabla histórica, palmarés, goleadores, asistencias, clásicos y récords.
+- **Inicio:** torneo activo, progreso, próximo partido, últimos resultados y líderes.
+- **Torneos:** competencias activas, próximas e históricas.
+- **Partidos:** calendario, alineaciones, eventos y centro de partido.
+- **Equipos:** clubes, planteles y perfiles.
+- **Jugadores:** fichas y rendimiento individual.
+- **Estadísticas:** archivo histórico, FIFA/ELO, palmarés, récords y enfrentamientos.
 - **Disciplina:** tarjetas y sanciones.
-- **Administración:** Firebase, respaldos, integridad, reglamento y mantenimiento.
+- **Administración:** integridad, respaldos, Firebase y mantenimiento.
 
-## Modelo de datos
+## Datos y seguridad
 
-### Firebase
-Fuente de verdad compartida para equipos, torneos, partidos, eventos, participantes y estadísticas.
+Firestore mantiene lectura pública del archivo deportivo y escritura administrativa.
 
-### Almacenamiento local
-Caché de recuperación. No debe considerarse la fuente oficial cuando Firebase está disponible.
+La autorización ya reconoce custom claims:
 
-### JSON
-Formato de respaldo y migración portable.
+- `admin: true`
+- `role: "admin"`
 
-Antes de una modificación estructural importante se recomienda conservar un respaldo JSON y una referencia Git estable.
+Se mantiene temporalmente el acceso histórico de compatibilidad hasta configurar el claim definitivo. La trazabilidad pública deja de registrar el correo del administrador y utiliza una identidad genérica.
+
+Existe un respaldo Git previo a esta versión:
+
+`backup/pre-6.1-2026-11-22`
 
 ## Rankings
 
-### Ranking FIFA Chute
-Modelo ELO propio. Considera resultado, fuerza del rival, fase, diferencia de gol, definición por penales, amistosos con peso reducido y bonos de podio.
+### Ranking FIFA/ELO
+Mide fuerza competitiva actual.
 
 ### Ranking histórico
-Mide legado. Ordena por:
+Mide legado y ordena por:
 
 1. títulos;
 2. puntos históricos;
@@ -63,29 +77,24 @@ Mide legado. Ordena por:
 4. goles a favor.
 
 ### Tabla histórica
-Acumulación deportiva pura de los partidos oficiales.
+Acumula rendimiento puro de partidos oficiales.
 
-Los tres indicadores responden preguntas distintas y no deben confundirse.
+Los tres indicadores son deliberadamente distintos.
 
-## Marcadores y eventos
+## Partidos
 
-Los partidos nuevos pueden usar dos modos:
+Los marcadores soportan dos modos:
 
-- **events:** el marcador se deriva de los goles estructurados registrados en el centro de partido.
-- **manual:** permite conservar partidos históricos o corregir resultados cuando no existe detalle completo de eventos.
+- `events`: el resultado se deriva de los goles estructurados.
+- `manual`: conserva resultados históricos o casos sin detalle completo de eventos.
 
-El control de integridad distingue ambos casos para evitar falsos positivos.
+## Identidad de jugadores
 
-## Seguridad
+El esquema `player-ids-v1` asigna IDs persistentes y conserva alias históricos. Goles, asistencias, tarjetas y sustituciones pueden referenciar jugadores por ID para evitar que una corrección de nombre rompa estadísticas.
 
-Firestore mantiene lectura pública del archivo deportivo y escritura administrativa.
+## Assets
 
-ChuteMundo 6 reconoce roles mediante claims de Firebase:
-
-- `admin: true`
-- o `role: "admin"`
-
-Durante la transición se conserva el acceso administrativo histórico como mecanismo de compatibilidad para evitar bloquear el sistema antes de configurar el claim definitivo.
+Las fotografías y escudos de producción se almacenan normalizados dentro de `public/assets/`. Los originales se conservan fuera del runtime público.
 
 ## Desarrollo
 
@@ -94,37 +103,34 @@ npm install
 npm run dev
 ```
 
-La aplicación se sirve desde `public/`.
-
 Validaciones:
 
 ```bash
-npm run audit:v6
-npm run check:official
+npm run audit
+npm run check:data
+npm run smoke
+npm run smoke:responsive
 ```
 
-Smoke test de navegador:
+CI valida:
 
-```bash
-npm install --no-save playwright@1.52.0
-npx playwright install chromium
-npm run smoke:v6
-```
+- arquitectura y sintaxis;
+- ausencia de fragmentos `.txt`;
+- ausencia de rutas legacy;
+- integridad del fallback deportivo;
+- smoke test funcional;
+- responsive en 360×800, 390×844, 412×915, 768×1024 y 1440×900;
+- recursos JS/CSS rotos;
+- empaquetado de producción.
 
-## PWA y despliegue
+## Despliegue
 
-La aplicación se publica como sitio estático en Vercel.
+ChuteMundo se publica como sitio estático mediante Vercel y GitHub.
 
-- HTML y `version.js`: revalidación.
-- Activos versionados: caché larga.
-- Service Worker: shell mínimo + caché runtime.
-- `public/version.js`: fuente canónica de versión.
-
-## Compatibilidad histórica
-
-La rama `backup/pre-v6-2026-09-29` conserva el estado completo anterior a la migración v6.
-
-Git mantiene además todas las implementaciones antiguas y experimentos retirados.
+- HTML, JS y CSS se revalidan para evitar mezclas de caché entre versiones.
+- imágenes y fuentes usan caché larga.
+- ramas técnicas no se despliegan automáticamente.
+- `main` es la rama de producción.
 
 ## Chute y ChuteMundo
 
@@ -133,4 +139,4 @@ Son productos relacionados pero distintos:
 - **Chute:** juego de fútbol/cartas.
 - **ChuteMundo:** competición, archivo histórico y estadísticas.
 
-En el juego Chute hay **45 cartas que participan en el juego de fútbol**. El **DT es adicional** y cumple la función de dirección del equipo; no forma parte de esas 45 cartas de juego.
+En Chute hay **45 cartas que participan en el juego de fútbol**. El **DT es adicional** y no forma parte de esas 45 cartas.
