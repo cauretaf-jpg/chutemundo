@@ -37,7 +37,9 @@ jobs:
           npx playwright install --with-deps chromium
 
       - name: Browser smoke test
+        shell: bash
         run: |
+          set -euo pipefail
           npx serve public -l 4173 --no-clipboard > /tmp/chute-server.log 2>&1 &
           sleep 3
           npm run smoke 2>&1 | tee /tmp/chute-smoke.log
