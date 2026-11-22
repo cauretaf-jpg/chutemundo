@@ -43,6 +43,7 @@ jobs:
           npm run smoke 2>&1 | tee /tmp/chute-smoke.log
           npm run smoke:responsive 2>&1 | tee /tmp/chute-responsive.log
           npm run smoke:experience 2>&1 | tee /tmp/chute-immersive.log
+          npm run smoke:clicks 2>&1 | tee /tmp/chute-click-navigation.log
 
       - name: Upload diagnostics
         if: always()
@@ -53,6 +54,8 @@ jobs:
             /tmp/chute-smoke.log
             /tmp/chute-responsive.log
             /tmp/chute-immersive.log
+            /tmp/chute-click-navigation.log
+            /tmp/chute-navigation-*.png
             /tmp/chute-6-2-*.png
             /tmp/chute-server.log
           retention-days: 7
