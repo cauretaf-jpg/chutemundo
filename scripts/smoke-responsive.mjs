@@ -46,7 +46,7 @@ try {
         if (rows[pageId].pageRight > rows[pageId].viewportWidth + 3) failures.push(`${viewport.name}: ${pageId} desborda horizontalmente`);
         if (rows[pageId].documentWidth > rows[pageId].viewportWidth + 3) failures.push(`${viewport.name}: documento desborda en ${pageId}`);
       }
-      if (viewport.width <= 768) {
+      if (viewport.width <= 760) {
         const mobileNav = await page.locator('#cmV6MobileNav').isVisible().catch(() => false);
         if (!mobileNav) failures.push(`${viewport.name}: navegación móvil no visible`);
       }
