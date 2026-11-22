@@ -96,7 +96,7 @@ export function createViews(core, model) {
     return hero+D('cm62-grid cm62-grid-2',upcoming,tab)+last+heading('Protagonistas',A('Todas las estadísticas ›','/estadisticas'))+people;
   }
   function tournamentCatalog(filters) {
-    const selected=tournaments().filter(t=>filters.tournamentStatus==='all'||t.status===filters.tournamentStatus).filter(t=>t.name.toLowerCase().includes(filters.tournamentSearch.toLowerCase()));
+    const selected=tournaments().filter(t=>filters.tournamentStatus==='all'||t.status===filters.tournamentStatus).filter(t=>(t.name+' '+(t.type||'')).toLowerCase().includes(filters.tournamentSearch.toLowerCase()));
     return H('Torneos','Explora competiciones activas, próximas e históricas.','COMPETENCIAS')+D('cm62-controls',E('input',{id:'cm62TournamentSearch',placeholder:'Nombre, año o formato…',type:'search',value:filters.tournamentSearch,'aria-label':'Buscar torneo'}),E('select',{id:'cm62TournamentStatus','aria-label':'Estado'},[['all','Todos'],['active','En disputa'],['historical','Finalizados'],['upcoming','Próximos']].map(([k,v])=>E('option',{value:k,...(filters.tournamentStatus===k?{selected:'selected'}:{})},v))))+D('cm62-catalog',selected.slice().reverse().sort((a,b)=>Number(b.status==='active')-Number(a.status==='active')).map(t=>{const p=progress(t);return card(D('cm62-card-top',E('span',{class:'cm62-status is-soft'},esc(t.status==='active'?'En disputa':t.status==='historical'?'Finalizado':'Próximo')),E('span',{},p.done+' / '+p.total+' encuentros')),E('h2',{},esc(t.name)),P((t.teamIds||[]).length+' equipos · '+p.pending+' pendientes','cm62-muted'),D('cm62-logo-cluster',(t.teamIds||[]).slice(0,6).map(id=>logo(id,'is-small'))),D('cm62-progress-track',E('div',{class:'cm62-progress-fill',style:'width:'+p.percent+'%'})),B('Abrir competición ›',tournamentRoute(t.id),'is-primary'));}));
   }
   function tournamentDetail(id,tab='resumen') {
@@ -116,10 +116,21 @@ export function createViews(core, model) {
     }
     return top+nav+body;
   }
+
   function matchCatalog(filters) {
-    const rows=allMatches().filter(x=>(filters.matchTournament==='all'||x.tournament.id===filters.matchTournament)&&(filters.matchStatus==='all'||(filters.matchStatus==='played'?played(x.match):!played(x.match))));
+    const all=allMatches();
+    const rounds=[...new Set(all.map(x=>x.match.round||'').filter(Boolean))];
+    const rows=all.filter(x=>(filters.matchTournament==='all'||x.tournament.id===filters.matchTournament)
+      &&(filters.matchStatus==='all'||(filters.matchStatus==='played'?played(x.match):!played(x.match)))
+      &&(filters.matchRound==='all'||x.match.round===filters.matchRound));
     const options=[['all','Todos los torneos'],...tournaments().map(t=>[t.id,t.name])];
-    return H('Partidos','El calendario como acceso al relato de cada encuentro.','CALENDARIO')+D('cm62-controls',E('select',{id:'cm62MatchTournament','aria-label':'Torneo'},options.map(([k,v])=>E('option',{value:k,...(filters.matchTournament===k?{selected:'selected'}:{})},esc(v)))),E('select',{id:'cm62MatchStatus','aria-label':'Estado'},[['all','Todos los estados'],['played','Finalizados'],['pending','Pendientes']].map(([k,v])=>E('option',{value:k,...(filters.matchStatus===k?{selected:'selected'}:{})},v))))+card(heading('Encuentros',''),resultsList(rows));
+    const choose=(id,value,items,label)=>E('select',{id,'aria-label':label},items.map(([k,v])=>E('option',{value:k,...(value===k?{selected:'selected'}:{})},esc(v))));
+    return H('Partidos','El calendario como acceso al relato de cada encuentro.','CALENDARIO')+
+      D('cm62-controls',
+        choose('cm62MatchTournament',filters.matchTournament,options,'Torneo'),
+        choose('cm62MatchStatus',filters.matchStatus,[['all','Todos los estados'],['played','Finalizados'],['pending','Pendientes']],'Estado'),
+        choose('cm62MatchRound',filters.matchRound,[['all','Todas las jornadas'],...rounds.map(r=>[r,r])],'Jornada'))+
+      card(heading('Encuentros'),resultsList(rows));
   }
   function matchDetail(tid,mid,tab='resumen') {
     const t=tournament(tid),m=t?.matches?.find(x=>x.id===mid);if(!t||!m)return H('Partido no encontrado')+B('Ver partidos','/partidos');
@@ -242,10 +253,53 @@ export function createViews(core, model) {
     }
     return breadcrumbs([['Estadísticas','/estadisticas'],[title,null]])+H(title,'Datos derivados de los registros oficiales.','ARCHIVO HISTÓRICO')+nav+globalFilters+body;
   }
-  function discipline(filters){
-    const arr=model.disciplineRows(core).filter(r=>filters.disciplineTeam==='all'||r.teamId===filters.disciplineTeam);
-    const all=model.disciplineRows(core),ys=all.reduce((a,b)=>a+b.yellows,0),rs=all.reduce((a,b)=>a+b.reds,0),s=all.filter(r=>r.suspended).length;
-    return H('Disciplina','Tarjetas y sanciones conectadas a las fichas deportivas.','CONTROL DISCIPLINARIO')+D('cm62-controls',E('select',{id:'cm62DisciplineTeam','aria-label':'Filtrar equipo'},[['all','Todos los clubes'],...teams().map(t=>[t.id,t.name])].map(([k,v])=>E('option',{value:k,...(filters.disciplineTeam===k?{selected:'selected'}:{})},esc(v)))))+metrics([[ys,'Amarillas'],[rs,'Rojas'],[s,'Posibles suspensiones'],[all.length,'Jugadores con registros']])+card(heading('Registro disciplinario'),arr.length?D('cm62-list',arr.map(x=>A(photo(x.teamId,x.name,'is-face')+D('cm62-row-copy',E('strong',{},esc(x.name)),E('small',{},esc(teamName(x.teamId))+' · '+x.yellows+' amarillas / '+x.reds+' rojas'))+E('b',{class:x.suspended?'cm62-danger':''},x.suspended?'Revisar sanción':'Registrado'),playerRoute(x.teamId,x.name),'cm62-list-row'))):empty('Sin tarjetas registradas para los filtros seleccionados.'));
+
+  function discipline(filters) {
+    const choose=(id,value,opts,label)=>E('select',{id,'aria-label':label},opts.map(([k,v])=>E('option',{value:k,...(value===k?{selected:'selected'}:{})},esc(v))));
+    const filteredTournaments=tournaments().filter(t=>filters.disciplineTournament==='all'||filters.disciplineTournament===t.id);
+    const cards=allMatches(filteredTournaments).flatMap(({tournament:t,match:m})=>{
+      const [home,away]=matchTeams(t,m);
+      return (m.cards||[]).map(item=>({
+        tournament:t,match:m,teamId:item.teamId||(item.side==='away'?away:home),
+        name:item.playerName||item.name||'',type:item.type||'yellow',minute:item.minute
+      }));
+    }).filter(x=>x.name);
+    const allRows=filters.disciplineTournament==='all' ? model.disciplineRows(core) : (()=>{
+      const map=new Map();
+      for(const entry of cards){
+        const key=entry.teamId+'::'+entry.name;
+        const row=map.get(key)||{teamId:entry.teamId,name:entry.name,yellows:0,reds:0,suspended:false};
+        if(entry.type==='red')row.reds++;else row.yellows++;
+        map.set(key,row);
+      }
+      const threshold=Number(tournament(filters.disciplineTournament)?.config?.discipline?.yellowAccumulationSuspension||3);
+      return [...map.values()].map(r=>({...r,suspended:r.reds>0||r.yellows>=threshold}));
+    })();
+    const filtered=allRows.filter(r=>(filters.disciplineTeam==='all'||r.teamId===filters.disciplineTeam)
+      &&(filters.disciplineCard==='all'||(filters.disciplineCard==='yellow'?r.yellows>0:r.reds>0))
+      &&(filters.disciplineStatus==='all'||(filters.disciplineStatus==='suspended'?r.suspended:!r.suspended)));
+    const eventRows=cards.filter(x=>(filters.disciplineTeam==='all'||x.teamId===filters.disciplineTeam)
+      &&(filters.disciplineCard==='all'||x.type===filters.disciplineCard));
+    const ys=filtered.reduce((a,b)=>a+b.yellows,0),rs=filtered.reduce((a,b)=>a+b.reds,0),s=filtered.filter(r=>r.suspended).length;
+    const selects=D('cm62-controls',
+      choose('cm62DisciplineTournament',filters.disciplineTournament,[['all','Todos los torneos'],...tournaments().map(t=>[t.id,t.name])],'Torneo'),
+      choose('cm62DisciplineTeam',filters.disciplineTeam,[['all','Todos los clubes'],...teams().map(t=>[t.id,t.name])],'Equipo'),
+      choose('cm62DisciplineCard',filters.disciplineCard,[['all','Todas las tarjetas'],['yellow','Amarillas'],['red','Rojas']],'Tarjeta'),
+      choose('cm62DisciplineStatus',filters.disciplineStatus,[['all','Todos los estados'],['suspended','Posible suspensión'],['available','Sin suspensión calculada']],'Estado'));
+    return H('Disciplina','Tarjetas y sanciones conectadas a las fichas deportivas.','CONTROL DISCIPLINARIO')+
+      selects+metrics([[ys,'Amarillas'],[rs,'Rojas'],[s,'Posibles suspensiones'],[filtered.length,'Jugadores con registros']])+
+      card(heading('Registro disciplinario'),filtered.length?D('cm62-list',filtered.map(x=>A(
+        photo(x.teamId,x.name,'is-face')+
+        D('cm62-row-copy',E('strong',{},esc(x.name)),E('small',{},esc(teamName(x.teamId))+' · '+x.yellows+' amarillas / '+x.reds+' rojas'))+
+        E('b',{class:x.suspended?'cm62-danger':''},x.suspended?'Revisar sanción':'Registrado'),
+        playerRoute(x.teamId,x.name),'cm62-list-row'))):empty('Sin tarjetas registradas para los filtros seleccionados.'))+
+      card(heading('Tarjetas por encuentro'),eventRows.length?
+        D('cm62-list',eventRows.map(x=>D('cm62-list-row',
+          E('span',{class:x.type==='red'?'cm62-card-icon is-red':'cm62-card-icon is-yellow'},''),
+          D('cm62-row-copy',E('strong',{},pLink(x.teamId,x.name)),E('small',{},esc(teamName(x.teamId))+' · '+esc(x.tournament.name)+' · '+(x.minute?x.minute+'′':'Sin minuto')),
+          A('Ver partido ›',matchRoute(x.tournament.id,x.match.id),'cm62-inline-link')))):
+        empty('No existen tarjetas individualizadas en los partidos filtrados.'))+
+      P('Las posibles suspensiones son orientativas; el registro y el reglamento oficial determinan la disponibilidad final.','cm62-muted');
   }
   function administration(){
     const can=core.isAdmin?.();
