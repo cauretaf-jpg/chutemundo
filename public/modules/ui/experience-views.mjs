@@ -135,7 +135,7 @@ export function createViews(core, model) {
   function matchDetail(tid,mid,tab='resumen') {
     const t=tournament(tid),m=t?.matches?.find(x=>x.id===mid);if(!t||!m)return H('Partido no encontrado')+B('Ver partidos','/partidos');
     const [h,a]=matchTeams(t,m),base=matchRoute(tid,mid);
-    const hero=breadcrumbs([['Torneos','/torneos'],[t.name,tournamentRoute(tid)],['Partido',null]])+D('cm62-scoreboard',P(esc(m.round||m.group||'PARTIDO')+' · '+esc(t.name),'cm62-kicker'),D('cm62-scoreboard-main',A(logo(h,'is-xl')+E('strong',{},esc(teamName(h))),teamRoute(h),'cm62-scoreboard-team'),D('cm62-score-large',E('b',{},esc(matchResult(m))),E('small',{},played(m)?'Finalizado':'Por jugar')),A(logo(a,'is-xl')+E('strong',{},esc(teamName(a))),teamRoute(a),'cm62-scoreboard-team')),P(esc(dateText(m)),'cm62-muted'));
+    const hero=breadcrumbs([['Torneos','/torneos'],[t.name,tournamentRoute(tid)],['Partido',null]])+D('cm62-scoreboard',P(esc(m.round||m.group||'PARTIDO')+' · '+esc(t.name),'cm62-kicker'),E('h1',{class:'cm62-match-heading'},esc(teamName(h)+' vs '+teamName(a))),D('cm62-scoreboard-main',A(logo(h,'is-xl')+E('strong',{},esc(teamName(h))),teamRoute(h),'cm62-scoreboard-team'),D('cm62-score-large',E('b',{},esc(matchResult(m))),E('small',{},played(m)?'Finalizado':'Por jugar')),A(logo(a,'is-xl')+E('strong',{},esc(teamName(a))),teamRoute(a),'cm62-scoreboard-team')),P(esc(dateText(m)),'cm62-muted'));
     const nav=tabNav(base,[['resumen','Resumen'],['eventos','Eventos'],['alineaciones','Alineaciones'],['estadisticas','Estadísticas']],tab);
     const eventRows=[];
     for(const g of m.goals||[])eventRows.push({minute:Number(g.minute)||0,kind:'Gol',name:g.playerName||'',teamId:g.teamId|| (g.side==='away'?a:h)});
