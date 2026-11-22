@@ -20,8 +20,51 @@ let lastTransition = null;
 
 const clone = (value) => typeof structuredClone === 'function' ? structuredClone(value) : JSON.parse(JSON.stringify(value));
 const isProtected = (tournament) => Boolean(tournament?.protected === true || /^t\d+$/i.test(String(tournament?.id || '')));
-const actor = () => core.authUser?.email || 'Administrador';
+const actor = () => 'Administrador';
 const device = () => /Android|iPhone|iPad|Mobile/i.test(navigator.userAgent) ? 'Móvil' : 'Escritorio';
+
+function sanitizePublicAuditIdentity(sourceState) {
+  const next = clone(sourceState);
+  let changed = false;
+  next.activity = Array.isArray(next.activity) ? next.activity.map((entry) => {
+    if (!entry || typeof entry !== 'object') return entry;
+    if (typeof entry.actor === 'string' && entry.actor.includes('@')) {
+      changed = true;
+      return { ...entry, actor: 'Administrador' };
+    }
+    return entry;
+  }) : [];
+  if (Array.isArray(next.trash?.tournaments)) {
+    next.trash.tournaments = next.trash.tournaments.map((entry) => {
+      if (!entry || typeof entry !== 'object') return entry;
+      if (typeof entry.deletedBy === 'string' && entry.deletedBy.includes('@')) {
+        changed = true;
+        return { ...entry, deletedBy: 'Administrador' };
+      }
+      return entry;
+    });
+  }
+  return { changed, state: next };
+}
+
+let auditIdentityMigrationRunning = false;
+async function migratePublicAuditIdentity() {
+  if (auditIdentityMigrationRunning || !core.canEdit?.()) return false;
+  const migration = sanitizePublicAuditIdentity(core.getState());
+  if (!migration.changed) return false;
+  auditIdentityMigrationRunning = true;
+  try {
+    core.setState(migration.state);
+    core.persistLocal?.();
+    await core.saveCloud?.();
+    return true;
+  } catch (error) {
+    console.warn('No se pudo anonimizar todavía la trazabilidad pública.', error);
+    return false;
+  } finally {
+    auditIdentityMigrationRunning = false;
+  }
+}
 
 function installStyles() {
   if (document.getElementById('cmV510Styles')) return;
@@ -370,3 +413,8 @@ window.ChuteV510Safety = {
   moveToTrash,
   refresh
 };
+
+
+document.addEventListener('chute:auth-changed', (event) => {
+  if (event.detail?.isAdmin) void migratePublicAuditIdentity();
+});
