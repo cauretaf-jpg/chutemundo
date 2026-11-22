@@ -55,9 +55,9 @@ export function createViews(core, model) {
     if(t.manualStandings?.length) return t.manualStandings.slice().sort((a,b)=>(a.pos||0)-(b.pos||0));
     return tableFor(t.teamIds||[],(t.matches||[]).filter(m=>m.stage==='regular'||m.stage==='group'));
   };
-  const historical = () => {
-    const rows=tableFor(teams().map(t=>t.id),allMatches().map(x=>x.match));
-    return rows.map(r=>({...r,titles:tournaments().filter(t=>t.champion===r.teamId).length}))
+  const historical = (selected=tournaments()) => {
+    const rows=tableFor(teams().map(t=>t.id),allMatches(selected).map(x=>x.match));
+    return rows.map(r=>({...r,titles:selected.filter(t=>t.champion===r.teamId).length}))
       .sort((a,b)=>b.titles-a.titles||b.pts-a.pts||b.dg-a.dg||b.gf-a.gf);
   };
   const metrics = (entries) => D('cm62-metrics',entries.map(([value,label])=>D('cm62-metric',E('strong',{},esc(String(value))),E('span',{},esc(label)))));
@@ -188,29 +188,59 @@ export function createViews(core, model) {
     else body=card(heading('Títulos del club'),titleRows.length?D('cm62-tiles',titleRows.map(x=>sectionTile(x.name,'Torneo ganado por '+t.name,tournamentRoute(x.id),'🏆'))):empty('No hay títulos del club registrados en las competiciones disponibles.'));
     return hero+nav+body;
   }
-  function statisticsExplorer(tab='inicio'){
+
+  function statisticsExplorer(tab='inicio',filters){
     const tiles=[['tabla','Tabla histórica','Acumulado de partidos'],['fifa','Ranking FIFA/ELO','Fuerza competitiva'],['historico','Ranking histórico','Legado y títulos'],['palmares','Palmarés','Campeones y premios'],['records','Récords','Marcas del deporte'],['h2h','Clásicos y H2H','Cara a cara']];
-    if(tab==='inicio')return H('Estadísticas','Explora el archivo oficial y accede a sus protagonistas.','ARCHIVO HISTÓRICO')+D('cm62-archive-intro',E('h2',{},'Explorar la historia de ChuteMundo'),P('Torneos, equipos, jugadores y enfrentamientos conectados.'))+D('cm62-archive-grid',tiles.map(([id,title,desc],i)=>sectionTile(String(i+1).padStart(2,'0')+' · '+title,desc,'/estadisticas/'+id,'▥')));
+    const division = (t) => t.type==='division_season'||t.eraId==='divisions'||t.era==='division';
+    const selected=tournaments().filter(t=>(filters.statPeriod==='all'||filters.statPeriod===(division(t)?'divisions':'leagues'))&&(filters.statTournament==='all'||t.id===filters.statTournament)&&(filters.statFormat==='all'||t.type===filters.statFormat));
+    const choose=(id,value,opts,label)=>E('label',{class:'cm62-filter-field'},E('span',{},esc(label)),E('select',{id,'aria-label':label},opts.map(([k,v])=>E('option',{value:k,...(value===k?{selected:'selected'}:{})},esc(v)))));
+    const formatTypes=[...new Set(tournaments().map(t=>t.type))].filter(Boolean);
+    const globalFilters=E('div',{class:'cm62-stats-filters'},P('FILTROS GLOBALES','cm62-kicker'),D('cm62-filter-grid',
+      choose('cm62StatPeriod',filters.statPeriod,[['all','Toda la historia'],['leagues','Era de ligas'],['divisions','Era de divisiones']],'Periodo'),
+      choose('cm62StatTournament',filters.statTournament,[['all','Todos los torneos'],...tournaments().map(t=>[t.id,t.name])],'Torneo'),
+      choose('cm62StatTeam',filters.statTeam,[['all','Todos los clubes'],...teams().map(t=>[t.id,t.name])],'Equipo'),
+      choose('cm62StatFormat',filters.statFormat,[['all','Todos los formatos'],...formatTypes.map(t=>[t,t.replaceAll('_',' ')])],'Formato')));
+    if(tab==='inicio')return H('Estadísticas','Explora el archivo oficial y accede a sus protagonistas.','ARCHIVO HISTÓRICO')+D('cm62-archive-intro',E('h2',{},'Explorar la historia de ChuteMundo'),P('Torneos, equipos, jugadores y enfrentamientos conectados.'))+globalFilters+D('cm62-archive-grid',tiles.map(([id,title,desc],i)=>sectionTile(String(i+1).padStart(2,'0')+' · '+title,desc,'/estadisticas/'+id,'▥')));
     const title=tiles.find(t=>t[0]===tab)?.[1]||'Estadísticas';
     const nav=tabNav('/estadisticas',[['tabla','Tabla'],['fifa','FIFA/ELO'],['historico','Histórico'],['palmares','Palmarés'],['records','Récords'],['h2h','H2H']],tab);
+    const visibleTeam=(row)=>filters.statTeam==='all'||row.teamId===filters.statTeam;
     let body='';
     if(tab==='fifa'){
-      const rows=window.ChuteFifaV525?.rows?.()||[];
-      body=card(heading('Clasificación FIFA/ELO'),rows.length?D('cm62-list',rows.map((r,i)=>A(E('b',{},String(i+1))+logo(r.teamId,'is-small')+D('cm62-row-copy',E('strong',{},esc(teamName(r.teamId))),E('small',{},'Rating ELO '+Number(r.rating).toFixed(1)))+E('b',{},Math.round(r.points||0)+' pts'),teamRoute(r.teamId),'cm62-list-row'))):empty('Ranking FIFA no disponible.'));
+      const rows=window.ChuteFifaV525?.compute?.(selected,{source:state(),includeFriendlies:filters.statPeriod==='all'&&filters.statTournament==='all'&&filters.statFormat==='all'})||[];
+      const relevant=rows.filter(visibleTeam);
+      body=card(heading('Clasificación FIFA/ELO'),relevant.length?D('cm62-list',relevant.map((r,i)=>A(E('b',{},String(i+1))+logo(r.teamId,'is-small')+D('cm62-row-copy',E('strong',{},esc(teamName(r.teamId))),E('small',{},'Rating ELO '+Number(r.rating).toFixed(1)))+E('b',{},Math.round(r.points||0)+' pts'),teamRoute(r.teamId),'cm62-list-row'))):empty('Sin datos FIFA/ELO para los filtros seleccionados.'));
     }else if(tab==='historico'){
-      body=card(heading('Clasificación histórica'),D('cm62-list',historical().map((r,i)=>A(E('b',{},String(i+1))+logo(r.teamId,'is-small')+D('cm62-row-copy',E('strong',{},esc(teamName(r.teamId))),E('small',{},r.titles+' títulos · '+r.pts+' puntos')),teamRoute(r.teamId),'cm62-list-row'))));
+      const rows=historical(selected).filter(visibleTeam);
+      body=card(heading('Clasificación histórica'),rows.length?D('cm62-list',rows.map((r,i)=>A(E('b',{},String(i+1))+logo(r.teamId,'is-small')+D('cm62-row-copy',E('strong',{},esc(teamName(r.teamId))),E('small',{},r.titles+' títulos · '+r.pts+' puntos')),teamRoute(r.teamId),'cm62-list-row'))):empty('No existen resultados para este filtro.'));
     }else if(tab==='palmares'){
-      const titled=tournaments().filter(t=>t.champion);
-      body=card(heading('Campeones'),titled.length?D('cm62-list',titled.map(t=>D('cm62-list-row',A(E('strong',{},esc(t.name)),tournamentRoute(t.id)),club(t.champion,true)))):empty('Aún no se registran campeones.'));
+      const titled=selected.filter(t=>t.champion&&(filters.statTeam==='all'||t.champion===filters.statTeam));
+      body=card(heading('Campeones'),titled.length?D('cm62-list',titled.map(t=>D('cm62-list-row',A(E('strong',{},esc(t.name)),tournamentRoute(t.id)),club(t.champion,true)))):empty('No hay campeones registrados para esos filtros.'));
     }else if(tab==='records'){
-      const games=allMatches().filter(x=>played(x.match)).slice().sort((a,b)=>(Number(b.match.homeGoals)+Number(b.match.awayGoals))-(Number(a.match.homeGoals)+Number(a.match.awayGoals)));
-      const scorer=stats().slice().sort((a,b)=>b.goals-a.goals)[0];
+      const games=allMatches(selected).filter(x=>played(x.match)&&(filters.statTeam==='all'||matchTeams(x.tournament,x.match).includes(filters.statTeam))).slice().sort((a,b)=>(Number(b.match.homeGoals)+Number(b.match.awayGoals))-(Number(a.match.homeGoals)+Number(a.match.awayGoals)));
+      const scorer=stats(selected).filter(visibleTeam).slice().sort((a,b)=>b.goals-a.goals)[0];
       body=D('cm62-grid cm62-grid-2',card(heading('Máximo goleador'),scorer?.goals?E('strong',{},pLink(scorer.teamId,scorer.name))+P(scorer.goals+' goles'):empty('Sin datos de goleadores')),card(heading('Partido con más goles'),games[0]?scoreCard(games[0]):empty('Sin partidos finalizados')));
     }else if(tab==='h2h'){
+      const first=teams()[0]?.id||'',second=teams().find(t=>t.id!==first)?.id||'';
+      const a=filters.h2hA||first,b=filters.h2hB||second;
+      const duels=allMatches(selected).filter(x=>{const [home,away]=matchTeams(x.tournament,x.match);return played(x.match)&&((home===a&&away===b)||(home===b&&away===a));});
+      let winA=0,winB=0,draws=0;
+      for(const x of duels){
+        const [home]=matchTeams(x.tournament,x.match),ownHome=home===a;
+        const ga=ownHome?Number(x.match.homeGoals):Number(x.match.awayGoals),gb=ownHome?Number(x.match.awayGoals):Number(x.match.homeGoals);
+        if(ga>gb)winA++;else if(gb>ga)winB++;else draws++;
+      }
+      const opts=teams().map(t=>[t.id,t.name]);
       const classics=state().classics||[];
-      body=card(heading('Rivalidades registradas'),classics.length?D('cm62-tiles',classics.map(c=>sectionTile(c.name||teamName(c.a)+' vs '+teamName(c.b),'Ver clubes y trayectoria',teamRoute(c.a),'⚔'))):empty('No hay clásicos configurados.'))+card(heading('Explorar clubes'),D('cm62-tiles',teams().map(t=>sectionTile(t.name,'Estadísticas y partidos',teamRoute(t.id),'🛡'))));
-    }else body=card(heading('Tabla histórica acumulada'),miniTable(tableFor(teams().map(t=>t.id),allMatches().map(x=>x.match))));
-    return breadcrumbs([['Estadísticas','/estadisticas'],[title,null]])+H(title,'Datos derivados de los registros oficiales.','ARCHIVO HISTÓRICO')+nav+body;
+      body=card(heading('Enfrentamiento directo'),D('cm62-filter-grid cm62-filter-grid-2',
+        choose('cm62H2HA',a,opts,'Club A'),choose('cm62H2HB',b,opts,'Club B')),
+        metrics([[winA,'Victorias '+teamName(a)],[draws,'Empates'],[winB,'Victorias '+teamName(b)],[duels.length,'Partidos']]),
+        resultsList(duels.slice().reverse()))+
+        (classics.length?card(heading('Clásicos registrados'),D('cm62-tiles',classics.map(c=>E('button',{type:'button',class:'cm62-tile','data-cm62-h2h':c.a+'__'+c.b},D('cm62-tile-copy',E('strong',{},esc(c.name||teamName(c.a)+' vs '+teamName(c.b))),E('small',{},'Comparar enfrentamiento')),E('span',{class:'cm62-tile-arrow'},'›'))))):'');
+    }else {
+      const rows=tableFor(teams().map(t=>t.id),allMatches(selected).map(x=>x.match)).filter(visibleTeam);
+      body=card(heading('Tabla histórica acumulada'),miniTable(rows));
+    }
+    return breadcrumbs([['Estadísticas','/estadisticas'],[title,null]])+H(title,'Datos derivados de los registros oficiales.','ARCHIVO HISTÓRICO')+nav+globalFilters+body;
   }
   function discipline(filters){
     const arr=model.disciplineRows(core).filter(r=>filters.disciplineTeam==='all'||r.teamId===filters.disciplineTeam);
@@ -232,7 +262,7 @@ export function createViews(core, model) {
     if(section==='partidos')return parts[1]&&parts[2]?matchDetail(parts[1],parts[2],parts[3]||'resumen'):matchCatalog(filters);
     if(section==='equipos')return parts[1]?clubDetail(parts[1],parts[2]||'resumen'):clubCatalog(filters);
     if(section==='jugadores')return parts[1]&&parts[2]?playerDetail(parts[1],parts[2],parts[3]||'resumen'):playerCatalog(filters);
-    if(section==='estadisticas')return statisticsExplorer(parts[1]||'inicio');
+    if(section==='estadisticas')return statisticsExplorer(parts[1]||'inicio',filters);
     if(section==='disciplina')return discipline(filters);
     if(section==='administracion')return administration();
     if(section==='compartir'&&parts[1]&&parts[2])return matchDetail(parts[1],parts[2]);
