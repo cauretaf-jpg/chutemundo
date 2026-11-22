@@ -296,7 +296,7 @@ export function createViews(core, model) {
       card(heading('Tarjetas por encuentro'),eventRows.length?
         D('cm62-list',eventRows.map(x=>D('cm62-list-row',
           E('span',{class:x.type==='red'?'cm62-card-icon is-red':'cm62-card-icon is-yellow'},''),
-          D('cm62-row-copy',E('strong',{},pLink(x.teamId,x.name)),E('small',{},esc(teamName(x.teamId))+' · '+esc(x.tournament.name)+' · '+(x.minute?x.minute+'′':'Sin minuto')),
+          D('cm62-row-copy',E('strong',{},pLink(x.teamId,x.name)),E('small',{},esc(teamName(x.teamId))+' · '+esc(x.tournament.name)+' · '+(x.minute?x.minute+'′':'Sin minuto'))),
           A('Ver partido ›',matchRoute(x.tournament.id,x.match.id),'cm62-inline-link')))):
         empty('No existen tarjetas individualizadas en los partidos filtrados.'))+
       P('Las posibles suspensiones son orientativas; el registro y el reglamento oficial determinan la disponibilidad final.','cm62-muted');
