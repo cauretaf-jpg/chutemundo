@@ -33,7 +33,7 @@ jobs:
 
       - name: Install browser test dependencies
         run: |
-          npm install --no-save serve@14.2.4 playwright@1.52.0
+          npm install --no-save serve@14.2.4 playwright@1.65.1
           npx playwright install --with-deps chromium
 
       - name: Browser smoke test
