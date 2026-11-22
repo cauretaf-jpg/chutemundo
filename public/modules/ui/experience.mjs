@@ -11,7 +11,10 @@ if (classic) {
   banner.className = 'cm62-classic-banner';
   banner.innerHTML = '<span>Herramientas clásicas de administración · ChuteMundo 6.2</span><a href="/">Volver a la experiencia deportiva →</a>';
   document.body.prepend(banner);
-  if (location.hash.startsWith('#/administracion')) core.navigate('administracion');
+  const classicPage=location.hash.startsWith('#/') ? location.hash.slice(2).split('/')[0] : '';
+  if (['administracion','torneos','partidos','equipos','jugadores','estadisticas','disciplina'].includes(classicPage)) core.navigate(classicPage);
+  const focus=new URLSearchParams(location.search).get('focus');
+  if (focus) setTimeout(()=>document.getElementById(focus)?.scrollIntoView({behavior:'smooth',block:'start'}),500);
   window.ChuteExperience = Object.freeze({ enabled: false, version: '6.2.0' });
 } else {
   const views = createViews(core, model);
@@ -252,7 +255,8 @@ if (classic) {
     const classicButton=event.target.closest?.('[data-cm62-classic]');
     if(classicButton){
       const page=classicButton.dataset.cm62Classic;
-      location.href=location.pathname+'?classic=1#/'+encodeURIComponent(page);
+      const focus=classicButton.dataset.cm62Focus;
+      location.href=location.pathname+'?classic=1'+(focus?'&focus='+encodeURIComponent(focus):'')+'#/'+encodeURIComponent(page);
       return;
     }
     const oldButton=event.target.closest?.('.nav-button[data-page], [data-cm-v6-page], [data-cm-mobile-page], [data-cm-page]');
