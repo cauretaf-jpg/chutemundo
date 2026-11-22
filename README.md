@@ -4,9 +4,9 @@ ChuteMundo es la plataforma deportiva del universo Chute. Gestiona torneos, part
 
 ## Versión actual
 
-**ChuteMundo 6.1.0 — consolidación modular**
+**ChuteMundo 6.2.0 — navegación inmersiva**
 
-La versión 6.1 elimina la última capa importante de deuda técnica heredada: el runtime ya no se arma desde fragmentos `.txt` ni módulos creados dinámicamente con `Blob`. Toda la aplicación activa se ejecuta desde módulos JavaScript reales organizados por dominio.
+La versión 6.2 implementa el prototipo visual aprobado: Inicio único, catálogo de torneos, centro de torneo, calendario y centro de partido, clubes, jugadores, explorador estadístico, disciplina y administración, tanto en móvil como en escritorio. Todas las vistas deportivas usan datos existentes de Firebase y conservan un recorrido contextual. Se mantiene la modularización 6.1.
 
 ## Arquitectura
 
@@ -26,6 +26,10 @@ public/
     tournaments/
     ui/
   styles/
+    experience.css
+  modules/ui/
+    experience.mjs
+    experience-views.mjs
 ```
 
 Reglas de arquitectura:
@@ -110,7 +114,12 @@ npm run audit
 npm run check:data
 npm run smoke
 npm run smoke:responsive
+npm run smoke:experience
 ```
+
+La navegación pública utiliza enlaces profundos con hash para ser compatible con el hosting estático (por ejemplo `/#/torneos/{id}`, `/#/partidos/{torneoId}/{partidoId}` y `/#/jugadores/{clubId}/{nombre}`). Las pestañas locales y el botón Atrás conservan el recorrido. Los enlaces pueden compartirse directamente.
+
+Las herramientas administrativas originales siguen disponibles desde Administración → «Abrir herramientas de administración», que activa `?classic=1`. Este modo mantiene los formularios de Firebase, torneos, respaldos y centro de partido sin modificar sus operaciones.
 
 CI valida:
 
@@ -121,6 +130,8 @@ CI valida:
 - smoke test funcional;
 - responsive en 360×800, 390×844, 412×915, 768×1024 y 1440×900;
 - recursos JS/CSS rotos;
+- pantallas públicas 6.2 y rutas profundas en 5 resoluciones;
+- regreso contextual y compatibilidad de las herramientas clásicas;
 - empaquetado de producción.
 
 ## Despliegue

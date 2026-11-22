@@ -26,7 +26,7 @@ try {
     page.on('pageerror', (error) => pageErrors.push(String(error)));
 
     try {
-      await page.goto('http://127.0.0.1:4173/', { waitUntil: 'domcontentloaded' });
+      await page.goto('http://127.0.0.1:4173/?classic=1', { waitUntil: 'domcontentloaded' });
       await page.waitForFunction(() => window.ChuteMundoCore && window.ChuteVersion?.bootCompleted);
       const rows = {};
       for (const pageId of pages) {
