@@ -136,8 +136,10 @@ export function createViews(core, model) {
     if(tab==='resumen')body=D('cm62-grid cm62-grid-2',card(heading('El encuentro'),P(played(m)?'Resultado oficial registrado':'Encuentro pendiente','cm62-muted'),P(esc(m.notes||'')),D('cm62-tiles',sectionTile('Eventos','Goles, tarjetas y minutos',matchRoute(tid,mid,'eventos'),'◴'),sectionTile('Alineaciones','Planteles y formación',matchRoute(tid,mid,'alineaciones'),'♟'))),card(heading('Protagonistas'),timeline))+D('cm62-action-row',B('Ver torneo ›',tournamentRoute(tid),'is-outline'),B('Compartir partido','/compartir/'+encodeURIComponent(tid)+'/'+encodeURIComponent(mid),'is-outline'));
     else if(tab==='eventos')body=card(heading('Cronología del encuentro'),timeline);
     else if(tab==='alineaciones'){
-      const l=m.lineups||{}; const raw=JSON.stringify(l);
-      body=card(heading('Alineaciones oficiales'),raw!=='{}'?D('cm62-grid cm62-grid-2',[h,a].map((id,i)=>D('cm62-roster-column',E('h3',{},esc(teamName(id))),D('cm62-list',(team(id)?.players||[]).map(p=>D('cm62-lineup-player',esc(model.playerName(p)))))))):empty('Alineaciones no registradas para este partido.'));
+      const l=m.lineups||{};
+      const sides=[['home',h],['away',a]];
+      const hasLineups=sides.some(([side])=>(l[side]?.starters||[]).length>0);
+      body=card(heading('Alineaciones registradas'),hasLineups?D('cm62-grid cm62-grid-2',sides.map(([side,id])=>D('cm62-roster-column',E('h3',{},esc(teamName(id))),D('cm62-list',(l[side]?.starters||[]).map(name=>D('cm62-lineup-player',esc(typeof name==='string'?name:model.playerName(name))))),P((l[side]?.changes||[]).length+' sustituciones registradas','cm62-muted')))):empty('Alineaciones no registradas para este partido.'));
     }else{
       body=card(heading('Datos del encuentro'),metrics([[played(m)?m.homeGoals:'—','Goles local'],[played(m)?m.awayGoals:'—','Goles visita'],[(m.goals||[]).length,'Goles con autor'],[(m.cards||[]).length,'Tarjetas registradas']]));
     }
