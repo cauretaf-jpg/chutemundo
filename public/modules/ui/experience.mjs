@@ -27,7 +27,13 @@ if (classic) {
     playerSearch: '',
     playerTeam: 'all',
     playerPosition: 'all',
-    disciplineTeam: 'all'
+    disciplineTeam: 'all',
+    statPeriod: 'all',
+    statTournament: 'all',
+    statTeam: 'all',
+    statFormat: 'all',
+    h2hA: '',
+    h2hB: ''
   };
   const pages = {
     inicio: ['Inicio', '⌂'],
@@ -209,7 +215,13 @@ if (classic) {
     cm62PlayerSearch:'playerSearch',
     cm62PlayerTeam:'playerTeam',
     cm62PlayerPosition:'playerPosition',
-    cm62DisciplineTeam:'disciplineTeam'
+    cm62DisciplineTeam:'disciplineTeam',
+    cm62StatPeriod:'statPeriod',
+    cm62StatTournament:'statTournament',
+    cm62StatTeam:'statTeam',
+    cm62StatFormat:'statFormat',
+    cm62H2HA:'h2hA',
+    cm62H2HB:'h2hB'
   };
   function filterChange(target) {
     const key=filterIds[target?.id];
@@ -250,6 +262,14 @@ if (classic) {
     }
     const shareButton=event.target.closest?.('[data-cm62-share]');
     if(shareButton){event.preventDefault();void share(shareButton.dataset.cm62Share);return;}
+    const h2h=event.target.closest?.('[data-cm62-h2h]');
+    if(h2h){
+      const [a,b]=h2h.dataset.cm62H2h.split('__');
+      filters.h2hA=a;filters.h2hB=b;
+      go('/estadisticas/h2h');
+      draw({keepScroll:true});
+      return;
+    }
     const login=event.target.closest?.('[data-cm62-login]');
     if(login){document.getElementById('authButton')?.click();return;}
     const classicButton=event.target.closest?.('[data-cm62-classic]');
