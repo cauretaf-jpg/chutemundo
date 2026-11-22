@@ -7,7 +7,12 @@ export function createViews(core, model) {
   };
   const D = (cls, ...children) => E('div', { class: cls }, ...children);
   const S = (cls, ...children) => E('section', { class: cls }, ...children);
-  const A = (label, route, cls = '') => E('a', { href: '#' + route, 'data-cm62-route': route, class: cls }, label);
+  function A(label, route, cls = '') {
+    if (arguments.length < 2 || arguments.length > 3 || typeof route !== 'string' || !route.startsWith('/')) {
+      throw new Error('Enlace ChuteMundo inválido: se esperaba contenido, ruta interna y clase opcional.');
+    }
+    return E('a', { href: '#' + route, 'data-cm62-route': route, class: cls }, label);
+  }
   const B = (label, route, cls = '') => A(label, route, 'cm62-btn ' + cls);
   const P = (content, cls = '') => E('p', { class: cls }, content);
   const H = (title, subtitle = '', kicker = '') => D('cm62-pagehead', P(esc(kicker), 'cm62-kicker'), E('h1', {}, esc(title)), subtitle ? P(esc(subtitle), 'cm62-muted') : '');
@@ -73,8 +78,8 @@ export function createViews(core, model) {
   };
   const tabNav = (base,items,current) => E('nav',{class:'cm62-tabs','aria-label':'Secciones de esta entidad'},items.map(([key,label])=>A(esc(label),base+(key==='resumen'?'':'/'+key),'cm62-tab'+(current===key?' active':''))));
   const breadcrumbs = (pairs) => D('cm62-crumbs',pairs.map(([label,url],i)=>(i?' / ':'')+(url?A(esc(label),url):E('span',{},esc(label)))));
-  const sectionTile = (title,desc,url,icon='↗') => A(D('cm62-tile-copy',E('span',{class:'cm62-tile-icon'},icon),E('strong',{},esc(title)),E('small',{},esc(desc))),E('span',{class:'cm62-tile-arrow'},'›'),url,'cm62-tile');
-  const playerGrid = (rows) => rows.length ? D('cm62-players-grid',rows.map(p=>A(D('cm62-player-img',photo(p.teamId,p.name)),D('cm62-player-copy',E('strong',{},esc(p.name)),E('span',{},esc(p.position||'Jugador')),E('small',{},esc(teamName(p.teamId))+' · Ver trayectoria  ›')),playerRoute(p.teamId,p.name),'cm62-player-card'))) : empty('No hay jugadores con esos filtros.');
+  const sectionTile = (title,desc,url,icon='↗') => A(D('cm62-tile-copy',E('span',{class:'cm62-tile-icon'},icon),E('strong',{},esc(title)),E('small',{},esc(desc)))+E('span',{class:'cm62-tile-arrow'},'›'),url,'cm62-tile');
+  const playerGrid = (rows) => rows.length ? D('cm62-players-grid',rows.map(p=>A(D('cm62-player-img',photo(p.teamId,p.name))+D('cm62-player-copy',E('strong',{},esc(p.name)),E('span',{},esc(p.position||'Jugador')),E('small',{},esc(teamName(p.teamId))+' · Ver trayectoria  ›')),playerRoute(p.teamId,p.name),'cm62-player-card'))) : empty('No hay jugadores con esos filtros.');
   const resultsList = (rows,limit=999) => rows.length ? D('cm62-results',rows.slice(0,limit).map(x=>scoreCard(x))) : empty('Todavía no existen partidos para mostrar.');
   function home() {
     const t=active();
@@ -135,7 +140,7 @@ export function createViews(core, model) {
   function matchDetail(tid,mid,tab='resumen') {
     const t=tournament(tid),m=t?.matches?.find(x=>x.id===mid);if(!t||!m)return H('Partido no encontrado')+B('Ver partidos','/partidos');
     const [h,a]=matchTeams(t,m),base=matchRoute(tid,mid);
-    const hero=breadcrumbs([['Torneos','/torneos'],[t.name,tournamentRoute(tid)],['Partido',null]])+D('cm62-scoreboard',P(esc(m.round||m.group||'PARTIDO')+' · '+esc(t.name),'cm62-kicker'),D('cm62-scoreboard-main',A(logo(h,'is-xl')+E('strong',{},esc(teamName(h))),teamRoute(h),'cm62-scoreboard-team'),D('cm62-score-large',E('b',{},esc(matchResult(m))),E('small',{},played(m)?'Finalizado':'Por jugar')),A(logo(a,'is-xl')+E('strong',{},esc(teamName(a))),teamRoute(a),'cm62-scoreboard-team')),P(esc(dateText(m)),'cm62-muted'));
+    const hero=breadcrumbs([['Torneos','/torneos'],[t.name,tournamentRoute(tid)],['Partido',null]])+D('cm62-scoreboard',P(esc(m.round||m.group||'PARTIDO')+' · '+esc(t.name),'cm62-kicker'),E('h1',{class:'cm62-match-heading'},esc(teamName(h)+' vs '+teamName(a))),D('cm62-scoreboard-main',A(logo(h,'is-xl')+E('strong',{},esc(teamName(h))),teamRoute(h),'cm62-scoreboard-team'),D('cm62-score-large',E('b',{},esc(matchResult(m))),E('small',{},played(m)?'Finalizado':'Por jugar')),A(logo(a,'is-xl')+E('strong',{},esc(teamName(a))),teamRoute(a),'cm62-scoreboard-team')),P(esc(dateText(m)),'cm62-muted'));
     const nav=tabNav(base,[['resumen','Resumen'],['eventos','Eventos'],['alineaciones','Alineaciones'],['estadisticas','Estadísticas']],tab);
     const eventRows=[];
     for(const g of m.goals||[])eventRows.push({minute:Number(g.minute)||0,kind:'Gol',name:g.playerName||'',teamId:g.teamId|| (g.side==='away'?a:h)});
@@ -160,7 +165,7 @@ export function createViews(core, model) {
   function clubCatalog(filters){
     const q=filters.teamSearch.toLowerCase();
     const rows=teams().filter(t=>t.name.toLowerCase().includes(q)||(t.coach||'').toLowerCase().includes(q)||(t.players||[]).some(p=>model.playerName(p).toLowerCase().includes(q)));
-    return H('Equipos','Los clubes como puertas de entrada al universo Chute.','CLUBES')+D('cm62-controls',E('input',{id:'cm62TeamSearch',type:'search',value:filters.teamSearch,placeholder:'Buscar por club, responsable o jugador…','aria-label':'Buscar club'}),E('span',{},rows.length+' clubes'))+D('cm62-clubs-grid',rows.map(x=>A(logo(x.id,'is-xl'),E('h2',{},esc(x.name)),P((x.players||[]).length+' jugadores · '+(x.coach?'DT: '+esc(x.coach):'Plantel y rendimiento'),'cm62-muted'),E('span',{class:'cm62-link-hint'},'Ver club ›'),teamRoute(x.id),'cm62-card cm62-club-card')));
+    return H('Equipos','Los clubes como puertas de entrada al universo Chute.','CLUBES')+D('cm62-controls',E('input',{id:'cm62TeamSearch',type:'search',value:filters.teamSearch,placeholder:'Buscar por club, responsable o jugador…','aria-label':'Buscar club'}),E('span',{},rows.length+' clubes'))+D('cm62-clubs-grid',rows.map(x=>A(logo(x.id,'is-xl')+E('h2',{},esc(x.name))+P((x.players||[]).length+' jugadores · '+(x.coach?'DT: '+esc(x.coach):'Plantel y rendimiento'),'cm62-muted')+E('span',{class:'cm62-link-hint'},'Ver club ›'),teamRoute(x.id),'cm62-card cm62-club-card')));
   }
   function matchesForTeam(id){return allMatches().filter(x=>{const [h,a]=matchTeams(x.tournament,x.match);return h===id||a===id})}
   function clubDetail(id,tab='resumen'){

@@ -1,6 +1,6 @@
 {
   "name": "chutemundo",
-  "version": "6.2.0",
+  "version": "6.2.1",
   "private": true,
   "description": "Chute Mundo: plataforma deportiva con torneos, partidos, Firebase, Ranking FIFA/ELO, ranking histórico, perfiles y estadísticas.",
   "scripts": {
@@ -14,7 +14,8 @@
     "smoke": "node scripts/smoke-v6.mjs",
     "smoke:responsive": "node scripts/smoke-responsive.mjs",
     "check:data": "node scripts/check-data-integrity.mjs",
-    "smoke:experience": "node scripts/smoke-experience.mjs"
+    "smoke:experience": "node scripts/smoke-experience.mjs",
+    "smoke:clicks": "node scripts/smoke-click-navigation.mjs"
   },
   "devDependencies": {
     "serve": "^14.2.4"

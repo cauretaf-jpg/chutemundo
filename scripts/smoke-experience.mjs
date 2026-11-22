@@ -30,7 +30,7 @@ try {
         width:document.documentElement.scrollWidth,
         viewport:document.documentElement.clientWidth
       }));
-      if(status.version!=='6.2.0')failures.push(size.name+': versión incorrecta '+JSON.stringify(status));
+      if(status.version!=='6.2.1')failures.push(size.name+': versión incorrecta '+JSON.stringify(status));
       if(!status.rootVisible||status.oldPageVisible)failures.push(size.name+': fuente antigua visible o experiencia oculta');
       if(status.titleCount!==1)failures.push(size.name+': Inicio contiene títulos principales duplicados');
       if(status.width>status.viewport+3)failures.push(size.name+': Inicio desborda '+JSON.stringify(status));
@@ -92,13 +92,13 @@ try {
           failures.push(size.name+': ruta '+route+' falló '+JSON.stringify(view));
       }
       if(size.name==='mobile-standard'){
-        await page.evaluate(()=>window.ChuteExperience.navigate('/torneos/'+encodeURIComponent(keys.t)));
+        await page.evaluate((ids)=>window.ChuteExperience.navigate('/torneos/'+encodeURIComponent(ids.t)),keys);
         await page.screenshot({path:'/tmp/chute-6-2-torneo.png',fullPage:true});
-        await page.evaluate(()=>window.ChuteExperience.navigate('/equipos/'+encodeURIComponent(keys.club)));
+        await page.evaluate((ids)=>window.ChuteExperience.navigate('/equipos/'+encodeURIComponent(ids.club)),keys);
         await page.screenshot({path:'/tmp/chute-6-2-club.png',fullPage:true});
       }
       await page.evaluate(()=>window.ChuteExperience.navigate('/torneos'));
-      await page.evaluate(()=>window.ChuteExperience.navigate('/equipos/'+encodeURIComponent(keys.club)));
+      await page.evaluate((ids)=>window.ChuteExperience.navigate('/equipos/'+encodeURIComponent(ids.club)),keys);
       await page.evaluate(()=>window.ChuteExperience.back());
       await page.waitForFunction(()=>window.ChuteExperience.route()==='/torneos',{timeout:4000});
       if(badResources.length) failures.push(size.name+': recursos rotos '+badResources.join(' | '));

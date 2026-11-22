@@ -4,7 +4,7 @@ ChuteMundo es la plataforma deportiva del universo Chute. Gestiona torneos, part
 
 ## Versión actual
 
-**ChuteMundo 6.2.0 — navegación inmersiva**
+**ChuteMundo 6.2.1 — navegación inmersiva**
 
 La versión 6.2 implementa el prototipo visual aprobado: Inicio único, catálogo de torneos, centro de torneo, calendario y centro de partido, clubes, jugadores, explorador estadístico, disciplina y administración, tanto en móvil como en escritorio. Todas las vistas deportivas usan datos existentes de Firebase y conservan un recorrido contextual. Se mantiene la modularización 6.1.
 

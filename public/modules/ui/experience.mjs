@@ -15,7 +15,7 @@ if (classic) {
   if (['administracion','torneos','partidos','equipos','jugadores','estadisticas','disciplina'].includes(classicPage)) core.navigate(classicPage);
   const focus=new URLSearchParams(location.search).get('focus');
   if (focus) setTimeout(()=>document.getElementById(focus)?.scrollIntoView({behavior:'smooth',block:'start'}),500);
-  window.ChuteExperience = Object.freeze({ enabled: false, version: '6.2.0' });
+  window.ChuteExperience = Object.freeze({ enabled: false, version: '6.2.1' });
 } else {
   const views = createViews(core, model);
   const filters = {
@@ -315,7 +315,7 @@ if (classic) {
   document.addEventListener('chute:boot-complete',()=>draw({keepScroll:true}));
   draw();
   window.ChuteExperience = Object.freeze({
-    enabled:true,version:'6.2.0',navigate:go,back,
+    enabled:true,version:'6.2.1',navigate:go,back,
     route:()=>route,
     refresh:()=>draw({keepScroll:true}),
     get filters(){return {...filters}}

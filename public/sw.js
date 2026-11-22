@@ -1,6 +1,6 @@
 importScripts('/version.js');
 
-const VERSION = self.CHUTE_APP_VERSION || '6.0.0';
+const VERSION = self.CHUTE_APP_VERSION || '6.2.1';
 const CACHE = `chute-mundo-v${VERSION}`;
 const APP_SHELL = [
   '/',
