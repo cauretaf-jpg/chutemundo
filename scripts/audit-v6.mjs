@@ -18,11 +18,15 @@ const vercel = read('vercel.json');
 const safety = read('public/modules/core/safety.mjs');
 const playerIds = read('public/modules/data/player-ids.mjs');
 
-ok(version.includes("const VERSION = '6.1.0'"), 'version.js no declara 6.1.0.');
-ok(index.includes('/app.mjs?v=6.1.0'), 'index.html no carga app.mjs 6.1.0.');
+ok(version.includes("const VERSION = '6.2.0'"), 'version.js no declara 6.2.0.');
+ok(index.includes('/app.mjs?v=6.2.0'), 'index.html no carga app.mjs 6.2.0.');
 ok(app.includes('/modules/core/app.mjs'), 'app.mjs no carga el núcleo modular.');
 ok(app.includes('/modules/matches/live.mjs'), 'app.mjs no carga el centro de partido modular.');
 ok(!fs.existsSync('public/modules/core/split-loader.mjs'), 'split-loader.mjs sigue activo.');
+ok(fs.existsSync('public/modules/ui/experience.mjs') && fs.existsSync('public/modules/ui/experience-views.mjs'), 'Faltan pantallas contextuales 6.2.');
+ok(app.includes('/modules/ui/experience.mjs'), 'No se inicializa la experiencia 6.2.');
+ok(index.includes('/styles/experience.css?v=6.2.0'), 'El diseño 6.2 no está enlazado.');
+ok(read('public/modules/ui/experience-views.mjs').includes('function playerDetail') && read('public/modules/ui/experience-views.mjs').includes('function matchDetail'), 'Faltan vistas de jugadores o partidos.');
 ok(walk('public/modules').every((file) => !file.endsWith('.txt')), 'Persisten fragmentos .txt en public/modules.');
 ok(read('public/modules/statistics/history.mjs').includes('/styles/history.css'), 'Estadísticas no carga history.css.');
 ok(!app.includes('/modules/dashboard/index.mjs'), 'Inicio volvió a cargar el dashboard redundante.');
