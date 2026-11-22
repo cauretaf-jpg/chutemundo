@@ -202,6 +202,16 @@
 .cm62-desktop-menu-panel a{display:flex;align-items:center;min-height:41px;padding:8px 13px;color:#154b34;font-weight:800;text-decoration:none;border-radius:10px}
 .cm62-desktop-menu-panel a:hover{background:#e8f5ec}
 
+
+.cm62-stats-filters{display:grid;gap:10px;background:#fff;border:1px solid #d8e5dc;border-radius:16px;padding:15px 17px}
+.cm62-stats-filters .cm62-kicker{margin:0;color:#2d8060}
+.cm62-filter-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;align-items:end}
+.cm62-filter-grid-2{grid-template-columns:repeat(2,minmax(0,1fr));margin-bottom:15px}
+.cm62-filter-field{display:grid;gap:5px;font-size:.75rem;font-weight:850;color:#516b5d;min-width:0}
+.cm62-filter-field select{display:block;min-width:0;width:100%;height:42px;border:1px solid #d4e2d9;border-radius:10px;background:#f8fbf9;color:#153e2e;padding:0 10px;font-size:.8rem}
+.cm62-root .cm62-admin-tile{appearance:none;text-align:left;cursor:pointer;font:inherit}
+.cm62-root .cm62-admin-tile:hover{background:#f3faf5}
+
 @media(max-width:1050px){
  .cm62-clubs-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
  .cm62-players-grid{grid-template-columns:repeat(3,minmax(0,1fr))}
@@ -234,6 +244,9 @@
  .cm62-feature .cm62-kicker{font-size:.66rem}
  .cm62-section-head h2{font-size:1.06rem}
  .cm62-pagehead h1{font-size:2.1rem}
+ .cm62-filter-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:7px}
+ .cm62-stats-filters{padding:12px}
+ .cm62-filter-field select{font-size:.75rem}
  .cm62-controls{padding:9px;gap:8px}
  .cm62-controls input,.cm62-controls select{min-width:110px;flex:1 1 auto}
  .cm62-clubs-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
