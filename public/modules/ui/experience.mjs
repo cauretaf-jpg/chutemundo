@@ -67,6 +67,20 @@ if (classic) {
     ['administracion','Administración']
   ].map(([id,label]) => '<a href="#/'+id+'" data-cm62-route="/'+id+'">'+label+'<span>›</span></a>').join('');
   document.body.append(nav,sheet);
+  const desktopNav = document.querySelector('.nav');
+  const desktopMenu = document.createElement('div');
+  desktopMenu.className = 'cm62-desktop-menu';
+  desktopMenu.innerHTML = '<button type="button" data-cm62-desktop-more aria-expanded="false">Más ▾</button>' +
+    '<div class="cm62-desktop-menu-panel" hidden>' +
+    '<a href="#/disciplina" data-cm62-route="/disciplina">Disciplina</a>' +
+    '<a href="#/administracion" data-cm62-route="/administracion">Administración</a>' +
+    '</div>';
+  desktopNav?.appendChild(desktopMenu);
+  function closeDesktopMenu() {
+    const panel=desktopMenu.querySelector('.cm62-desktop-menu-panel');
+    if(panel)panel.hidden=true;
+    desktopMenu.querySelector('[data-cm62-desktop-more]')?.setAttribute('aria-expanded','false');
+  }
   const actions = document.querySelector('.top-actions');
   if (actions && !actions.querySelector('[data-cm62-search]')) {
     const search = document.createElement('button');
@@ -82,9 +96,9 @@ if (classic) {
   const brand = document.querySelector('.brand strong');
   if (brand) brand.textContent = 'CHUTE MUNDO';
 
-  if (!location.hash.startsWith('#/')) history.replaceState({ cm62: true }, '', location.pathname + location.search + '#/inicio');
+  if (!location.hash.startsWith('#/')) history.replaceState({ cm62: true,cm62Depth:0 }, '', location.pathname + location.search + '#/inicio');
   let route = '';
-  let depth = 0;
+  let depth = Number(history.state?.cm62Depth||0);
   let lastSignature = '';
   let refreshScheduled = false;
   const normalize = (value) => {
@@ -139,6 +153,7 @@ if (classic) {
     }
     updateNav();
     closeSheet();
+    closeDesktopMenu();
     const target = keepFocus && document.getElementById(keepFocus);
     if (target) {
       target.focus({preventScroll:true});
@@ -157,12 +172,12 @@ if (classic) {
       return;
     }
     if(next===route) {closeSheet();return;}
-    if(replace) history.replaceState({cm62:true},'', '#'+next);
-    else {history.pushState({cm62:true},'', '#'+next);depth++;}
+    if(replace) history.replaceState({cm62:true,cm62Depth:depth},'', '#'+next);
+    else {depth=Number(history.state?.cm62Depth||0)+1;history.pushState({cm62:true,cm62Depth:depth},'', '#'+next);}
     draw();
   }
   function back(){
-    if(depth>0){depth--;history.back();}
+    if(Number(history.state?.cm62Depth||0)>0){history.back();}
     else go(fallbackRoute(route));
   }
   async function share(path) {
@@ -212,6 +227,14 @@ if (classic) {
     }
     const backButton=event.target.closest?.('[data-cm62-back]');
     if(backButton){event.preventDefault();event.stopImmediatePropagation();back();return;}
+    const desktopMore=event.target.closest?.('[data-cm62-desktop-more]');
+    if(desktopMore) {
+      event.preventDefault();
+      const panel=desktopMenu.querySelector('.cm62-desktop-menu-panel');
+      panel.hidden=!panel.hidden;
+      desktopMore.setAttribute('aria-expanded',String(!panel.hidden));
+      return;
+    }
     const more=event.target.closest?.('[data-cm62-more]');
     if(more){event.preventDefault();sheet.hidden=!sheet.hidden;more.setAttribute('aria-expanded',String(!sheet.hidden));return;}
     const search=event.target.closest?.('[data-cm62-search]');
@@ -243,9 +266,11 @@ if (classic) {
       }
     }
     if(!event.target.closest('#cm62MoreSheet'))closeSheet();
+    if(!event.target.closest('.cm62-desktop-menu'))closeDesktopMenu();
   },true);
-  window.addEventListener('popstate',()=>draw());
+  window.addEventListener('popstate',()=>{depth=Number(history.state?.cm62Depth||0);draw()});
   window.addEventListener('hashchange',()=>{if(route!==routeFromHash())draw()});
+  window.addEventListener('keydown',event=>{if(event.key==='Escape'){closeSheet();closeDesktopMenu();}});
   document.addEventListener('chute:state-changed',()=>{
     if(refreshScheduled)return;
     refreshScheduled=true;
