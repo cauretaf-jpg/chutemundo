@@ -34,7 +34,7 @@ try {
       .filter((url) => /\/chute-v\d/i.test(new URL(url).pathname))
   }));
 
-  if (boot.version !== '6.2.0' || !boot.title.includes('6.2.0')) throw new Error('Versión canónica incorrecta: ' + JSON.stringify(boot));
+  if (boot.version !== '6.2.1' || !boot.title.includes('6.2.1')) throw new Error('Versión canónica incorrecta: ' + JSON.stringify(boot));
   if (!boot.mobileNav) throw new Error('No se creó la navegación móvil.');
   if (boot.width > boot.viewport + 3) throw new Error('Existe desborde horizontal móvil: ' + JSON.stringify(boot));
   if (boot.playerIds < 1) throw new Error('No se construyó el registro permanente de jugadores.');
@@ -147,7 +147,7 @@ try {
   }
   if (badResources.length) throw new Error('Recursos críticos con error HTTP tras recorrer la app: ' + JSON.stringify(badResources));
 
-  console.log('ChuteMundo 6.2.0 smoke OK', { boot, ids: ids.count, homeMobile, teamsMobile, statsMobile, pageLayouts });
+  console.log('ChuteMundo 6.2.1 smoke OK', { boot, ids: ids.count, homeMobile, teamsMobile, statsMobile, pageLayouts });
 } finally {
   await context.close();
   await browser.close();
