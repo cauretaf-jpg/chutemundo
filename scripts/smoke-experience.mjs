@@ -98,7 +98,7 @@ try {
         await page.screenshot({path:'/tmp/chute-6-2-club.png',fullPage:true});
       }
       await page.evaluate(()=>window.ChuteExperience.navigate('/torneos'));
-      await page.evaluate(()=>window.ChuteExperience.navigate('/equipos/'+encodeURIComponent(keys.club)));
+      await page.evaluate((ids)=>window.ChuteExperience.navigate('/equipos/'+encodeURIComponent(ids.club)),keys);
       await page.evaluate(()=>window.ChuteExperience.back());
       await page.waitForFunction(()=>window.ChuteExperience.route()==='/torneos',{timeout:4000});
       if(badResources.length) failures.push(size.name+': recursos rotos '+badResources.join(' | '));
