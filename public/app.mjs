@@ -1,4 +1,4 @@
-const VERSION = window.CHUTE_APP_VERSION || '6.1.0';
+const VERSION = window.CHUTE_APP_VERSION || '6.2.0';
 const load = (path) => import(`${path}?v=${encodeURIComponent(VERSION)}`);
 
 await load('/modules/core/bootstrap.mjs');
@@ -40,6 +40,7 @@ await load('/modules/ui/fixes.mjs');
 await load('/modules/statistics/fifa.mjs');
 await load('/modules/statistics/historical-player-stats.mjs');
 await load('/modules/ui/enhancements.mjs');
+await load('/modules/ui/experience.mjs');
 
 window.ChuteVersion?.apply?.();
 document.dispatchEvent(new CustomEvent('chute:boot-complete', {
