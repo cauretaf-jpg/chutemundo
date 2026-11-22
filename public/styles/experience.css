@@ -192,6 +192,16 @@
 .cm62-classic-banner a{color:#0a674b;text-decoration:underline}
 .cm62-bottom-nav{display:none}
 .cm62-more-sheet{display:none}
+
+.cm62-active .nav .nav-button[data-page="disciplina"],
+.cm62-active .nav .nav-button[data-page="administracion"]{display:none}
+.cm62-desktop-menu{position:relative;display:grid;align-items:center}
+.cm62-desktop-menu>button{min-height:39px;padding:8px 16px;border:0;border-radius:999px;background:transparent;color:#d1e5db;font-size:.85rem;font-weight:800;cursor:pointer}
+.cm62-desktop-menu>button:hover,.cm62-desktop-menu>button[aria-expanded="true"]{background:#15805b;color:#fff}
+.cm62-desktop-menu-panel:not([hidden]){display:grid;position:absolute;top:48px;right:0;z-index:130;width:210px;padding:8px;gap:5px;background:white;border:1px solid #d7e6da;border-radius:13px;box-shadow:0 16px 40px rgba(3,31,20,.2)}
+.cm62-desktop-menu-panel a{display:flex;align-items:center;min-height:41px;padding:8px 13px;color:#154b34;font-weight:800;text-decoration:none;border-radius:10px}
+.cm62-desktop-menu-panel a:hover{background:#e8f5ec}
+
 @media(max-width:1050px){
  .cm62-clubs-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
  .cm62-players-grid{grid-template-columns:repeat(3,minmax(0,1fr))}
@@ -206,6 +216,7 @@
  .cm62-active #syncStatus{display:none}
  .cm62-active .top-button{padding:8px 12px;font-size:.76rem}
  .cm62-active .nav{display:none!important}
+ .cm62-desktop-menu{display:none!important}
  .cm62-active main.container{width:calc(100% - 24px);margin:0 12px 45px}
  .cm62-root{padding-top:14px}
  .cm62-root .cm62-content{gap:13px}
