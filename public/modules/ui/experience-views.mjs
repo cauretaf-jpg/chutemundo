@@ -7,7 +7,12 @@ export function createViews(core, model) {
   };
   const D = (cls, ...children) => E('div', { class: cls }, ...children);
   const S = (cls, ...children) => E('section', { class: cls }, ...children);
-  const A = (label, route, cls = '') => E('a', { href: '#' + route, 'data-cm62-route': route, class: cls }, label);
+  function A(label, route, cls = '') {
+    if (arguments.length < 2 || arguments.length > 3 || typeof route !== 'string' || !route.startsWith('/')) {
+      throw new Error('Enlace ChuteMundo inválido: se esperaba contenido, ruta interna y clase opcional.');
+    }
+    return E('a', { href: '#' + route, 'data-cm62-route': route, class: cls }, label);
+  }
   const B = (label, route, cls = '') => A(label, route, 'cm62-btn ' + cls);
   const P = (content, cls = '') => E('p', { class: cls }, content);
   const H = (title, subtitle = '', kicker = '') => D('cm62-pagehead', P(esc(kicker), 'cm62-kicker'), E('h1', {}, esc(title)), subtitle ? P(esc(subtitle), 'cm62-muted') : '');
